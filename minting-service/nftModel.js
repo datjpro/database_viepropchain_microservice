@@ -8,7 +8,7 @@ const nftSchema = new mongoose.Schema({
   description: { type: String },
   image: { type: String }, // IPFS hash của hình ảnh
   attributes: [{ trait_type: String, value: String }],
-  ipfsHash: { type: String, required: true }, // Hash của metadata trên IPFS
+  ipfsHash: { type: String }, // Hash của metadata trên IPFS (optional nếu IPFS fail)
   tokenURI: { type: String, required: true },
   transactionHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },

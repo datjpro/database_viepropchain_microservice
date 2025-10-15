@@ -1,10 +1,6 @@
 // minting-service/index.js
-require("dotenv").config({ path: "./.env", debug: true });
-console.log("MONGO_URI:", process.env.MONGO_URI ? "loaded" : "not loaded");
-console.log(
-  "SEPOLIA_RPC_URL:",
-  process.env.SEPOLIA_RPC_URL ? "loaded" : "not loaded"
-);
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
