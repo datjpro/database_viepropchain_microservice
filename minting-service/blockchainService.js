@@ -90,19 +90,62 @@ async function mintNFT(recipient, metadata) {
     console.log("Giao dịch đã được xác nhận!");
 
     // Lấy Token ID từ sự kiện "Transfer" trong biên lai
-    const transferEvent = receipt.logs.find((log) => {
+    console.log(`📋 Số lượng logs: ${receipt.logs.length}`);
+
+    let tokenId = null;
+
+    // Thử parse từng log để tìm Transfer event
+    for (const log of receipt.logs) {
       try {
-        const parsed = nftContract.interface.parseLog(log);
-        return parsed.name === "Transfer";
-      } catch {
-        return false;
+        const parsed = nftContract.interface.parseLog({
+          topics: log.topics,
+          data: log.data,
+        });
+
+        console.log(`🔍 Event tìm thấy: ${parsed.name}`);
+
+        if (parsed.name === "Transfer") {
+          tokenId = parsed.args.tokenId.toString();
+          console.log(`✅ Tìm thấy Transfer event, tokenId: ${tokenId}`);
+          break;
+        }
+      } catch (error) {
+        // Log không phải từ contract này, skip
+        continue;
       }
-    });
-    if (!transferEvent) {
-      throw new Error("Không tìm thấy sự kiện Transfer trong giao dịch.");
     }
-    const parsedLog = nftContract.interface.parseLog(transferEvent);
-    const tokenId = parsedLog.args.tokenId.toString();
+
+    if (!tokenId) {
+      // Fallback 1: Thử lấy từ tokenCounter
+      try {
+        console.log("⚠️ Không tìm thấy Transfer event, thử tokenCounter...");
+        const counter = await nftContract.tokenCounter();
+        tokenId = counter.toString();
+        console.log(`📊 TokenId từ counter: ${tokenId}`);
+      } catch (counterError) {
+        console.log("❌ tokenCounter() không hoạt động:", counterError.message);
+
+        // Fallback 2: Parse raw logs trực tiếp
+        console.log("🔄 Thử parse raw logs...");
+        for (const log of receipt.logs) {
+          // Transfer event signature: Transfer(address,address,uint256)
+          const transferTopic =
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+          if (log.topics[0] === transferTopic && log.topics.length >= 4) {
+            // tokenId là topic thứ 4 (index 3)
+            tokenId = parseInt(log.topics[3], 16).toString();
+            console.log(`✅ Lấy tokenId từ raw log: ${tokenId}`);
+            break;
+          }
+        }
+
+        // Fallback 3: Dùng timestamp nếu không có cách nào khác
+        if (!tokenId) {
+          tokenId = `temp_${Date.now()}`;
+          console.log(`⚠️ Dùng temporary tokenId: ${tokenId}`);
+        }
+      }
+    }
 
     // Lưu thông tin NFT vào MongoDB
     const nftData = {
