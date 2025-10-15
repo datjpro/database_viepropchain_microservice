@@ -12,11 +12,11 @@ const PORT = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json()); // Middleware để đọc JSON body
 
-// Kết nối MongoDB (optional - comment out nếu không dùng)
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => console.log("✅ Connected to MongoDB"))
-//   .catch((err) => console.error("❌ MongoDB connection error:", err));
+// Kết nối MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Endpoint chính để thực hiện mint
 app.post("/mint", async (req, res) => {

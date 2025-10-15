@@ -63,10 +63,21 @@ async function mintNFT(recipient, metadata) {
       attributes: metadata.attributes || [],
     };
 
-    // Upload metadata lên IPFS
-    // const ipfsHash = await uploadToIPFS(nftMetadata);
-    // const tokenURI = `ipfs://${ipfsHash}`;
-    const tokenURI = `https://example.com/metadata.json`; // Temporary
+    // Upload metadata lên IPFS với fallback nếu thất bại
+    let ipfsHash = null;
+    let tokenURI = "";
+
+    try {
+      console.log("📤 Đang upload metadata lên IPFS...");
+      ipfsHash = await uploadToIPFS(nftMetadata);
+      tokenURI = `ipfs://${ipfsHash}`;
+      console.log(`✅ Đã upload lên IPFS: ${ipfsHash}`);
+    } catch (ipfsError) {
+      console.warn("⚠️ IPFS upload thất bại, sử dụng fallback URL");
+      console.warn("IPFS Error:", ipfsError.message);
+      // Fallback: tạo temporary URL hoặc dùng centralized storage
+      tokenURI = `https://api.example.com/metadata/${Date.now()}`;
+    }
 
     console.log(`TokenURI: ${tokenURI}`);
 
@@ -94,28 +105,39 @@ async function mintNFT(recipient, metadata) {
     const tokenId = parsedLog.args.tokenId.toString();
 
     // Lưu thông tin NFT vào MongoDB
-    const newNFT = new NFT({
+    const nftData = {
       tokenId,
       owner: recipient,
       name: metadata.name,
       description: metadata.description,
       image: metadata.image,
       attributes: metadata.attributes,
-      // ipfsHash,
       tokenURI,
       transactionHash: tx.hash,
-    });
+    };
 
+    // Chỉ thêm ipfsHash nếu có
+    if (ipfsHash) {
+      nftData.ipfsHash = ipfsHash;
+    }
+
+    const newNFT = new NFT(nftData);
     await newNFT.save();
     console.log(`✅ NFT ${tokenId} đã được lưu vào MongoDB`);
 
-    return {
+    const response = {
       success: true,
       tokenId,
       transactionHash: tx.hash,
-      // ipfsHash,
       tokenURI,
     };
+
+    // Thêm ipfsHash vào response nếu có
+    if (ipfsHash) {
+      response.ipfsHash = ipfsHash;
+    }
+
+    return response;
   } catch (error) {
     console.error("Lỗi khi mint NFT:", error.message);
     console.error("Stack:", error.stack);
