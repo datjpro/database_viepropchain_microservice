@@ -1,10 +1,6 @@
 // minting-service/index.js
-require("dotenv").config({ path: "./.env", debug: true });
-console.log("MONGO_URI:", process.env.MONGO_URI ? "loaded" : "not loaded");
-console.log(
-  "SEPOLIA_RPC_URL:",
-  process.env.SEPOLIA_RPC_URL ? "loaded" : "not loaded"
-);
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -16,11 +12,11 @@ const PORT = process.env.PORT || 3002;
 app.use(cors());
 app.use(express.json()); // Middleware để đọc JSON body
 
-// Kết nối MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+// Kết nối MongoDB (optional - comment out nếu không dùng)
+// mongoose
+//   .connect(process.env.MONGO_URI)
+//   .then(() => console.log("✅ Connected to MongoDB"))
+//   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Endpoint chính để thực hiện mint
 app.post("/mint", async (req, res) => {

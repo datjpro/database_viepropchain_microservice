@@ -1,4 +1,6 @@
 // minting-service/blockchainService.js
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") }); // Load from same directory
 const { ethers } = require("ethers");
 const mongoose = require("mongoose");
 const NFT = require("./nftModel");
@@ -8,22 +10,42 @@ const contractABI = require("./contract-abi.json").contracts.ViePropChainNFT
   .abi;
 
 // Khởi tạo các đối tượng cần thiết để kết nối và tương tác
+let provider, signer, nftContract;
+
 try {
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL, {
-    name: "ganache",
-    chainId: 1337,
-    ensAddress: null,
-  });
-  const privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY;
-  console.log("Private key length:", privateKey.length);
-  console.log("Private key starts with:", privateKey.substring(0, 4));
-  const signer = new ethers.Wallet(privateKey, provider);
-  const nftContract = new ethers.Contract(
-    process.env.NFT_CONTRACT_ADDRESS,
+  // Kiểm tra các biến môi trường bắt buộc
+  if (!process.env.CONTRACT_OWNER_PRIVATE_KEY) {
+    throw new Error("CONTRACT_OWNER_PRIVATE_KEY is not defined in .env file");
+  }
+  if (!process.env.NFT_CONTRACT_ADDRESS) {
+    throw new Error("NFT_CONTRACT_ADDRESS is not defined in .env file");
+  }
+
+  provider = new ethers.JsonRpcProvider(
+    process.env.RPC_URL || "http://localhost:8545",
+    {
+      name: "ganache",
+      chainId: 1337,
+      ensAddress: null,
+    }
+  );
+
+  // Xử lý private key - loại bỏ dấu ngoặc kép và đảm bảo có 0x prefix
+  let privateKey = process.env.CONTRACT_OWNER_PRIVATE_KEY.replace(
+    /"/g,
+    ""
+  ).trim();
+  if (!privateKey.startsWith("0x")) {
+    privateKey = "0x" + privateKey;
+  }
+
+  signer = new ethers.Wallet(privateKey, provider);
+  nftContract = new ethers.Contract(
+    process.env.NFT_CONTRACT_ADDRESS.replace(/"/g, "").trim(),
     contractABI,
     signer
   );
-  console.log("Contract initialized successfully");
+  console.log("✅ Blockchain service initialized successfully");
 } catch (error) {
   console.error("Error initializing blockchain:", error.message);
   process.exit(1);
