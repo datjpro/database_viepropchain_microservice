@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { mintNFT } = require("./blockchainService");
+const { startEventListener, stopEventListener } = require("./eventListener");
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -15,7 +16,11 @@ app.use(express.json()); // Middleware để đọc JSON body
 // Kết nối MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    // Khởi động event listener sau khi kết nối MongoDB thành công
+    startEventListener();
+  })
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Endpoint chính để thực hiện mint
@@ -103,4 +108,13 @@ app.get("/nfts", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`✅ Minting Service API đang chạy tại http://localhost:${PORT}`);
+});
+
+// Xử lý graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Đang dừng service...");
+  stopEventListener();
+  await mongoose.connection.close();
+  console.log("✅ Đã đóng kết nối MongoDB");
+  process.exit(0);
 });
