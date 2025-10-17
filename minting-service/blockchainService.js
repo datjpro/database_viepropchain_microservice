@@ -51,32 +51,61 @@ try {
   process.exit(1);
 }
 
-async function mintNFT(recipient, metadata) {
+async function mintNFT(recipient, metadataOrTokenURI) {
   try {
-    console.log(`Bắt đầu mint cho ${recipient} với metadata:`, metadata);
+    console.log(`Bắt đầu mint cho ${recipient}`);
 
-    // Tạo metadata JSON
-    const nftMetadata = {
-      name: metadata.name,
-      description: metadata.description || "",
-      image: metadata.image || "",
-      attributes: metadata.attributes || [],
-    };
-
-    // Upload metadata lên IPFS với fallback nếu thất bại
-    let ipfsHash = null;
     let tokenURI = "";
+    let ipfsHash = null;
+    let nftMetadata = {};
 
-    try {
-      console.log("📤 Đang upload metadata lên IPFS...");
-      ipfsHash = await uploadToIPFS(nftMetadata);
-      tokenURI = `ipfs://${ipfsHash}`;
-      console.log(`✅ Đã upload lên IPFS: ${ipfsHash}`);
-    } catch (ipfsError) {
-      console.warn("⚠️ IPFS upload thất bại, sử dụng fallback URL");
-      console.warn("IPFS Error:", ipfsError.message);
-      // Fallback: tạo temporary URL hoặc dùng centralized storage
-      tokenURI = `https://api.example.com/metadata/${Date.now()}`;
+    // Check if metadataOrTokenURI is a string (tokenURI) or object (metadata)
+    if (typeof metadataOrTokenURI === "string") {
+      // NEW FLOW: Property Service already uploaded to IPFS and sends tokenURI
+      console.log(
+        "✅ Received tokenURI from Property Service:",
+        metadataOrTokenURI
+      );
+      tokenURI = metadataOrTokenURI;
+
+      // Extract IPFS hash from tokenURI if it's an IPFS URL
+      if (tokenURI.includes("ipfs://")) {
+        ipfsHash = tokenURI.replace("ipfs://", "");
+      } else if (tokenURI.includes("/ipfs/")) {
+        ipfsHash = tokenURI.split("/ipfs/")[1];
+      }
+
+      // We don't have metadata details in this flow, use minimal data
+      nftMetadata = {
+        name: "Property NFT",
+        description: "NFT created via Property Service",
+        image: "",
+        attributes: [],
+      };
+    } else {
+      // OLD FLOW: Backward compatibility - receive metadata object
+      console.log(`Mint với metadata object (old flow):`, metadataOrTokenURI);
+
+      // Tạo metadata JSON
+      nftMetadata = {
+        name: metadataOrTokenURI.name,
+        description: metadataOrTokenURI.description || "",
+        image: metadataOrTokenURI.image || "",
+        attributes: metadataOrTokenURI.attributes || [],
+      };
+
+      // Upload metadata lên IPFS với fallback nếu thất bại
+      try {
+        console.log("📤 Đang upload metadata lên IPFS...");
+        ipfsHash = await uploadToIPFS(nftMetadata);
+        tokenURI = `ipfs://${ipfsHash}`;
+        console.log(`✅ Đã upload lên IPFS: ${ipfsHash}`);
+      } catch (ipfsError) {
+        console.warn("⚠️ IPFS upload thất bại, sử dụng fallback URL");
+        console.warn("IPFS Error:", ipfsError.message);
+        // Fallback: tạo temporary URL hoặc dùng centralized storage
+        tokenURI = `https://api.example.com/metadata/${Date.now()}`;
+      }
     }
 
     console.log(`TokenURI: ${tokenURI}`);
@@ -161,10 +190,10 @@ async function mintNFT(recipient, metadata) {
 
       // 2. IPFS METADATA
       metadata: {
-        name: metadata.name,
-        description: metadata.description || "",
-        image: metadata.image || "",
-        attributes: metadata.attributes || [],
+        name: nftMetadata.name || "Property NFT",
+        description: nftMetadata.description || "",
+        image: nftMetadata.image || "",
+        attributes: nftMetadata.attributes || [],
       },
       ipfsHash: ipfsHash || null,
 
