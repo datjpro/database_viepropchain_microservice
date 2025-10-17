@@ -5,6 +5,7 @@
 ### 1. Admin mở trang `/admin/nft`
 
 ### 2. Điền form **ĐẦY ĐỦ** thông tin:
+
 - **Loại BĐS**: Chọn apartment/land/house/villa
 - **Địa chỉ ví người nhận**: `0xC6890b26A32d9d92aefbc8635C4588247529CdfE`
 - **Tên BĐS**: "Căn hộ Vinhomes Central Park"
@@ -29,35 +30,38 @@
 ### 4. JavaScript gọi API:
 
 ```javascript
-const response = await fetch('http://localhost:3003/properties/create-and-mint', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    recipient: "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
-    propertyType: "apartment",
-    name: "Căn hộ Vinhomes Central Park",
-    description: "Căn hộ 2PN view đẹp",
-    price: { amount: 5000000000, currency: "VND" },
-    location: {
-      address: "208 Nguyễn Hữu Cảnh",
-      ward: "Phường 22",
-      district: "Quận Bình Thạnh",
-      city: "TP. Hồ Chí Minh"
-    },
-    details: {
-      tenduan: "Vinhomes Central Park",
-      macanho: "L3-1205",
-      tang: 12,
-      dientichtimtuong: "85m2",
-      sophongngu: 2,
-      // ... all attributes
-    },
-    media: {
-      images: [{ url: "...", isPrimary: true }]
-    },
-    status: "published"
-  })
-});
+const response = await fetch(
+  "http://localhost:3003/properties/create-and-mint",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipient: "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+      propertyType: "apartment",
+      name: "Căn hộ Vinhomes Central Park",
+      description: "Căn hộ 2PN view đẹp",
+      price: { amount: 5000000000, currency: "VND" },
+      location: {
+        address: "208 Nguyễn Hữu Cảnh",
+        ward: "Phường 22",
+        district: "Quận Bình Thạnh",
+        city: "TP. Hồ Chí Minh",
+      },
+      details: {
+        tenduan: "Vinhomes Central Park",
+        macanho: "L3-1205",
+        tang: 12,
+        dientichtimtuong: "85m2",
+        sophongngu: 2,
+        // ... all attributes
+      },
+      media: {
+        images: [{ url: "...", isPrimary: true }],
+      },
+      status: "published",
+    }),
+  }
+);
 ```
 
 ### 5. Property Service làm TẤT CẢ tự động:
@@ -117,12 +121,15 @@ Token URI: https://gateway.pinata.cloud/ipfs/QmXxx...
 ## 🚫 KHÔNG CẦN:
 
 ### ❌ Trang "Tạo Bất động sản" riêng
+
 → **KHÔNG CẦN** vì trang Mint NFT đã bao gồm tất cả
 
 ### ❌ Gọi 2 API riêng biệt
+
 → **KHÔNG CẦN** vì chỉ cần 1 endpoint: `/properties/create-and-mint`
 
 ### ❌ Admin tự quản lý property ID
+
 → **KHÔNG CẦN** vì Property Service tự động tạo và quản lý
 
 ---
@@ -130,39 +137,44 @@ Token URI: https://gateway.pinata.cloud/ipfs/QmXxx...
 ## 📱 TRANG ADMIN CẦN CÓ:
 
 ### 1. **Mint NFT** (`/admin/nft`) ✅
+
 - Form tạo NFT (đã có đầy đủ)
 - Gọi `POST /properties/create-and-mint`
 - Hiển thị kết quả
 
 ### 2. **List NFT** (`/admin/list-nft`) ✅
+
 - Danh sách properties đã tạo
 - Gọi `GET /properties`
 - Filter, search
 - Click vào property → Xem chi tiết
 
 ### 3. **Marketplace** (`/admin/marketplace`) (Tương lai)
+
 - Quản lý bán NFT
 
 ### 4. **Analytics** (`/admin/analytics`) (Tương lai)
+
 - Thống kê
 
 ---
 
 ## 🔍 TÓM TẮT:
 
-| Câu hỏi | Trả lời |
-|---------|---------|
-| **Có cần trang tạo bất động sản riêng không?** | ❌ KHÔNG. Trang Mint NFT đã bao gồm tất cả |
-| **Frontend gọi API nào?** | ✅ `POST /properties/create-and-mint` |
-| **Có cần gọi Minting Service trực tiếp không?** | ❌ KHÔNG. Property Service tự gọi |
+| Câu hỏi                                           | Trả lời                                          |
+| ------------------------------------------------- | ------------------------------------------------ |
+| **Có cần trang tạo bất động sản riêng không?**    | ❌ KHÔNG. Trang Mint NFT đã bao gồm tất cả       |
+| **Frontend gọi API nào?**                         | ✅ `POST /properties/create-and-mint`            |
+| **Có cần gọi Minting Service trực tiếp không?**   | ❌ KHÔNG. Property Service tự gọi                |
 | **Có cần tạo property trước rồi mới mint không?** | ❌ KHÔNG. Endpoint `/create-and-mint` làm tất cả |
-| **Có cần 2 bước riêng biệt không?** | ❌ KHÔNG. Chỉ 1 lần gọi API |
+| **Có cần 2 bước riêng biệt không?**               | ❌ KHÔNG. Chỉ 1 lần gọi API                      |
 
 ---
 
 ## ✅ KẾT LUẬN:
 
 **Trang Admin HIỆN TẠI là ĐÚNG:**
+
 - Chỉ có 1 trang **Mint NFT**
 - Điền form đầy đủ
 - Click 1 nút

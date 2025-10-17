@@ -4,7 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const Property = require("./propertyModel");
-const { buildNFTMetadata } = require("./ipfsService");
+const { buildNFTMetadata, uploadMetadataToIPFS } = require("./ipfsService");
 const {
   requestMinting,
   checkMintingServiceHealth,
@@ -91,10 +91,24 @@ app.post("/properties/create-and-mint", async (req, res) => {
     // Build metadata
     const metadata = buildNFTMetadata(property);
 
-    console.log("📤 Step 3: Requesting minting from Minting Service...");
+    console.log("📤 Step 3: Uploading metadata to IPFS...");
 
-    // Request minting
-    const mintResult = await requestMinting(recipient, metadata);
+    // Upload metadata to IPFS
+    const { ipfsHash: metadataHash, tokenURI } = await uploadMetadataToIPFS(
+      metadata
+    );
+
+    console.log("✅ Metadata uploaded to IPFS:", metadataHash);
+    console.log("✅ Token URI:", tokenURI);
+
+    // Save IPFS metadata CID to property
+    property.ipfsMetadataCid = metadataHash;
+    await property.save();
+
+    console.log("📤 Step 4: Requesting minting from Minting Service...");
+
+    // Request minting with tokenURI
+    const mintResult = await requestMinting(recipient, tokenURI);
 
     if (!mintResult.success) {
       // If minting fails, keep property but mark as published
@@ -104,7 +118,8 @@ app.post("/properties/create-and-mint", async (req, res) => {
         success: false,
         error: mintResult.error,
         propertyId: property._id,
-        message: "Property created but minting failed. You can retry minting later.",
+        message:
+          "Property created but minting failed. You can retry minting later.",
       });
     }
 

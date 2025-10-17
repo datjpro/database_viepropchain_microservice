@@ -69,6 +69,7 @@ POST http://localhost:3003/properties/create-and-mint
 ```
 
 **Request Body:**
+
 ```json
 {
   "recipient": "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
@@ -99,16 +100,19 @@ POST http://localhost:3003/properties/create-and-mint
     "phap ly": "Sổ hồng"
   },
   "media": {
-    "images": [{
-      "url": "https://example.com/image.jpg",
-      "isPrimary": true
-    }]
+    "images": [
+      {
+        "url": "https://example.com/image.jpg",
+        "isPrimary": true
+      }
+    ]
   },
   "status": "published"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -153,6 +157,7 @@ GET http://localhost:3003/properties?status=minted
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -178,6 +183,7 @@ GET http://localhost:3003/properties/:id?incrementView=true
 ## 🎨 FRONTEND COMPONENTS
 
 ### **Admin NFT Page** (`/admin/nft`)
+
 - Form điền thông tin bất động sản
 - Chọn loại: apartment, land, house, villa
 - Các trường động theo loại BĐS
@@ -185,6 +191,7 @@ GET http://localhost:3003/properties/:id?incrementView=true
 - Hiển thị kết quả: Property info + NFT info
 
 ### **Admin List Page** (`/admin/list-nft`)
+
 - Gọi `GET /properties`
 - Hiển thị danh sách properties
 - Filter theo type, status
@@ -195,6 +202,7 @@ GET http://localhost:3003/properties/:id?incrementView=true
 ## 🔄 SO SÁNH CŨ VS MỚI
 
 ### **❌ CŨ (SAI):**
+
 ```
 Frontend → Minting Service (port 3002)
   - Chỉ mint NFT
@@ -203,6 +211,7 @@ Frontend → Minting Service (port 3002)
 ```
 
 ### **✅ MỚI (ĐÚNG):**
+
 ```
 Frontend → Property Service (port 3003) → Minting Service (port 3002)
   - Lưu property trong MongoDB
@@ -216,6 +225,7 @@ Frontend → Property Service (port 3003) → Minting Service (port 3002)
 ## 📦 SERVICES ROLES
 
 ### **Property Service (port 3003)** - MANAGER
+
 - ✅ Quản lý TOÀN BỘ thông tin bất động sản
 - ✅ CRUD properties
 - ✅ MongoDB storage
@@ -225,6 +235,7 @@ Frontend → Property Service (port 3003) → Minting Service (port 3002)
 - ✅ **Frontend gọi trực tiếp**
 
 ### **Minting Service (port 3002)** - WORKER
+
 - ✅ CHỈ mint NFT lên blockchain
 - ✅ Kết nối Ganache
 - ✅ Smart contract interaction
@@ -241,15 +252,15 @@ Frontend → Property Service (port 3003) → Minting Service (port 3002)
 3. **Click "Tạo NFT"**
 4. **Frontend gọi 1 endpoint duy nhất:**
    ```javascript
-   fetch('http://localhost:3003/properties/create-and-mint', {
-     method: 'POST',
+   fetch("http://localhost:3003/properties/create-and-mint", {
+     method: "POST",
      body: JSON.stringify({
        recipient: "0x...",
        propertyType: "apartment",
        name: "...",
        // ... tất cả thông tin
-     })
-   })
+     }),
+   });
    ```
 5. **Property Service tự động:**
    - Tạo property trong MongoDB
@@ -277,21 +288,23 @@ Frontend → Property Service (port 3003) → Minting Service (port 3002)
 ### **Test với Postman:**
 
 1. **Start services:**
+
    ```bash
    # Terminal 1: Ganache
    cd viepropchain
    ganache -m "arm either chef..." --database.dbPath "./ganache-data-dev" --chain.networkId 1337 --server.port 8545
-   
+
    # Terminal 2: Minting Service
    cd database_viepropchain_microservice/minting-service
    npm start
-   
+
    # Terminal 3: Property Service
    cd database_viepropchain_microservice/property-service
    npm start
    ```
 
 2. **Test create-and-mint:**
+
    - Import collection: `ViePropChain_Property_Service.postman_collection.json`
    - Run request: "Create and Mint Apartment"
    - Check response có property + nft info

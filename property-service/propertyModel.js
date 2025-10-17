@@ -148,6 +148,12 @@ const propertySchema = new mongoose.Schema(
       mintedAt: Date,
     },
 
+    // ========== IPFS METADATA ==========
+    ipfsMetadataCid: {
+      type: String,
+      default: null,
+    },
+
     // ========== STATUS & MANAGEMENT ==========
     status: {
       type: String,

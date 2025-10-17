@@ -86,13 +86,13 @@ async function uploadFileToIPFS(fileBuffer, fileName) {
 /**
  * Build NFT metadata from property data
  * @param {Object} property - Property document
- * @returns {Object} - NFT metadata
+ * @returns {Object} - NFT metadata in ERC-721 standard format
  */
 function buildNFTMetadata(property) {
   const metadata = {
     name: property.name,
     description: property.description,
-    image: property.primaryImage || property.media.images[0]?.url || "",
+    image: property.media?.images?.[0]?.url || "",
     attributes: [],
   };
 

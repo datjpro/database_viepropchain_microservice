@@ -11,23 +11,20 @@ const MINTING_SERVICE_URL =
 /**
  * Request NFT minting from Minting Service
  * @param {String} recipient - Wallet address of NFT recipient
- * @param {Object} metadata - NFT metadata
+ * @param {String} tokenURI - IPFS URI of the metadata (ipfs://QmXxx...)
  * @returns {Promise<Object>} - Minting result
  */
-async function requestMinting(recipient, metadata) {
+async function requestMinting(recipient, tokenURI) {
   try {
     console.log("📤 Sending mint request to Minting Service...");
     console.log("Recipient:", recipient);
-    console.log("Metadata:", JSON.stringify(metadata, null, 2));
+    console.log("Token URI:", tokenURI);
 
     const response = await axios.post(
       `${MINTING_SERVICE_URL}/mint`,
       {
         recipient,
-        name: metadata.name,
-        description: metadata.description,
-        image: metadata.image,
-        attributes: metadata.attributes,
+        tokenURI,
       },
       {
         headers: {
@@ -49,7 +46,7 @@ async function requestMinting(recipient, metadata) {
           response.data.contractAddress ||
           "0x52B42Ac0e051A4c3386791b04391510C3cE06632",
         owner: recipient,
-        tokenURI: response.data.tokenURI,
+        tokenURI: response.data.tokenURI || tokenURI,
         transactionHash: response.data.transactionHash,
         ipfsHash: response.data.ipfsHash,
       };
