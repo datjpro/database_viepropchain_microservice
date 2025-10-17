@@ -1,0 +1,129 @@
+Các bước chi tiết trong quy trình
+Giai đoạn 1: Khởi tạo và Chuẩn bị dữ liệu (Off-chain)
+Mục tiêu: Thu thập, xử lý và lưu trữ an toàn tất cả dữ liệu mô tả của bất động sản trước khi đưa lên blockchain.
+
+Bước 1: Người dùng nhập liệu (Frontend)
+
+Ai: Chủ sở hữu bất động sản hoặc Quản trị viên (Admin).
+
+Hành động: Mở trang web, điền vào form "Đăng ký Bất động sản mới" với tất cả các thông tin cần thiết (tên, mô tả, giá, địa chỉ ví chủ sở hữu...). Tải lên các tệp tin quan trọng như hình ảnh, video, bản scan sổ đỏ.
+
+Kết quả: Dữ liệu và tệp tin sẵn sàng được gửi đi.
+
+Bước 2: Gửi yêu cầu đến hệ thống (Frontend → API Gateway)
+
+Ai: Frontend.
+
+Hành động: Khi người dùng nhấn nút "Gửi", frontend sẽ gói tất cả dữ liệu văn bản và tệp tin vào một request POST duy nhất và gửi đến API Gateway tại endpoint /properties.
+
+Kết quả: API Gateway nhận được yêu cầu.
+
+Bước 3: Định tuyến và xử lý ban đầu (API Gateway → Property Service)
+
+Ai: API Gateway và Property Service.
+
+Hành động:
+
+API Gateway xác thực yêu cầu (nếu có) và chuyển tiếp toàn bộ request đến Property Service.
+
+Property Service nhận request và bắt đầu quy trình xử lý.
+
+Kết quả: Property Service chịu trách nhiệm chính cho các bước tiếp theo.
+
+Bước 4: Lưu trữ dữ liệu vĩnh viễn (Property Service → IPFS)
+
+Ai: Property Service.
+
+Hành động:
+
+Tải các tệp tin (ảnh, PDF...) lên IPFS. Mỗi tệp sẽ nhận về một mã định danh nội dung duy nhất (CID).
+
+Tạo một file metadata.json theo đúng cấu trúc, trong đó chứa các đường dẫn IPFS (ipfs://<CID>) của các tệp vừa tải lên.
+
+Tải chính file metadata.json này lên IPFS và nhận về CID cuối cùng của nó. Đây là thông tin quan trọng nhất.
+
+Kết quả: Một tokenURI hoàn chỉnh có dạng ipfs://<CID_cua_metadata>.
+
+Bước 5: Lưu trạng thái vào cơ sở dữ liệu (Property Service → MongoDB)
+
+Ai: Property Service.
+
+Hành động: Tạo một document mới trong collection properties của MongoDB, lưu tất cả thông tin BĐS cùng với ipfsMetadataCid vừa có. Gán cho nó một trạng thái ban đầu là status: 'PENDING_MINT'.
+
+Kết quả: Dữ liệu được lưu an toàn trong CSDL, hệ thống đã ghi nhận sự tồn tại của BĐS và sẵn sàng cho việc token hóa.
+
+Giai đoạn 2: Token hóa (On-chain)
+Mục tiêu: Tạo ra một tài sản số duy nhất trên blockchain để đại diện cho bất động sản.
+
+Bước 6: Gửi yêu cầu Đúc NFT (Property Service → Minting Service)
+
+Ai: Property Service.
+
+Hành động: Property Service đóng vai trò client, thực hiện một cuộc gọi API POST đến endpoint /mint của Minting Service (thông qua API Gateway). Dữ liệu gửi đi bao gồm recipient (địa chỉ ví chủ sở hữu) và tokenURI (đã tạo ở bước 4).
+
+Kết quả: Minting Service nhận được yêu cầu.
+
+Bước 7: Thực hiện Giao dịch Mint (Minting Service → Blockchain)
+
+Ai: Minting Service.
+
+Hành động:
+
+Sử dụng thư viện ethers.js để kết nối với Ganache.
+
+Sử dụng private key của tài khoản owner để ký và gửi một giao dịch đến smart contract.
+
+Gọi hàm mint(recipient, tokenURI) trên smart contract.
+
+Kết quả: Một giao dịch được gửi vào mạng blockchain và đang chờ xác nhận.
+
+Bước 8: Xác nhận và Lấy Token ID (Blockchain → Minting Service)
+
+Ai: Blockchain (Ganache) và Minting Service.
+
+Hành động:
+
+Ganache xác nhận giao dịch gần như tức thì.
+
+Minting Service chờ biên lai giao dịch (receipt) trả về, phân tích sự kiện Transfer để lấy ra tokenId của NFT vừa được tạo.
+
+Kết quả: Minting Service có được tokenId và transactionHash làm bằng chứng.
+
+Giai đoạn 3: Hoàn tất và Đồng bộ hóa
+Mục tiêu: Cập nhật trạng thái của hệ thống để phản ánh rằng NFT đã được tạo thành công và thông báo cho người dùng.
+
+Bước 9: Trả kết quả Mint về (Minting Service → Property Service)
+
+Ai: Minting Service và Property Service.
+
+Hành động: Minting Service gửi một phản hồi API thành công, chứa tokenId và transactionHash, về cho Property Service (người đã gọi nó).
+
+Kết quả: Property Service biết rằng việc đúc NFT đã hoàn tất.
+
+Bước 10: Cập nhật cơ sở dữ liệu (Property Service → MongoDB)
+
+Ai: Property Service.
+
+Hành động: Tìm đến document của bất động sản đã tạo ở bước 5 và cập nhật lại:
+
+Thay đổi status từ 'PENDING_MINT' thành 'MINTED'.
+
+Lưu lại tokenId vừa nhận được.
+
+Kết quả: Dữ liệu trong CSDL được đồng bộ hoàn toàn với trạng thái trên blockchain.
+
+Bước 11: Gửi phản hồi cuối cùng cho người dùng (Property Service → Frontend)
+
+Ai: Property Service, API Gateway, Frontend.
+
+Hành động: Property Service gửi một response 201 (Created) cuối cùng về cho Frontend thông qua API Gateway, chứa toàn bộ thông tin của bất động sản vừa được tạo và token hóa.
+
+Kết quả: Frontend nhận được tín hiệu thành công.
+
+Bước 12: Hiển thị thông báo (Frontend → User/Admin)
+
+Ai: Frontend.
+
+Hành động: Hiển thị một thông báo "Tạo NFT thành công!" cho người dùng, có thể kèm theo link để xem giao dịch trên Etherscan (nếu là testnet/mainnet) hoặc hiển thị chi tiết tài sản vừa tạo.
+
+Kết quả: Người dùng nhận được xác nhận, quy trình kết thúc!

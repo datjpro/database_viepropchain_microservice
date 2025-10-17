@@ -25,26 +25,48 @@ mongoose
 
 // Endpoint chính để thực hiện mint
 app.post("/mint", async (req, res) => {
-  const { recipient, name, description, image, attributes } = req.body;
+  const { recipient, tokenURI, name, description, image, attributes } =
+    req.body;
 
-  if (!recipient || !name) {
+  // Support both old format (name, description, image, attributes) and new format (tokenURI)
+  if (!recipient) {
+    return res.status(400).json({ success: false, error: "Thiếu recipient" });
+  }
+
+  if (!tokenURI && !name) {
     return res
       .status(400)
-      .json({ success: false, error: "Thiếu recipient hoặc name" });
+      .json({ success: false, error: "Thiếu tokenURI hoặc name" });
   }
 
   console.log(`[API] Nhận được yêu cầu mint cho recipient: ${recipient}`);
-  const result = await mintNFT(recipient, {
-    name,
-    description,
-    image,
-    attributes,
-  });
 
-  if (result.success) {
-    res.status(200).json(result);
-  } else {
-    res.status(500).json(result);
+  // If tokenURI is provided, use it directly (new flow)
+  if (tokenURI) {
+    console.log(`[API] Using tokenURI: ${tokenURI}`);
+    const result = await mintNFT(recipient, tokenURI);
+
+    if (result.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(500).json(result);
+    }
+  }
+  // Otherwise, use old format (backward compatibility)
+  else {
+    console.log(`[API] Using metadata object (old format)`);
+    const result = await mintNFT(recipient, {
+      name,
+      description,
+      image,
+      attributes,
+    });
+
+    if (result.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(500).json(result);
+    }
   }
 });
 
