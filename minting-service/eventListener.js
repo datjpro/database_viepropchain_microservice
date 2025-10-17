@@ -77,7 +77,12 @@ function startPolling() {
           }
 
           // Cập nhật owner trong database
-          await updateNFTOwner(tokenId.toString(), to);
+          await updateNFTOwner(
+            tokenId.toString(),
+            from,
+            to,
+            event.transactionHash
+          );
         }
 
         lastCheckedBlock = currentBlock;
@@ -88,7 +93,7 @@ function startPolling() {
   }, 3000); // Kiểm tra mỗi 3 giây
 }
 
-async function updateNFTOwner(tokenId, newOwner) {
+async function updateNFTOwner(tokenId, fromAddress, toAddress, txHash) {
   try {
     const NFT = require("./nftModel");
 
@@ -101,16 +106,25 @@ async function updateNFTOwner(tokenId, newOwner) {
 
     const oldOwner = nft.owner;
 
-    if (oldOwner.toLowerCase() === newOwner.toLowerCase()) {
+    if (oldOwner.toLowerCase() === toAddress.toLowerCase()) {
       console.log("ℹ️  Owner không thay đổi, bỏ qua cập nhật");
       return;
     }
 
     console.log(`\n🔄 Đang cập nhật owner trong database...`);
     console.log(`   Old: ${oldOwner}`);
-    console.log(`   New: ${newOwner}`);
+    console.log(`   New: ${toAddress}`);
 
-    nft.owner = newOwner.toLowerCase();
+    // Cập nhật owner và thêm vào transaction history
+    nft.owner = toAddress.toLowerCase();
+    nft.transactionHistory.push({
+      type: "TRANSFER",
+      from: fromAddress.toLowerCase(),
+      to: toAddress.toLowerCase(),
+      transactionHash: txHash,
+      timestamp: new Date(),
+    });
+
     await nft.save();
 
     console.log("✅ Đã cập nhật owner trong database!");

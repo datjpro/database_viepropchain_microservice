@@ -147,22 +147,46 @@ async function mintNFT(recipient, metadata) {
       }
     }
 
-    // Lưu thông tin NFT vào MongoDB
+    // Lưu thông tin NFT vào MongoDB theo cấu trúc 3 lớp
     const nftData = {
+      // 1. BLOCKCHAIN DATA
       tokenId,
-      owner: recipient,
-      name: metadata.name,
-      description: metadata.description,
-      image: metadata.image,
-      attributes: metadata.attributes,
+      contractAddress: process.env.NFT_CONTRACT_ADDRESS.replace(
+        /"/g,
+        ""
+      ).trim(),
+      owner: recipient.toLowerCase(),
       tokenURI,
       transactionHash: tx.hash,
-    };
 
-    // Chỉ thêm ipfsHash nếu có
-    if (ipfsHash) {
-      nftData.ipfsHash = ipfsHash;
-    }
+      // 2. IPFS METADATA
+      metadata: {
+        name: metadata.name,
+        description: metadata.description || "",
+        image: metadata.image || "",
+        attributes: metadata.attributes || [],
+      },
+      ipfsHash: ipfsHash || null,
+
+      // 3. APPLICATION DATA (mặc định)
+      status: "NOT_FOR_SALE",
+      listingPrice: {
+        amount: 0,
+        currency: "VND",
+      },
+      viewCount: 0,
+      favoriteCount: 0,
+      transactionHistory: [
+        {
+          type: "MINT",
+          from: ethers.ZeroAddress,
+          to: recipient.toLowerCase(),
+          transactionHash: tx.hash,
+          timestamp: new Date(),
+        },
+      ],
+      isBurned: false,
+    };
 
     const newNFT = new NFT(nftData);
     await newNFT.save();
