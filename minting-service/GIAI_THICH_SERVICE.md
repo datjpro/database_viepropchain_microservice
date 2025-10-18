@@ -1,7 +1,9 @@
 # GIẢI THÍCH MINTING SERVICE - LUỒNG HOẠT ĐỘNG
 
 ## 📋 TỔNG QUAN
+
 **Minting Service** là microservice chịu trách nhiệm:
+
 1. **Mint NFT** lên blockchain (Ganache)
 2. **Lưu thông tin NFT** vào MongoDB
 3. **Lắng nghe sự kiện Transfer** từ blockchain để cập nhật owner
@@ -11,7 +13,8 @@
 
 ## 🔄 LUỒNG HOẠT ĐỘNG CHÍNH
 
-### **BƯỚC 1: KHỞI ĐỘNG SERVICE** 
+### **BƯỚC 1: KHỞI ĐỘNG SERVICE**
+
 📄 File: `index.js`
 
 ```
@@ -29,6 +32,7 @@ Server sẵn sàng nhận request
 ```
 
 **Chức năng:**
+
 - ✅ Kết nối database MongoDB
 - ✅ Khởi động API server
 - ✅ Bật event listener để theo dõi blockchain
@@ -37,17 +41,20 @@ Server sẵn sàng nhận request
 ---
 
 ### **BƯỚC 2: NHẬN REQUEST MINT NFT**
+
 📄 File: `index.js` → Endpoint `POST /mint`
 
 **Input nhận được:**
+
 ```json
 {
-  "recipient": "0x...",           // Địa chỉ ví nhận NFT
-  "tokenURI": "ipfs://QmXXX..."  // URI metadata trên IPFS
+  "recipient": "0x...", // Địa chỉ ví nhận NFT
+  "tokenURI": "ipfs://QmXXX..." // URI metadata trên IPFS
 }
 ```
 
 **Hoặc (cách cũ):**
+
 ```json
 {
   "recipient": "0x...",
@@ -59,6 +66,7 @@ Server sẵn sàng nhận request
 ```
 
 **Luồng xử lý:**
+
 1. Kiểm tra recipient có hợp lệ không
 2. Kiểm tra tokenURI hoặc metadata
 3. Gọi `mintNFT()` từ `blockchainService.js`
@@ -66,9 +74,11 @@ Server sẵn sàng nhận request
 ---
 
 ### **BƯỚC 3: XỬ LÝ MINT NFT**
+
 📄 File: `blockchainService.js` → Function `mintNFT()`
 
 #### 3.1. Xử lý Metadata
+
 ```
 Nhận tokenURI hoặc metadata object
   ↓
@@ -76,12 +86,13 @@ Nếu là metadata object (OLD FLOW):
   ├─ Tạo JSON metadata
   ├─ Upload lên IPFS (gọi ipfsService)
   └─ Nhận ipfsHash
-  
+
 Nếu là tokenURI string (NEW FLOW):
   └─ Dùng trực tiếp tokenURI
 ```
 
 #### 3.2. Gọi Smart Contract
+
 ```
 Khởi tạo kết nối Blockchain
   ↓
@@ -99,12 +110,14 @@ Lấy tokenId từ Transfer event
 ```
 
 **Chi tiết lấy Token ID:**
+
 - **Cách 1:** Parse event "Transfer" từ receipt.logs
 - **Cách 2:** Gọi `tokenCounter()` từ contract
 - **Cách 3:** Parse raw logs với Transfer signature
 - **Fallback:** Dùng timestamp
 
 #### 3.3. Lưu vào MongoDB
+
 ```
 Tạo object NFT với 3 lớp dữ liệu:
   ↓
@@ -133,6 +146,7 @@ Return { success: true, tokenId, transactionHash, tokenURI }
 ---
 
 ### **BƯỚC 4: UPLOAD METADATA LÊN IPFS**
+
 📄 File: `ipfsService.js` → Function `uploadToIPFS()`
 
 **Chỉ chạy khi dùng OLD FLOW (metadata object)**
@@ -151,6 +165,7 @@ Return ipfsHash
 ```
 
 **Credentials cần thiết (trong .env):**
+
 - `PINATA_API_KEY`
 - `PINATA_API_SECRET`
 - `PINATA_JWT`
@@ -158,9 +173,11 @@ Return ipfsHash
 ---
 
 ### **BƯỚC 5: LẮNG NGHE SỰ KIỆN TRANSFER**
+
 📄 File: `eventListener.js`
 
 #### 5.1. Khởi động Listener
+
 ```
 Function: startEventListener()
   ↓
@@ -176,6 +193,7 @@ Bật Polling (mỗi 3 giây)
 ```
 
 #### 5.2. Polling Loop
+
 ```
 Mỗi 3 giây:
   ↓
@@ -191,6 +209,7 @@ Nếu có block mới:
 ```
 
 #### 5.3. Cập nhật Owner
+
 ```
 Function: updateNFTOwner(tokenId, from, to, txHash)
   ↓
@@ -227,7 +246,7 @@ NFT = {
   owner: "0x123...",
   tokenURI: "ipfs://QmXXX...",
   transactionHash: "0xabc...",
-  
+
   // 2. IPFS METADATA (từ IPFS)
   metadata: {
     name: "Villa Sài Gòn",
@@ -239,7 +258,7 @@ NFT = {
     ]
   },
   ipfsHash: "QmXXX...",
-  
+
   // 3. APPLICATION DATA (ứng dụng)
   status: "NOT_FOR_SALE",  // hoặc FOR_SALE, IN_TRANSACTION, SOLD
   listingPrice: { amount: 5000000000, currency: "VND" },
@@ -260,6 +279,7 @@ NFT = {
 ## 🔌 CÁC API ENDPOINTS
 
 ### 1. **POST /mint** - Mint NFT mới
+
 ```bash
 POST http://localhost:3002/mint
 Body: { recipient, tokenURI } hoặc { recipient, name, description, ... }
@@ -267,18 +287,21 @@ Response: { success, tokenId, transactionHash, tokenURI }
 ```
 
 ### 2. **GET /nft/:tokenId** - Lấy thông tin 1 NFT
+
 ```bash
 GET http://localhost:3002/nft/1
 Response: { success, data: { NFT object } }
 ```
 
 ### 3. **GET /nfts/:owner** - Lấy tất cả NFT của 1 owner
+
 ```bash
 GET http://localhost:3002/nfts/0x123...
 Response: { success, count, data: [ NFT objects ] }
 ```
 
 ### 4. **GET /nfts** - Lấy tất cả NFT
+
 ```bash
 GET http://localhost:3002/nfts
 Response: { success, count, data: [ NFT objects ] }
@@ -339,7 +362,7 @@ PINATA_JWT=eyJ...                 # JWT token Pinata IPFS
 │  4. Response trả về client                                      │
 │     { success: true, tokenId: "1", transactionHash: "0x..." }  │
 └─────────────────────────────────────────────────────────────────┘
-                         
+
         ┌────────────────────────────────────────────────┐
         │  ĐỒNG THỜI: eventListener chạy background      │
         ├────────────────────────────────────────────────┤
@@ -356,12 +379,14 @@ PINATA_JWT=eyJ...                 # JWT token Pinata IPFS
 
 ### ⭐⭐⭐ QUAN TRỌNG NHẤT (Core):
 
-1. **`index.js`** 
+1. **`index.js`**
+
    - Entry point của service
    - Khởi tạo server, database, event listener
    - Định nghĩa tất cả API endpoints
 
 2. **`blockchainService.js`**
+
    - Logic mint NFT lên blockchain
    - Tương tác với smart contract
    - Lưu dữ liệu vào MongoDB
@@ -374,6 +399,7 @@ PINATA_JWT=eyJ...                 # JWT token Pinata IPFS
 ### ⭐⭐ QUAN TRỌNG (Supporting):
 
 4. **`nftModel.js`**
+
    - Định nghĩa schema MongoDB cho NFT
    - Cấu trúc 3 lớp dữ liệu
 
@@ -384,10 +410,12 @@ PINATA_JWT=eyJ...                 # JWT token Pinata IPFS
 ### ⭐ HỖ TRỢ (Helper):
 
 6. **`ipfsService.js`**
+
    - Upload metadata lên IPFS (Pinata)
    - Chỉ dùng trong OLD FLOW
 
 7. **`contract-abi.json`**
+
    - ABI của smart contract ViePropChainNFT
    - Cần để gọi các function từ contract
 
@@ -416,6 +444,7 @@ node index.js
 ```
 
 **Kết quả:**
+
 ```
 ✅ Connected to MongoDB
 ✅ Blockchain service initialized successfully
@@ -433,14 +462,17 @@ node index.js
 ### Lỗi thường gặp:
 
 1. **MongoDB connection error**
+
    - Kiểm tra MONGO_URI trong .env
    - Đảm bảo mật khẩu được encode đúng (%40 cho @)
 
 2. **Blockchain connection error**
+
    - Đảm bảo Ganache đang chạy
    - Kiểm tra RPC_URL
 
 3. **Contract call failed**
+
    - Kiểm tra NFT_CONTRACT_ADDRESS
    - Kiểm tra CONTRACT_OWNER_PRIVATE_KEY có đúng không
    - Đảm bảo account có đủ ETH
@@ -456,11 +488,13 @@ node index.js
 **Minting Service = 3 chức năng chính:**
 
 1. **🔨 MINT NFT**
+
    - Nhận request từ API
    - Mint lên blockchain
    - Lưu vào MongoDB
 
 2. **👂 LẮNG NGHE BLOCKCHAIN**
+
    - Polling events mỗi 3 giây
    - Phát hiện Transfer
    - Cập nhật owner
@@ -471,6 +505,7 @@ node index.js
    - Query tất cả NFT
 
 **Luồng xử lý đơn giản:**
+
 ```
 Request → index.js → blockchainService → Blockchain + MongoDB → Response
                                 ↓
