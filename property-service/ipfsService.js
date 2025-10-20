@@ -134,25 +134,65 @@ async function uploadFileToIPFS(fileBuffer, fileName) {
 }
 
 /**
- * Build NFT metadata from property data
- * @param {Object} property - Property document
- * @returns {Object} - NFT metadata in ERC-721 standard format
+ * ========================================================================
+ * BUILD NFT METADATA FOR IPFS
+ * ========================================================================
+ *
+ * Tạo metadata theo chuẩn ERC-721 để lưu trên IPFS
+ *
+ * CẤU TRÚC METADATA IPFS (Immutable - Không đổi):
+ * ----------------------------------------------------------------
+ * 1. name              : Tên BĐS (hiển thị trên OpenSea, Marketplace)
+ * 2. description       : Mô tả chi tiết BĐS
+ * 3. image             : Link IPFS đến ảnh đại diện (ipfs://QmXXX...)
+ * 4. external_url      : Link đến trang chi tiết BĐS trên DApp
+ * 5. attributes        : Các thuộc tính CỐ ĐỊNH (loại hình, vị trí, diện tích...)
+ * 6. legal_documents   : Mảng link IPFS đến giấy tờ pháp lý (sổ đỏ, giấy phép...)
+ *
+ * LƯU Ý:
+ * - Metadata này LƯU TRÊN IPFS nên KHÔNG THỂ THAY ĐỔI sau khi mint
+ * - Chỉ lưu thông tin CỐ ĐỊNH, định danh tài sản (như CMT, sổ đỏ)
+ * - KHÔNG lưu thông tin thay đổi (giá bán, trạng thái, owner...)
+ *
+ * @param {Object} property - Property document từ MongoDB
+ * @param {String} dappUrl - Base URL của DApp (VD: https://viepropchain.com)
+ * @returns {Object} - NFT metadata theo chuẩn ERC-721
  */
-function buildNFTMetadata(property) {
+function buildNFTMetadata(property, dappUrl = "https://viepropchain.com") {
+  // ============================================================
+  // CẤU TRÚC METADATA IPFS (Immutable)
+  // ============================================================
   const metadata = {
+    // Tên BĐS - Hiển thị trên OpenSea, marketplaces
     name: property.name,
+
+    // Mô tả chi tiết - Hiển thị trên OpenSea
     description: property.description,
+
+    // Link IPFS đến ảnh đại diện (nên là IPFS URL để vĩnh viễn)
     image: property.media?.images?.[0]?.url || "",
+
+    // Link đến trang chi tiết trên DApp của bạn
+    external_url: `${dappUrl}/properties/${property._id}`,
+
+    // Các thuộc tính CỐ ĐỊNH (để lọc/filter trên OpenSea, marketplaces)
     attributes: [],
+
+    // Giấy tờ pháp lý (link IPFS) - QUAN TRỌNG cho BĐS
+    legal_documents: [],
   };
 
-  // Add basic attributes
+  // ============================================================
+  // ATTRIBUTES - CHỈ LƯU THÔNG TIN CỐ ĐỊNH
+  // ============================================================
+
+  // 1. Loại hình BĐS (apartment, land, house, villa)
   metadata.attributes.push({
     trait_type: "Loại hình BĐS",
     value: getPropertyTypeName(property.propertyType),
   });
 
-  // Add location attributes
+  // 2. VỊ TRÍ - Thông tin cố định (không đổi)
   if (property.location.address) {
     metadata.attributes.push({
       trait_type: "Địa chỉ",
@@ -174,7 +214,14 @@ function buildNFTMetadata(property) {
     });
   }
 
-  // Add type-specific attributes
+  if (property.location.ward) {
+    metadata.attributes.push({
+      trait_type: "Phường/Xã",
+      value: property.location.ward,
+    });
+  }
+
+  // 3. CÁC THUỘC TÍNH VẬT LÝ CỐ ĐỊNH (theo loại BĐS)
   const details = property.details;
 
   switch (property.propertyType) {
@@ -247,15 +294,29 @@ function buildNFTMetadata(property) {
       break;
   }
 
-  // Add price
-  metadata.attributes.push({
-    trait_type: "Giá",
-    value: `${property.price.amount.toLocaleString()} ${
-      property.price.currency
-    }`,
-  });
+  // ============================================================
+  // LEGAL DOCUMENTS - Giấy tờ pháp lý (IPFS links)
+  // ============================================================
+  // LƯU Ý: Upload giấy tờ lên IPFS trước, sau đó lưu link vào đây
+  if (property.media?.documents && property.media.documents.length > 0) {
+    property.media.documents.forEach((doc) => {
+      // Chỉ thêm các document có URL IPFS (bắt đầu bằng ipfs:// hoặc /ipfs/)
+      if (
+        doc.url &&
+        (doc.url.startsWith("ipfs://") || doc.url.includes("/ipfs/"))
+      ) {
+        metadata.legal_documents.push({
+          name: doc.name,
+          url: doc.url,
+          type: doc.type || "legal_document",
+        });
+      }
+    });
+  }
 
-  // Add additional attributes
+  // ============================================================
+  // ADDITIONAL ATTRIBUTES - Thuộc tính bổ sung
+  // ============================================================
   if (details.additionalAttributes && details.additionalAttributes.length > 0) {
     details.additionalAttributes.forEach((attr) => {
       metadata.attributes.push({
@@ -264,6 +325,16 @@ function buildNFTMetadata(property) {
       });
     });
   }
+
+  // ============================================================
+  // QUAN TRỌNG: KHÔNG LƯU CÁC THÔNG TIN SAU ĐÂY LÊN IPFS
+  // ============================================================
+  // ❌ KHÔNG lưu: price (giá thay đổi)
+  // ❌ KHÔNG lưu: owner (owner thay đổi khi transfer)
+  // ❌ KHÔNG lưu: status (trạng thái thay đổi)
+  // ❌ KHÔNG lưu: viewCount, favoriteCount (metrics thay đổi)
+  //
+  // ✅ Các thông tin trên sẽ lưu trong MONGODB (mutable data)
 
   return metadata;
 }
