@@ -5,12 +5,14 @@
 ### ⚡ Tại sao phải phân chia IPFS và MongoDB?
 
 **IPFS (Immutable Storage):**
+
 - ✅ Dữ liệu **KHÔNG BAO GIỜ THAY ĐỔI** sau khi upload
 - ✅ Phân tán, không thể xóa/sửa
 - ✅ Giống như "bản sao y"/"giấy chứng nhận" vĩnh viễn
 - ✅ Được các marketplace (OpenSea...) trust và hiển thị
 
 **MongoDB (Mutable Storage):**
+
 - ✅ Dữ liệu **THAY ĐỔI THƯỜNG XUYÊN**
 - ✅ Query nhanh, flexible
 - ✅ Đồng bộ từ blockchain events
@@ -91,18 +93,19 @@
 
 ### 📋 Các trường trong IPFS Metadata:
 
-| Field | Mô tả | Ví dụ |
-|-------|-------|-------|
-| `name` | Tên BĐS (hiển thị trên OpenSea) | "Villa Sài Gòn - Quận 2" |
-| `description` | Mô tả chi tiết BĐS | "Biệt thự cao cấp 3 tầng..." |
-| `image` | Link IPFS đến ảnh đại diện | `ipfs://QmYYY.../image.jpg` |
-| `external_url` | Link đến trang chi tiết trên DApp | `https://viepropchain.com/properties/...` |
-| `attributes` | Mảng các thuộc tính cố định | Xem bảng dưới |
-| `legal_documents` | Mảng link IPFS giấy tờ pháp lý | Sổ đỏ, giấy phép... |
+| Field             | Mô tả                             | Ví dụ                                     |
+| ----------------- | --------------------------------- | ----------------------------------------- |
+| `name`            | Tên BĐS (hiển thị trên OpenSea)   | "Villa Sài Gòn - Quận 2"                  |
+| `description`     | Mô tả chi tiết BĐS                | "Biệt thự cao cấp 3 tầng..."              |
+| `image`           | Link IPFS đến ảnh đại diện        | `ipfs://QmYYY.../image.jpg`               |
+| `external_url`    | Link đến trang chi tiết trên DApp | `https://viepropchain.com/properties/...` |
+| `attributes`      | Mảng các thuộc tính cố định       | Xem bảng dưới                             |
+| `legal_documents` | Mảng link IPFS giấy tờ pháp lý    | Sổ đỏ, giấy phép...                       |
 
 ### 📝 Attributes (Thuộc tính cố định):
 
 **Common attributes (Chung cho tất cả loại BĐS):**
+
 - Loại hình BĐS (Căn hộ, Đất, Nhà, Biệt thự)
 - Thành phố, Quận/Huyện, Phường/Xã
 - Địa chỉ
@@ -111,6 +114,7 @@
 **Theo loại BĐS:**
 
 #### 🏢 Căn hộ (Apartment):
+
 - Tên dự án
 - Mã căn hộ
 - Tòa (Block/Tower)
@@ -123,6 +127,7 @@
 - Tình trạng nội thất
 
 #### 🌾 Đất nền (Land):
+
 - Số thửa
 - Tờ bản đồ số
 - Tọa độ GPS
@@ -134,6 +139,7 @@
 - Mặt tiền đường
 
 #### 🏘️ Nhà phố / Biệt thự (House/Villa):
+
 - Diện tích đất
 - Diện tích xây dựng
 - Diện tích sử dụng
@@ -167,6 +173,7 @@
 ```
 
 **Các loại document:**
+
 - `land_title` - Sổ đỏ/sổ hồng
 - `construction_permit` - Giấy phép xây dựng
 - `contract` - Hợp đồng mua bán
@@ -181,7 +188,7 @@
 ```javascript
 {
   _id: ObjectId("65abc123..."),
-  
+
   // ===== 1. BASIC INFO (Cache từ IPFS) =====
   propertyType: "villa",
   name: "Villa Sài Gòn - Quận 2",
@@ -190,7 +197,7 @@
     amount: 15000000000,
     currency: "VND"
   },
-  
+
   // ===== 2. LOCATION =====
   location: {
     address: "123 Đường Trần Não",
@@ -202,7 +209,7 @@
       longitude: 106.7412
     }
   },
-  
+
   // ===== 3. DETAILS =====
   details: {
     area: { value: 300, unit: "m2" },
@@ -212,7 +219,7 @@
     bathrooms: 4,
     // ... các field khác
   },
-  
+
   // ===== 4. MEDIA =====
   media: {
     images: [
@@ -230,7 +237,7 @@
       }
     ]
   },
-  
+
   // ===== 5. NFT INFO (Blockchain data) =====
   nft: {
     isMinted: true,
@@ -242,20 +249,20 @@
     ipfsHash: "QmAAA...",
     mintedAt: ISODate("2025-10-20T...")
   },
-  
+
   // ===== 6. IPFS METADATA CID =====
   ipfsMetadataCid: "QmAAA...",
-  
+
   // ===== 7. STATUS (Đồng bộ từ smart contract) =====
   status: "for_sale",              // ← CẬP NHẬT từ events
-  
+
   // ===== 8. LISTING PRICE (Đồng bộ từ smart contract) =====
   listingPrice: {
     amount: 15000000000,           // ← CẬP NHẬT khi list/update price
     currency: "VND",
     updatedAt: ISODate("2025-10-20T...")
   },
-  
+
   // ===== 9. AUCTION INFO (Nếu đang đấu giá) =====
   auctionInfo: {
     isActive: false,
@@ -265,7 +272,7 @@
     endTime: null,
     bids: []
   },
-  
+
   // ===== 10. OWNER & AGENT =====
   owner: {
     userId: "user123",
@@ -273,14 +280,14 @@
     name: "Nguyễn Văn A",
     email: "nguyenvana@example.com"
   },
-  
+
   agent: {
     userId: "agent456",
     name: "Trần Thị B",
     phone: "0901234567",
     email: "tranthi@example.com"
   },
-  
+
   // ===== 11. ANALYTICS (Thay đổi liên tục) =====
   analytics: {
     views: 150,                    // ← Tăng mỗi khi xem
@@ -288,12 +295,12 @@
     shares: 10,                    // ← Tăng khi share
     inquiries: 5                   // ← Tăng khi hỏi thông tin
   },
-  
+
   // ===== 12. METADATA =====
   isPublic: true,
   isFeatured: false,
   tags: ["luxury", "river-view", "district-2"],
-  
+
   // ===== 13. TIMESTAMPS =====
   createdAt: ISODate("2025-10-01T..."),
   updatedAt: ISODate("2025-10-20T..."),
@@ -304,23 +311,28 @@
 ### 📊 Các trường QUAN TRỌNG trong MongoDB:
 
 #### 1. **tokenId, contractAddress** (On-chain identity)
+
 ```javascript
 nft: {
   tokenId: 1,                    // Định danh duy nhất trên blockchain
   contractAddress: "0x52B42..."  // Contract address của NFT
 }
 ```
+
 **Mục đích:** Định danh tài sản on-chain
 
 ---
 
 #### 2. **ownerAddress** (Đồng bộ từ blockchain)
+
 ```javascript
 nft: {
-  owner: "0x1234...abcd"  // Owner hiện tại
+  owner: "0x1234...abcd"; // Owner hiện tại
 }
 ```
+
 **Cách cập nhật:**
+
 - Tự động đồng bộ từ **Transfer events** qua `eventListener`
 - Khi có người mua → owner thay đổi
 - Method: `property.updateOwner(newOwner, txHash)`
@@ -328,10 +340,13 @@ nft: {
 ---
 
 #### 3. **status** (Đồng bộ từ smart contract)
+
 ```javascript
-status: "for_sale"  // Trạng thái hiện tại
+status: "for_sale"; // Trạng thái hiện tại
 ```
+
 **Các trạng thái:**
+
 - `draft` - Đang soạn thảo
 - `published` - Đã publish, chưa mint
 - `pending_mint` - Đang chờ mint
@@ -342,12 +357,14 @@ status: "for_sale"  // Trạng thái hiện tại
 - `archived` - Đã lưu trữ
 
 **Cách cập nhật:**
+
 - Từ smart contract events (Listed, Sold, Cancelled...)
 - Method: `property.updateStatus('for_sale')`
 
 ---
 
 #### 4. **price, listingPrice** (Giá bán)
+
 ```javascript
 // Giá gốc (không đổi)
 price: {
@@ -362,13 +379,16 @@ listingPrice: {
   updatedAt: ISODate("2025-10-20T...")
 }
 ```
+
 **Cách cập nhật:**
+
 - Từ event `PriceUpdated` của smart contract
 - Method: `property.updateListingPrice(amount, currency)`
 
 ---
 
 #### 5. **auctionInfo** (Thông tin đấu giá)
+
 ```javascript
 auctionInfo: {
   isActive: true,
@@ -385,30 +405,37 @@ auctionInfo: {
   ]
 }
 ```
+
 **Cách cập nhật:**
+
 - Từ events `AuctionStarted`, `BidPlaced`, `AuctionEnded`
 - Tự động cập nhật khi có bid mới
 
 ---
 
 #### 6. **Cache metadata từ IPFS**
+
 ```javascript
 name: "Villa Sài Gòn - Quận 2",         // Cache từ IPFS
 imageUrl: "ipfs://QmYYY.../image.jpg",  // Cache từ IPFS
 attributes: [...]                        // Cache từ IPFS
 ```
+
 **Mục đích:**
+
 - **Tăng tốc độ query** - Không cần fetch IPFS mỗi lần
 - **Search/Filter** - MongoDB query nhanh hơn IPFS
 - **Display list** - Hiển thị danh sách không cần IPFS
 
 **Khi nào sync lại:**
+
 - Chỉ sync 1 lần khi mint
 - KHÔNG sync lại vì IPFS immutable
 
 ---
 
 #### 7. **viewCount, favoriteCount** (Analytics)
+
 ```javascript
 analytics: {
   views: 150,        // Tăng mỗi khi user xem
@@ -417,12 +444,15 @@ analytics: {
   inquiries: 5       // Tăng khi hỏi thông tin
 }
 ```
+
 **Mục đích:**
+
 - Hiển thị popularity
 - Sắp xếp theo trending
 - Thống kê engagement
 
 **Methods:**
+
 - `property.incrementViews()`
 - `property.incrementFavorites()`
 
@@ -539,17 +569,20 @@ analytics: {
 ### ✅ DO (Nên làm):
 
 1. **Lưu thông tin CỐ ĐỊNH lên IPFS:**
+
    - Địa chỉ, diện tích, số phòng
    - Giấy tờ pháp lý (sổ đỏ, giấy phép...)
    - Thông tin không bao giờ thay đổi
 
 2. **Lưu thông tin THAY ĐỔI trong MongoDB:**
+
    - Owner hiện tại
    - Giá niêm yết
    - Trạng thái (for_sale, sold...)
    - Analytics (views, favorites...)
 
 3. **Cache metadata từ IPFS vào MongoDB:**
+
    - Để tăng tốc độ query
    - Không cần fetch IPFS mỗi lần
 
@@ -561,12 +594,14 @@ analytics: {
 ### ❌ DON'T (Không nên):
 
 1. **KHÔNG lưu thông tin thay đổi lên IPFS:**
+
    - ❌ Owner address
    - ❌ Price
    - ❌ Status
    - ❌ View count, favorites
 
 2. **KHÔNG query IPFS mỗi lần hiển thị list:**
+
    - ❌ Fetch metadata từ IPFS cho mỗi property
    - ✅ Query từ MongoDB (đã cache)
 
@@ -581,10 +616,10 @@ analytics: {
 ### 1. Build và upload metadata lên IPFS:
 
 ```javascript
-const { buildNFTMetadata, uploadMetadataToIPFS } = require('./ipfsService');
+const { buildNFTMetadata, uploadMetadataToIPFS } = require("./ipfsService");
 
 // Build metadata từ property
-const metadata = buildNFTMetadata(property, 'https://viepropchain.com');
+const metadata = buildNFTMetadata(property, "https://viepropchain.com");
 
 // Upload lên IPFS
 const { ipfsHash, tokenURI } = await uploadMetadataToIPFS(metadata);
@@ -600,11 +635,11 @@ await property.save();
 // Sau khi mint thành công
 await property.markAsMinted({
   tokenId: 1,
-  contractAddress: '0x52B42Ac0e051A4c3386791b04391510C3cE06632',
-  owner: '0x1234...abcd',
-  tokenURI: 'ipfs://QmXXX...',
-  transactionHash: '0xabc...',
-  ipfsHash: 'QmXXX...',
+  contractAddress: "0x52B42Ac0e051A4c3386791b04391510C3cE06632",
+  owner: "0x1234...abcd",
+  tokenURI: "ipfs://QmXXX...",
+  transactionHash: "0xabc...",
+  ipfsHash: "QmXXX...",
 });
 ```
 
@@ -612,14 +647,14 @@ await property.markAsMinted({
 
 ```javascript
 // Khi phát hiện Transfer event
-await property.updateOwner('0x5678...efgh', '0xtxhash...');
+await property.updateOwner("0x5678...efgh", "0xtxhash...");
 ```
 
 ### 4. Cập nhật listing price:
 
 ```javascript
 // Khi phát hiện PriceUpdated event
-await property.updateListingPrice(15000000000, 'VND');
+await property.updateListingPrice(15000000000, "VND");
 ```
 
 ### 5. Query properties với filters:
@@ -627,9 +662,9 @@ await property.updateListingPrice(15000000000, 'VND');
 ```javascript
 // Query properties đang bán, giá dưới 20 tỷ
 const properties = await Property.find({
-  status: 'for_sale',
-  'listingPrice.amount': { $lte: 20000000000 }
-}).sort({ 'analytics.views': -1 });
+  status: "for_sale",
+  "listingPrice.amount": { $lte: 20000000000 },
+}).sort({ "analytics.views": -1 });
 ```
 
 ---
@@ -639,10 +674,12 @@ const properties = await Property.find({
 ### Vấn đề: Owner không cập nhật sau khi transfer NFT
 
 **Nguyên nhân:**
+
 - Event Listener không chạy
 - MongoDB connection bị lỗi
 
 **Giải pháp:**
+
 1. Check event listener đang chạy: `eventListener.js`
 2. Check MongoDB connection
 3. Manually sync: `property.updateOwner(newOwner, txHash)`
@@ -652,11 +689,13 @@ const properties = await Property.find({
 ### Vấn đề: Metadata trên OpenSea không hiển thị
 
 **Nguyên nhân:**
+
 - tokenURI không đúng format
 - IPFS gateway không accessible
 - Metadata không theo chuẩn ERC-721
 
 **Giải pháp:**
+
 1. Check tokenURI: `ipfs://QmXXX...` hoặc `https://gateway.pinata.cloud/ipfs/QmXXX...`
 2. Check metadata có đủ fields: `name`, `description`, `image`, `attributes`
 3. Test IPFS link trên browser
@@ -666,11 +705,13 @@ const properties = await Property.find({
 ### Vấn đề: Query properties chậm
 
 **Nguyên nhân:**
+
 - Thiếu indexes
 - Query full-scan
 - Không cache từ IPFS
 
 **Giải pháp:**
+
 1. Add indexes: `propertySchema.index(...)`
 2. Cache metadata từ IPFS vào MongoDB
 3. Use pagination: `skip()` và `limit()`
@@ -679,20 +720,20 @@ const properties = await Property.find({
 
 ## 📖 TÓM TẮT
 
-| Loại dữ liệu | Lưu trên IPFS | Lưu trong MongoDB | Lý do |
-|--------------|---------------|-------------------|-------|
-| **name, description** | ✅ | ✅ (cache) | Hiển thị trên OpenSea + Query nhanh |
-| **image** | ✅ | ✅ (cache URL) | Vĩnh viễn trên IPFS + Query nhanh |
-| **attributes** | ✅ | ✅ (cache) | Filter trên OpenSea + Query MongoDB |
-| **legal_documents** | ✅ | ✅ (cache URLs) | Giấy tờ vĩnh viễn + Query nhanh |
-| **tokenId** | ❌ | ✅ | Định danh on-chain |
-| **contractAddress** | ❌ | ✅ | Định danh contract |
-| **owner** | ❌ | ✅ | Thay đổi khi transfer |
-| **status** | ❌ | ✅ | Thay đổi theo events |
-| **price** | ❌ | ✅ | Thay đổi khi list/update |
-| **auctionInfo** | ❌ | ✅ | Thay đổi theo bids |
-| **viewCount** | ❌ | ✅ | Tăng liên tục |
-| **favoriteCount** | ❌ | ✅ | Tăng liên tục |
+| Loại dữ liệu          | Lưu trên IPFS | Lưu trong MongoDB | Lý do                               |
+| --------------------- | ------------- | ----------------- | ----------------------------------- |
+| **name, description** | ✅            | ✅ (cache)        | Hiển thị trên OpenSea + Query nhanh |
+| **image**             | ✅            | ✅ (cache URL)    | Vĩnh viễn trên IPFS + Query nhanh   |
+| **attributes**        | ✅            | ✅ (cache)        | Filter trên OpenSea + Query MongoDB |
+| **legal_documents**   | ✅            | ✅ (cache URLs)   | Giấy tờ vĩnh viễn + Query nhanh     |
+| **tokenId**           | ❌            | ✅                | Định danh on-chain                  |
+| **contractAddress**   | ❌            | ✅                | Định danh contract                  |
+| **owner**             | ❌            | ✅                | Thay đổi khi transfer               |
+| **status**            | ❌            | ✅                | Thay đổi theo events                |
+| **price**             | ❌            | ✅                | Thay đổi khi list/update            |
+| **auctionInfo**       | ❌            | ✅                | Thay đổi theo bids                  |
+| **viewCount**         | ❌            | ✅                | Tăng liên tục                       |
+| **favoriteCount**     | ❌            | ✅                | Tăng liên tục                       |
 
 ---
 

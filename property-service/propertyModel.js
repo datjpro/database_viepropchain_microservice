@@ -4,10 +4,10 @@ const mongoose = require("mongoose");
  * ========================================================================
  * PROPERTY MODEL - Quản lý thông tin bất động sản trong MongoDB
  * ========================================================================
- * 
+ *
  * PHÂN CHIA DỮ LIỆU:
  * ----------------------------------------------------------------
- * 
+ *
  * 📦 IPFS (Immutable - Không đổi):
  * --------------------------------
  * - name, description          : Thông tin cơ bản
@@ -15,7 +15,7 @@ const mongoose = require("mongoose");
  * - external_url               : Link trang chi tiết
  * - attributes                 : Các thuộc tính CỐ ĐỊNH (loại, vị trí, diện tích...)
  * - legal_documents            : Giấy tờ pháp lý (IPFS links)
- * 
+ *
  * 🗄️ MONGODB (Mutable - Có thể đổi):
  * -----------------------------------
  * - tokenId, contractAddress   : Định danh on-chain
@@ -25,13 +25,13 @@ const mongoose = require("mongoose");
  * - auctionInfo                : Thông tin đấu giá
  * - name, imageUrl, attributes : CACHE từ IPFS (để query nhanh)
  * - viewCount, favoriteCount   : Analytics (thay đổi liên tục)
- * 
+ *
  * NGUYÊN TẮC:
  * ----------------------------------------------------------------
  * ✅ Dữ liệu CỐ ĐỊNH (như CMT, sổ đỏ) → Lưu trên IPFS
  * ✅ Dữ liệu THAY ĐỔI (giá, owner, status) → Lưu trên MongoDB
  * ✅ Cache metadata từ IPFS → MongoDB (tăng tốc query)
- * 
+ *
  */
 
 const propertySchema = new mongoose.Schema(
@@ -161,23 +161,23 @@ const propertySchema = new mongoose.Schema(
     // SECTION 2: BLOCKCHAIN & NFT INFORMATION
     // ============================================================
     // Thông tin liên kết với smart contract và IPFS
-    
+
     nft: {
       // Đã mint thành NFT chưa?
       isMinted: {
         type: Boolean,
         default: false,
       },
-      
+
       // Token ID trên blockchain (unique identifier on-chain)
       tokenId: {
         type: Number,
         index: true,
       },
-      
+
       // Contract address (VD: 0x52B42Ac0e051A4c3386791b04391510C3cE06632)
       contractAddress: String,
-      
+
       // Owner hiện tại (địa chỉ ví) - CẬP NHẬT từ Transfer events
       // LƯU Ý: Field này được sync tự động từ blockchain qua eventListener
       owner: {
@@ -185,17 +185,17 @@ const propertySchema = new mongoose.Schema(
         lowercase: true,
         index: true,
       },
-      
+
       // Token URI (link đến metadata IPFS)
       // VD: ipfs://QmXXX... hoặc https://gateway.pinata.cloud/ipfs/QmXXX...
       tokenURI: String,
-      
+
       // Transaction hash khi mint
       transactionHash: String,
-      
+
       // IPFS hash của metadata (QmXXX...)
       ipfsHash: String,
-      
+
       // Timestamp khi mint
       mintedAt: Date,
     },
@@ -217,14 +217,14 @@ const propertySchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        "draft",           // Đang soạn thảo
-        "published",       // Đã publish, chưa mint
-        "pending_mint",    // Đang chờ mint
-        "minted",          // Đã mint thành NFT
-        "for_sale",        // Đang rao bán (có người list)
-        "in_transaction",  // Đang trong giao dịch
-        "sold",            // Đã bán
-        "archived",        // Đã lưu trữ
+        "draft", // Đang soạn thảo
+        "published", // Đã publish, chưa mint
+        "pending_mint", // Đang chờ mint
+        "minted", // Đã mint thành NFT
+        "for_sale", // Đang rao bán (có người list)
+        "in_transaction", // Đang trong giao dịch
+        "sold", // Đã bán
+        "archived", // Đã lưu trữ
       ],
       default: "draft",
       index: true,
@@ -234,7 +234,7 @@ const propertySchema = new mongoose.Schema(
     // SECTION 5: PRICE & AUCTION INFO (Dữ liệu thay đổi)
     // ============================================================
     // Thông tin giá và đấu giá - ĐỒNG BỘ từ smart contract events
-    
+
     // Giá niêm yết hiện tại (có thể thay đổi)
     // CẬP NHẬT khi có sự kiện List/UpdatePrice từ smart contract
     listingPrice: {
@@ -271,7 +271,7 @@ const propertySchema = new mongoose.Schema(
     // ============================================================
     // SECTION 6: OWNER & AGENT INFO
     // ============================================================
-    
+
     // Thông tin owner (người sở hữu off-chain)
     owner: {
       userId: String,
@@ -292,26 +292,26 @@ const propertySchema = new mongoose.Schema(
     // SECTION 7: ANALYTICS (Dữ liệu thay đổi liên tục)
     // ============================================================
     // Các metrics này chỉ dùng cho hiển thị, KHÔNG lưu trên IPFS
-    
+
     analytics: {
       // Số lượt xem (tăng mỗi khi user xem chi tiết)
       views: {
         type: Number,
         default: 0,
       },
-      
+
       // Số lượt yêu thích
       favorites: {
         type: Number,
         default: 0,
       },
-      
+
       // Số lượt chia sẻ
       shares: {
         type: Number,
         default: 0,
       },
-      
+
       // Số lượt hỏi thông tin
       inquiries: {
         type: Number,
@@ -418,7 +418,7 @@ propertySchema.methods.updateStatus = function (newStatus) {
 /**
  * Đánh dấu BĐS đã được mint thành NFT
  * QUAN TRỌNG: Method này được gọi sau khi mint thành công
- * 
+ *
  * @param {Object} nftData - Dữ liệu NFT từ minting service
  * @param {Number} nftData.tokenId - Token ID on-chain
  * @param {String} nftData.contractAddress - Contract address
@@ -446,7 +446,7 @@ propertySchema.methods.markAsMinted = function (nftData) {
 /**
  * Cập nhật owner khi NFT được transfer
  * QUAN TRỌNG: Method này được gọi khi phát hiện Transfer event từ blockchain
- * 
+ *
  * @param {String} newOwner - Địa chỉ owner mới
  * @param {String} transactionHash - Transfer transaction hash
  */
@@ -454,33 +454,38 @@ propertySchema.methods.updateOwner = function (newOwner, transactionHash) {
   if (!this.nft.isMinted) {
     throw new Error("Property is not minted as NFT yet");
   }
-  
+
   this.nft.owner = newOwner.toLowerCase();
   this.updatedAt = new Date();
-  
+
   console.log(`✅ Updated owner for property ${this._id}: ${newOwner}`);
   console.log(`   Transaction: ${transactionHash}`);
-  
+
   return this.save();
 };
 
 /**
  * Cập nhật giá niêm yết
  * QUAN TRỌNG: Method này được gọi khi có event PriceUpdated từ smart contract
- * 
+ *
  * @param {Number} amount - Giá mới
  * @param {String} currency - Đơn vị tiền tệ
  */
-propertySchema.methods.updateListingPrice = function (amount, currency = "VND") {
+propertySchema.methods.updateListingPrice = function (
+  amount,
+  currency = "VND"
+) {
   this.listingPrice = {
     amount: amount,
     currency: currency,
     updatedAt: new Date(),
   };
   this.updatedAt = new Date();
-  
-  console.log(`✅ Updated listing price for property ${this._id}: ${amount} ${currency}`);
-  
+
+  console.log(
+    `✅ Updated listing price for property ${this._id}: ${amount} ${currency}`
+  );
+
   return this.save();
 };
 

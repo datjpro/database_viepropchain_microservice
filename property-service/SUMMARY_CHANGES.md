@@ -3,6 +3,7 @@
 ## 🎯 MỤC TIÊU
 
 Tái cấu trúc Property Service để **phân chia rõ ràng** giữa:
+
 - **IPFS** (Immutable data - Dữ liệu không đổi)
 - **MongoDB** (Mutable data - Dữ liệu thay đổi)
 
@@ -17,20 +18,22 @@ Tái cấu trúc Property Service để **phân chia rõ ràng** giữa:
 **Thay đổi chính:**
 
 #### A. Thêm header documentation chi tiết:
+
 ```javascript
 /**
  * ========================================================================
  * PROPERTY MODEL - Quản lý thông tin bất động sản trong MongoDB
  * ========================================================================
- * 
+ *
  * PHÂN CHIA DỮ LIỆU:
- * 
+ *
  * 📦 IPFS (Immutable): name, description, image, attributes, legal_documents
  * 🗄️ MONGODB (Mutable): tokenId, owner, status, price, viewCount...
  */
 ```
 
 #### B. Restructure schema với comments rõ ràng:
+
 ```javascript
 // ============================================================
 // SECTION 1: BASIC INFORMATION (Cache từ IPFS)
@@ -62,6 +65,7 @@ Tái cấu trúc Property Service để **phân chia rõ ràng** giữa:
 ```
 
 #### C. Thêm field mới:
+
 ```javascript
 // Giá niêm yết (có thể thay đổi)
 listingPrice: {
@@ -82,6 +86,7 @@ auctionInfo: {
 ```
 
 #### D. Thêm methods mới:
+
 ```javascript
 // Cập nhật owner khi transfer
 propertySchema.methods.updateOwner = function(newOwner, txHash)
@@ -91,6 +96,7 @@ propertySchema.methods.updateListingPrice = function(amount, currency)
 ```
 
 #### E. Tối ưu indexes:
+
 ```javascript
 // Index cho NFT queries
 propertySchema.index({ "nft.tokenId": 1 });
@@ -108,12 +114,13 @@ propertySchema.index({ "listingPrice.amount": 1 });
 **Thay đổi chính:**
 
 #### A. Thêm documentation header cho `buildNFTMetadata()`:
+
 ```javascript
 /**
  * ========================================================================
  * BUILD NFT METADATA FOR IPFS
  * ========================================================================
- * 
+ *
  * CẤU TRÚC METADATA IPFS (Immutable):
  * 1. name              : Tên BĐS
  * 2. description       : Mô tả chi tiết
@@ -121,7 +128,7 @@ propertySchema.index({ "listingPrice.amount": 1 });
  * 4. external_url      : Link đến DApp
  * 5. attributes        : Các thuộc tính CỐ ĐỊNH
  * 6. legal_documents   : Mảng link IPFS giấy tờ pháp lý
- * 
+ *
  * LƯU Ý:
  * - Metadata LƯU TRÊN IPFS nên KHÔNG THỂ THAY ĐỔI
  * - Chỉ lưu thông tin CỐ ĐỊNH (như CMT, sổ đỏ)
@@ -130,18 +137,20 @@ propertySchema.index({ "listingPrice.amount": 1 });
 ```
 
 #### B. Thêm field `external_url`:
+
 ```javascript
 const metadata = {
   name: property.name,
   description: property.description,
   image: property.media?.images?.[0]?.url || "",
-  external_url: `${dappUrl}/properties/${property._id}`,  // ← MỚI
+  external_url: `${dappUrl}/properties/${property._id}`, // ← MỚI
   attributes: [],
-  legal_documents: [],  // ← MỚI
+  legal_documents: [], // ← MỚI
 };
 ```
 
 #### C. Thêm legal_documents từ property.media.documents:
+
 ```javascript
 // ============================================================
 // LEGAL DOCUMENTS - Giấy tờ pháp lý (IPFS links)
@@ -149,7 +158,10 @@ const metadata = {
 if (property.media?.documents && property.media.documents.length > 0) {
   property.media.documents.forEach((doc) => {
     // Chỉ thêm các document có URL IPFS
-    if (doc.url && (doc.url.startsWith('ipfs://') || doc.url.includes('/ipfs/'))) {
+    if (
+      doc.url &&
+      (doc.url.startsWith("ipfs://") || doc.url.includes("/ipfs/"))
+    ) {
       metadata.legal_documents.push({
         name: doc.name,
         url: doc.url,
@@ -161,6 +173,7 @@ if (property.media?.documents && property.media.documents.length > 0) {
 ```
 
 #### D. Thêm warning không lưu dữ liệu thay đổi:
+
 ```javascript
 // ============================================================
 // QUAN TRỌNG: KHÔNG LƯU CÁC THÔNG TIN SAU ĐÂY LÊN IPFS
@@ -169,11 +182,12 @@ if (property.media?.documents && property.media.documents.length > 0) {
 // ❌ KHÔNG lưu: owner (owner thay đổi khi transfer)
 // ❌ KHÔNG lưu: status (trạng thái thay đổi)
 // ❌ KHÔNG lưu: viewCount, favoriteCount (metrics thay đổi)
-// 
+//
 // ✅ Các thông tin trên sẽ lưu trong MONGODB (mutable data)
 ```
 
 #### E. Thêm comments chi tiết cho attributes:
+
 ```javascript
 // ============================================================
 // ATTRIBUTES - CHỈ LƯU THÔNG TIN CỐ ĐỊNH
@@ -194,6 +208,7 @@ switch (property.propertyType) { ... }
 ### 3. ✅ Tạo file `DATA_STRUCTURE_GUIDE.md`
 
 **Nội dung:**
+
 - 📋 Nguyên tắc phân chia IPFS vs MongoDB
 - 📦 Cấu trúc metadata IPFS đầy đủ
 - 🗄️ Cấu trúc dữ liệu MongoDB đầy đủ
@@ -209,6 +224,7 @@ switch (property.propertyType) { ... }
 ### 4. ✅ Tạo file `QUICK_GUIDE_DATA_STRUCTURE.md`
 
 **Nội dung:**
+
 - ⚡ Tóm tắt nhanh IPFS vs MongoDB
 - 📝 Code examples ngắn gọn
 - 🔄 Workflow đồng bộ dữ liệu
@@ -224,16 +240,19 @@ switch (property.propertyType) { ... }
 ## 🆕 CÁC TÍNH NĂNG MỚI
 
 ### 1. Support `external_url` trong IPFS metadata
+
 ```javascript
 {
   "external_url": "https://viepropchain.com/properties/65abc123..."
 }
 ```
+
 → OpenSea sẽ hiển thị link "View on ViePropChain"
 
 ---
 
 ### 2. Support `legal_documents` trong IPFS metadata
+
 ```javascript
 {
   "legal_documents": [
@@ -245,11 +264,13 @@ switch (property.propertyType) { ... }
   ]
 }
 ```
+
 → Lưu giấy tờ pháp lý vĩnh viễn trên IPFS
 
 ---
 
 ### 3. Thêm field `listingPrice` (giá niêm yết có thể đổi)
+
 ```javascript
 listingPrice: {
   amount: 15000000000,
@@ -257,11 +278,13 @@ listingPrice: {
   updatedAt: Date
 }
 ```
+
 → Phân biệt `price` (giá gốc) và `listingPrice` (giá đang bán)
 
 ---
 
 ### 4. Thêm field `auctionInfo` (thông tin đấu giá)
+
 ```javascript
 auctionInfo: {
   isActive: true,
@@ -272,6 +295,7 @@ auctionInfo: {
   bids: [...]
 }
 ```
+
 → Support đấu giá NFT
 
 ---
@@ -279,13 +303,15 @@ auctionInfo: {
 ### 5. Thêm methods mới cho Property model
 
 #### `updateOwner()` - Cập nhật owner từ Transfer event
+
 ```javascript
-await property.updateOwner('0x5678...', '0xtxhash...');
+await property.updateOwner("0x5678...", "0xtxhash...");
 ```
 
 #### `updateListingPrice()` - Cập nhật giá từ smart contract event
+
 ```javascript
-await property.updateListingPrice(15000000000, 'VND');
+await property.updateListingPrice(15000000000, "VND");
 ```
 
 ---
@@ -293,6 +319,7 @@ await property.updateListingPrice(15000000000, 'VND');
 ## 📊 CẤU TRÚC DỮ LIỆU CUỐI CÙNG
 
 ### IPFS Metadata (Immutable):
+
 ```json
 {
   "name": "Villa Sài Gòn - Quận 2",
@@ -316,13 +343,14 @@ await property.updateListingPrice(15000000000, 'VND');
 ```
 
 ### MongoDB Document (Mutable):
+
 ```javascript
 {
   // Basic info (cache từ IPFS)
   propertyType: "villa",
   name: "Villa Sài Gòn - Quận 2",
   description: "...",
-  
+
   // NFT info (blockchain data)
   nft: {
     isMinted: true,
@@ -333,7 +361,7 @@ await property.updateListingPrice(15000000000, 'VND');
     transactionHash: "0xabc...",
     ipfsHash: "QmAAA...",
   },
-  
+
   // Status & price (thay đổi)
   status: "for_sale",          // ← Đồng bộ từ Listed event
   listingPrice: {
@@ -341,14 +369,14 @@ await property.updateListingPrice(15000000000, 'VND');
     currency: "VND",
     updatedAt: Date
   },
-  
+
   // Auction info (nếu đấu giá)
   auctionInfo: {
     isActive: true,
     currentBid: 16000000000,
     highestBidder: "0x5678..."
   },
-  
+
   // Analytics (thay đổi liên tục)
   analytics: {
     views: 150,
@@ -363,6 +391,7 @@ await property.updateListingPrice(15000000000, 'VND');
 ## 🔄 WORKFLOW MỚI
 
 ### 1. Create và Mint Property:
+
 ```
 POST /properties/create-and-mint
   ↓
@@ -372,6 +401,7 @@ Save to MongoDB với NFT info
 ```
 
 ### 2. NFT Transfer (Owner thay đổi):
+
 ```
 Transfer on blockchain
   ↓
@@ -381,6 +411,7 @@ Auto update: property.updateOwner(newOwner, txHash)
 ```
 
 ### 3. List for Sale (Price thay đổi):
+
 ```
 List on marketplace
   ↓
@@ -397,12 +428,14 @@ Auto update: property.updateStatus('for_sale')
 ### Files đã tạo:
 
 1. **`DATA_STRUCTURE_GUIDE.md`**
+
    - Tài liệu đầy đủ, chi tiết
    - Giải thích từng field
    - Code examples
    - Best practices
 
 2. **`QUICK_GUIDE_DATA_STRUCTURE.md`**
+
    - Tóm tắt nhanh
    - Quick reference
    - Debugging tips
@@ -416,6 +449,7 @@ Auto update: property.updateStatus('for_sale')
 ### Files đã cập nhật:
 
 1. **`propertyModel.js`**
+
    - Thêm comments chi tiết
    - Thêm fields mới
    - Thêm methods mới
@@ -432,6 +466,7 @@ Auto update: property.updateStatus('for_sale')
 ## ✅ CHECKLIST TRIỂN KHAI
 
 ### Đã hoàn thành:
+
 - [x] Cập nhật propertyModel.js
 - [x] Cập nhật ipfsService.js
 - [x] Tạo DATA_STRUCTURE_GUIDE.md
@@ -443,6 +478,7 @@ Auto update: property.updateStatus('for_sale')
 - [x] Support external_url và legal_documents
 
 ### Cần test:
+
 - [ ] Test build metadata với legal_documents
 - [ ] Test upload IPFS với external_url
 - [ ] Test updateOwner() method
@@ -451,6 +487,7 @@ Auto update: property.updateStatus('for_sale')
 - [ ] Test auctionInfo workflow
 
 ### Cần implement thêm:
+
 - [ ] Event listener cho marketplace (Listed, Sold, PriceUpdated)
 - [ ] Sync owner từ minting-service sang property-service
 - [ ] Frontend hiển thị legal_documents
@@ -461,17 +498,20 @@ Auto update: property.updateStatus('for_sale')
 ## 💡 LỜI KHUYÊN
 
 ### Khi đọc code:
+
 1. **Đọc documentation trước:** `DATA_STRUCTURE_GUIDE.md`
 2. **Tra cứu nhanh:** `QUICK_GUIDE_DATA_STRUCTURE.md`
 3. **Xem code với comments:** Mỗi section đều có giải thích rõ ràng
 
 ### Khi develop:
+
 1. **Luôn phân biệt** IPFS (immutable) vs MongoDB (mutable)
 2. **Cache metadata** từ IPFS vào MongoDB để query nhanh
 3. **Đồng bộ tự động** từ blockchain events (không update manual)
 4. **Test kỹ** trước khi upload lên IPFS (không sửa được!)
 
 ### Khi debug:
+
 1. **Check event listener** đang chạy không
 2. **Check MongoDB indexes** đã tạo chưa
 3. **Check IPFS upload** thành công chưa
@@ -482,6 +522,7 @@ Auto update: property.updateStatus('for_sale')
 ## 🎉 KẾT LUẬN
 
 Đã hoàn thành việc:
+
 - ✅ **Phân chia rõ ràng** IPFS vs MongoDB
 - ✅ **Tối ưu code** với comments chi tiết
 - ✅ **Thêm tính năng mới** (legal_documents, auctionInfo...)
@@ -489,6 +530,7 @@ Auto update: property.updateStatus('for_sale')
 - ✅ **Support workflow** mint, transfer, list for sale
 
 **Bây giờ bạn có thể:**
+
 1. Mint NFT với metadata đầy đủ (bao gồm legal_documents)
 2. Tự động đồng bộ owner khi transfer
 3. Tự động cập nhật price khi list for sale

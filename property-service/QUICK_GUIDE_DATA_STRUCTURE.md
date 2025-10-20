@@ -65,13 +65,13 @@ const metadata = buildNFTMetadata(property, 'https://viepropchain.com');
 ### 2. Upload lên IPFS
 
 ```javascript
-const { uploadMetadataToIPFS } = require('./ipfsService');
+const { uploadMetadataToIPFS } = require("./ipfsService");
 
 // Upload metadata
 const { ipfsHash, tokenURI } = await uploadMetadataToIPFS(metadata);
 
-console.log(ipfsHash);  // QmXXX...
-console.log(tokenURI);  // https://gateway.pinata.cloud/ipfs/QmXXX...
+console.log(ipfsHash); // QmXXX...
+console.log(tokenURI); // https://gateway.pinata.cloud/ipfs/QmXXX...
 
 // Lưu vào property
 property.ipfsMetadataCid = ipfsHash;
@@ -81,12 +81,12 @@ await property.save();
 ### 3. Mint NFT với tokenURI
 
 ```javascript
-const { requestMinting } = require('./mintingClient');
+const { requestMinting } = require("./mintingClient");
 
 // Gửi request mint
 const result = await requestMinting(
-  '0x1234...abcd',  // recipient
-  tokenURI          // ipfs://QmXXX...
+  "0x1234...abcd", // recipient
+  tokenURI // ipfs://QmXXX...
 );
 
 // Cập nhật property
@@ -109,9 +109,9 @@ async function handleTransferEvent(from, to, tokenId, txHash) {
   const nft = await NFT.findOne({ tokenId });
   nft.owner = to;
   await nft.save();
-  
+
   // (Optional) Sync sang property-service
-  const property = await Property.findOne({ 'nft.tokenId': tokenId });
+  const property = await Property.findOne({ "nft.tokenId": tokenId });
   if (property) {
     await property.updateOwner(to, txHash);
   }
@@ -123,11 +123,11 @@ async function handleTransferEvent(from, to, tokenId, txHash) {
 ```javascript
 // Trong marketplace event listener
 async function handleListedEvent(tokenId, seller, price) {
-  const property = await Property.findOne({ 'nft.tokenId': tokenId });
-  
+  const property = await Property.findOne({ "nft.tokenId": tokenId });
+
   if (property) {
-    await property.updateStatus('for_sale');
-    await property.updateListingPrice(price, 'VND');
+    await property.updateStatus("for_sale");
+    await property.updateListingPrice(price, "VND");
   }
 }
 ```
@@ -137,20 +137,20 @@ async function handleListedEvent(tokenId, seller, price) {
 ```javascript
 // Lấy tất cả properties đang bán
 const properties = await Property.find({
-  status: 'for_sale',
-  'nft.isMinted': true
+  status: "for_sale",
+  "nft.isMinted": true,
 })
-.sort({ 'analytics.views': -1 })
-.limit(20);
+  .sort({ "analytics.views": -1 })
+  .limit(20);
 
 // Lấy properties theo owner
 const myProperties = await Property.find({
-  'nft.owner': '0x1234...abcd'
+  "nft.owner": "0x1234...abcd",
 });
 
 // Lấy properties theo giá
 const cheapProperties = await Property.find({
-  'listingPrice.amount': { $lte: 5000000000 }
+  "listingPrice.amount": { $lte: 5000000000 },
 });
 ```
 
@@ -213,23 +213,23 @@ await property.incrementViews();
 await property.incrementFavorites();
 
 // Update status
-await property.updateStatus('for_sale');
+await property.updateStatus("for_sale");
 
 // Mark as minted (sau khi mint)
 await property.markAsMinted({
   tokenId: 1,
-  contractAddress: '0x52B42...',
-  owner: '0x1234...',
-  tokenURI: 'ipfs://QmXXX...',
-  transactionHash: '0xabc...',
-  ipfsHash: 'QmXXX...',
+  contractAddress: "0x52B42...",
+  owner: "0x1234...",
+  tokenURI: "ipfs://QmXXX...",
+  transactionHash: "0xabc...",
+  ipfsHash: "QmXXX...",
 });
 
 // Update owner (từ Transfer event)
-await property.updateOwner('0x5678...', '0xtxhash...');
+await property.updateOwner("0x5678...", "0xtxhash...");
 
 // Update listing price (từ PriceUpdated event)
-await property.updateListingPrice(15000000000, 'VND');
+await property.updateListingPrice(15000000000, "VND");
 ```
 
 ---
@@ -281,7 +281,7 @@ console.log(process.env.PINATA_JWT);
 // Test upload
 const result = await uploadMetadataToIPFS({
   name: "Test",
-  description: "Test"
+  description: "Test",
 });
 ```
 
@@ -292,10 +292,10 @@ const result = await uploadMetadataToIPFS({
 // Trong minting-service/eventListener.js
 
 // Check polling interval
-console.log('Last checked block:', lastCheckedBlock);
+console.log("Last checked block:", lastCheckedBlock);
 
 // Manually update
-await property.updateOwner('0xnewowner...', '0xtxhash...');
+await property.updateOwner("0xnewowner...", "0xtxhash...");
 ```
 
 ### Query chậm:
@@ -305,7 +305,7 @@ await property.updateOwner('0xnewowner...', '0xtxhash...');
 db.properties.getIndexes();
 
 // Add index
-propertySchema.index({ 'nft.owner': 1 });
+propertySchema.index({ "nft.owner": 1 });
 
 // Use lean() cho read-only
 const properties = await Property.find({}).lean();

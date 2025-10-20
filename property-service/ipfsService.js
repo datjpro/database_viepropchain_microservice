@@ -137,9 +137,9 @@ async function uploadFileToIPFS(fileBuffer, fileName) {
  * ========================================================================
  * BUILD NFT METADATA FOR IPFS
  * ========================================================================
- * 
+ *
  * Tạo metadata theo chuẩn ERC-721 để lưu trên IPFS
- * 
+ *
  * CẤU TRÚC METADATA IPFS (Immutable - Không đổi):
  * ----------------------------------------------------------------
  * 1. name              : Tên BĐS (hiển thị trên OpenSea, Marketplace)
@@ -148,12 +148,12 @@ async function uploadFileToIPFS(fileBuffer, fileName) {
  * 4. external_url      : Link đến trang chi tiết BĐS trên DApp
  * 5. attributes        : Các thuộc tính CỐ ĐỊNH (loại hình, vị trí, diện tích...)
  * 6. legal_documents   : Mảng link IPFS đến giấy tờ pháp lý (sổ đỏ, giấy phép...)
- * 
+ *
  * LƯU Ý:
  * - Metadata này LƯU TRÊN IPFS nên KHÔNG THỂ THAY ĐỔI sau khi mint
  * - Chỉ lưu thông tin CỐ ĐỊNH, định danh tài sản (như CMT, sổ đỏ)
  * - KHÔNG lưu thông tin thay đổi (giá bán, trạng thái, owner...)
- * 
+ *
  * @param {Object} property - Property document từ MongoDB
  * @param {String} dappUrl - Base URL của DApp (VD: https://viepropchain.com)
  * @returns {Object} - NFT metadata theo chuẩn ERC-721
@@ -165,19 +165,19 @@ function buildNFTMetadata(property, dappUrl = "https://viepropchain.com") {
   const metadata = {
     // Tên BĐS - Hiển thị trên OpenSea, marketplaces
     name: property.name,
-    
+
     // Mô tả chi tiết - Hiển thị trên OpenSea
     description: property.description,
-    
+
     // Link IPFS đến ảnh đại diện (nên là IPFS URL để vĩnh viễn)
     image: property.media?.images?.[0]?.url || "",
-    
+
     // Link đến trang chi tiết trên DApp của bạn
     external_url: `${dappUrl}/properties/${property._id}`,
-    
+
     // Các thuộc tính CỐ ĐỊNH (để lọc/filter trên OpenSea, marketplaces)
     attributes: [],
-    
+
     // Giấy tờ pháp lý (link IPFS) - QUAN TRỌNG cho BĐS
     legal_documents: [],
   };
@@ -185,7 +185,7 @@ function buildNFTMetadata(property, dappUrl = "https://viepropchain.com") {
   // ============================================================
   // ATTRIBUTES - CHỈ LƯU THÔNG TIN CỐ ĐỊNH
   // ============================================================
-  
+
   // 1. Loại hình BĐS (apartment, land, house, villa)
   metadata.attributes.push({
     trait_type: "Loại hình BĐS",
@@ -301,7 +301,10 @@ function buildNFTMetadata(property, dappUrl = "https://viepropchain.com") {
   if (property.media?.documents && property.media.documents.length > 0) {
     property.media.documents.forEach((doc) => {
       // Chỉ thêm các document có URL IPFS (bắt đầu bằng ipfs:// hoặc /ipfs/)
-      if (doc.url && (doc.url.startsWith('ipfs://') || doc.url.includes('/ipfs/'))) {
+      if (
+        doc.url &&
+        (doc.url.startsWith("ipfs://") || doc.url.includes("/ipfs/"))
+      ) {
         metadata.legal_documents.push({
           name: doc.name,
           url: doc.url,
@@ -330,7 +333,7 @@ function buildNFTMetadata(property, dappUrl = "https://viepropchain.com") {
   // ❌ KHÔNG lưu: owner (owner thay đổi khi transfer)
   // ❌ KHÔNG lưu: status (trạng thái thay đổi)
   // ❌ KHÔNG lưu: viewCount, favoriteCount (metrics thay đổi)
-  // 
+  //
   // ✅ Các thông tin trên sẽ lưu trong MONGODB (mutable data)
 
   return metadata;
