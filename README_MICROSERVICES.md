@@ -66,48 +66,56 @@ Mỗi service cần file `.env` riêng (xem `.env.example` trong mỗi folder)
 ### 3. Chạy các services (7 terminals)
 
 **Terminal 1 - Ganache:**
+
 ```bash
 cd d:\DACN\RE-Chain\viepropchain
 ganache -m "arm either chef prosper fish lonely rigid antique dawn stumble wife camera" --database.dbPath "./ganache-data-dev" --chain.networkId 1337 --server.port 8545
 ```
 
 **Terminal 2 - API Gateway:**
+
 ```bash
 cd services/api-gateway
 npm start
 ```
 
 **Terminal 3 - Auth Service:**
+
 ```bash
 cd services/auth-service
 npm start
 ```
 
 **Terminal 4 - IPFS Service:**
+
 ```bash
 cd services/ipfs-service
 npm start
 ```
 
 **Terminal 5 - Admin Service:**
+
 ```bash
 cd services/admin-service
 npm start
 ```
 
 **Terminal 6 - Blockchain Service:**
+
 ```bash
 cd services/blockchain-service
 npm start
 ```
 
 **Terminal 7 - Indexer Service:**
+
 ```bash
 cd services/indexer-service
 npm start
 ```
 
 **Terminal 8 - Query Service:**
+
 ```bash
 cd services/query-service
 npm start
@@ -118,17 +126,20 @@ npm start
 ### Via API Gateway (http://localhost:4000)
 
 #### Auth Service
+
 - `POST /api/auth/get-nonce` - Lấy nonce để ký
 - `POST /api/auth/verify-signature` - Verify signature và login
 - `GET /api/auth/profile` - Lấy profile
 - `PUT /api/auth/profile` - Cập nhật profile
 
 #### IPFS Service
+
 - `POST /api/ipfs/upload/image` - Upload ảnh
 - `POST /api/ipfs/upload/document` - Upload document
 - `POST /api/ipfs/upload/metadata` - Upload metadata JSON
 
 #### Admin Service
+
 - `POST /api/admin/properties` - Tạo property
 - `GET /api/admin/properties` - Lấy danh sách properties
 - `GET /api/admin/properties/:id` - Lấy chi tiết property
@@ -137,11 +148,13 @@ npm start
 - `POST /api/admin/properties/:id/mint` - Mint NFT
 
 #### Blockchain Service
+
 - `POST /api/blockchain/mint` - Mint NFT
 - `GET /api/blockchain/nft/:tokenId` - Get NFT info
 - `POST /api/blockchain/transfer` - Transfer NFT
 
 #### Query Service (Public)
+
 - `GET /api/query/properties` - Browse properties (có filter, pagination)
 - `GET /api/query/properties/:id` - Get chi tiết property
 - `GET /api/query/stats` - Thống kê

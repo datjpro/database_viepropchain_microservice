@@ -61,6 +61,7 @@ cd database_viepropchain_microservice
 Mỗi service có file `.env.example` - copy và điền thông tin:
 
 #### **services/api-gateway/.env**
+
 ```env
 PORT=4000
 AUTH_SERVICE_URL=http://localhost:4001
@@ -71,6 +72,7 @@ QUERY_SERVICE_URL=http://localhost:4005
 ```
 
 #### **services/auth-service/.env**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/viepropchain
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -78,6 +80,7 @@ PORT=4001
 ```
 
 #### **services/ipfs-service/.env**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/viepropchain
 PINATA_JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # Lấy từ Pinata dashboard
@@ -89,6 +92,7 @@ PORT=4002
 **Lấy Pinata keys:** https://app.pinata.cloud/developers/api-keys
 
 #### **services/admin-service/.env**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/viepropchain
 IPFS_SERVICE_URL=http://localhost:4002
@@ -97,6 +101,7 @@ PORT=4003
 ```
 
 #### **services/blockchain-service/.env**
+
 ```env
 GANACHE_URL=http://127.0.0.1:8545
 CONTRACT_ADDRESS=0x...  # Lấy từ deployment-development.json
@@ -105,23 +110,27 @@ PORT=4004
 ```
 
 **Lấy CONTRACT_ADDRESS:**
+
 ```powershell
 cd ../..
 node -p "JSON.parse(require('fs').readFileSync('deployment-development.json')).ViePropChainNFT"
 ```
 
 **Lấy ADMIN_PRIVATE_KEY:**
+
 - Mở Ganache UI
 - Click vào account đầu tiên (index 0)
 - Copy private key
 
 #### **services/query-service/.env**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/viepropchain
 PORT=4005
 ```
 
 #### **services/indexer-service/.env**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/viepropchain
 GANACHE_URL=http://127.0.0.1:8545
@@ -140,6 +149,7 @@ POLL_INTERVAL=3000
 ```
 
 Script này sẽ:
+
 - ✅ Check MongoDB đang chạy
 - ✅ Check Ganache đang chạy
 - ✅ Tự động tạo .env từ .env.example nếu chưa có
@@ -151,42 +161,49 @@ Script này sẽ:
 ### Cách 2: Chạy TỪNG service riêng lẻ
 
 **Terminal 1 - API Gateway:**
+
 ```powershell
 cd services\api-gateway
 npm start
 ```
 
 **Terminal 2 - Auth Service:**
+
 ```powershell
 cd services\auth-service
 npm start
 ```
 
 **Terminal 3 - IPFS Service:**
+
 ```powershell
 cd services\ipfs-service
 npm start
 ```
 
 **Terminal 4 - Admin Service:**
+
 ```powershell
 cd services\admin-service
 npm start
 ```
 
 **Terminal 5 - Blockchain Service:**
+
 ```powershell
 cd services\blockchain-service
 npm start
 ```
 
 **Terminal 6 - Query Service:**
+
 ```powershell
 cd services\query-service
 npm start
 ```
 
 **Terminal 7 - Indexer Service:**
+
 ```powershell
 cd services\indexer-service
 npm start
@@ -307,6 +324,7 @@ curl -X POST http://localhost:4000/api/admin/properties/<property-id>/mint `
 ```
 
 **Quá trình diễn ra:**
+
 1. Admin Service lấy thông tin property
 2. Build metadata JSON
 3. Gọi **IPFS Service** → Upload metadata lên Pinata
@@ -315,6 +333,7 @@ curl -X POST http://localhost:4000/api/admin/properties/<property-id>/mint `
 6. **Indexer Service** tự động detect Transfer event → Update NFT collection
 
 Output:
+
 ```json
 {
   "success": true,
@@ -396,6 +415,7 @@ Remove-Item -Recurse -Force .\property-service
 ## 🆘 TROUBLESHOOTING
 
 ### MongoDB không kết nối được
+
 ```powershell
 # Check MongoDB service
 Get-Service MongoDB
@@ -408,11 +428,13 @@ mongod --dbpath "C:\data\db"
 ```
 
 ### Ganache không chạy
+
 - Mở Ganache UI
 - Tạo workspace mới hoặc load workspace cũ
 - Đảm bảo port 8545
 
 ### Port đã được sử dụng
+
 ```powershell
 # Tìm process đang dùng port 4000
 netstat -ano | findstr :4000
@@ -422,10 +444,12 @@ taskkill /PID <PID> /F
 ```
 
 ### IPFS upload lỗi 401
+
 - Check Pinata JWT có đúng không
 - Thử generate API key mới tại https://app.pinata.cloud/
 
 ### Contract address không đúng
+
 ```powershell
 # Xem deployment info
 cat deployment-development.json
@@ -446,7 +470,7 @@ Xem chi tiết tại: `README_MICROSERVICES.md`
 ## ✅ CHECKLIST
 
 - [ ] MongoDB đang chạy
-- [ ] Ganache đang chạy  
+- [ ] Ganache đang chạy
 - [ ] Contract đã deploy (có deployment-development.json)
 - [ ] Pinata API keys đã cấu hình
 - [ ] 7 services đã install dependencies (npm install)

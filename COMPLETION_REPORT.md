@@ -23,9 +23,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ## 🏗️ KIẾN TRÚC
 
 ### 1. API GATEWAY (Port 4000)
+
 **Vai trò:** Single Entry Point cho tất cả requests từ Frontend
 
 **Routing:**
+
 - `/api/auth/*` → Auth Service (4001)
 - `/api/ipfs/*` → IPFS Service (4002)
 - `/api/admin/*` → Admin Service (4003)
@@ -37,9 +39,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 2. AUTH SERVICE (Port 4001)
+
 **Vai trò:** Authentication với Sign-in with Ethereum
 
 **Endpoints:**
+
 - `POST /get-nonce` - Tạo nonce cho wallet
 - `POST /verify-signature` - Verify signature → JWT token
 - `GET /profile` - Lấy user profile
@@ -52,9 +56,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 3. IPFS SERVICE (Port 4002)
+
 **Vai trò:** Upload files lên IPFS/Pinata (CHUYÊN BIỆT)
 
 **Endpoints:**
+
 - `POST /upload/image` - Upload hình ảnh property
 - `POST /upload/document` - Upload tài liệu pháp lý
 - `POST /upload/metadata` - Upload NFT metadata JSON
@@ -67,9 +73,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 4. ADMIN SERVICE (Port 4003) ⭐ ĐIỀU PHỐI
+
 **Vai trò:** Orchestrator - Điều phối tạo property và mint NFT
 
 **Workflow Chính:**
+
 ```
 1. Nhận request tạo property
 2. Lưu property vào MongoDB
@@ -80,6 +88,7 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ```
 
 **Endpoints:**
+
 - `POST /properties` - Tạo property mới
 - `GET /properties` - List properties (with filters)
 - `GET /properties/:id` - Get property detail
@@ -95,9 +104,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 5. BLOCKCHAIN SERVICE (Port 4004)
+
 **Vai trò:** Tương tác với Smart Contract (CHUYÊN BIỆT)
 
 **Endpoints:**
+
 - `POST /mint` - Mint NFT (gọi contract.mint())
 - `GET /nft/:tokenId` - Lấy thông tin NFT on-chain
 - `POST /transfer` - Transfer NFT
@@ -112,9 +123,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 6. QUERY SERVICE (Port 4005)
+
 **Vai trò:** Read-only queries (không modify data)
 
 **Endpoints:**
+
 - `GET /properties` - Search với filters (type, city, price range, area...)
 - `GET /properties/:id` - Property detail
 - `GET /properties/featured/list` - Featured properties
@@ -132,9 +145,11 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ---
 
 ### 7. INDEXER SERVICE (Worker - No Port)
+
 **Vai trò:** Background worker lắng nghe blockchain events
 
 **Workflow:**
+
 ```
 1. Poll blockchain mỗi 3 giây
 2. Detect Transfer events
@@ -144,6 +159,7 @@ Old Structure (Monolithic):           New Structure (Microservices):
 ```
 
 **Events Tracking:**
+
 - Transfer (from, to, tokenId)
 - ItemListed (future)
 - ItemSold (future)
@@ -292,19 +308,23 @@ database_viepropchain_microservice/
 ## 🚀 CÁCH SỬ DỤNG
 
 ### 1. Install dependencies:
+
 ```powershell
 .\install-all.ps1
 ```
 
 ### 2. Configure .env files (7 services):
+
 Xem hướng dẫn chi tiết trong `SETUP_GUIDE.md`
 
 ### 3. Start all services:
+
 ```powershell
 .\start-all-services.ps1
 ```
 
 ### 4. Test workflow:
+
 ```powershell
 # Health check
 curl http://localhost:4000/health
@@ -322,16 +342,16 @@ curl -X POST http://localhost:4000/api/admin/properties/{id}/mint -d '{"recipien
 
 ### Sự khác biệt so với old services:
 
-| Aspect | Old (Monolithic) | New (Microservices) |
-|--------|-----------------|---------------------|
-| **Architecture** | 2 services độc lập | 7 services phân tách rõ ràng |
-| **Property Create** | property-service tự làm hết | Admin Service điều phối |
-| **IPFS Upload** | Trong property-service | IPFS Service chuyên biệt |
-| **Blockchain** | minting-service độc lập | Blockchain Service chuyên biệt |
-| **Event Listening** | eventListener.js trong minting-service | Indexer Service riêng |
-| **Queries** | Trong property-service | Query Service read-only |
-| **Authentication** | Không rõ ràng | Auth Service riêng |
-| **Entry Point** | Gọi trực tiếp services | API Gateway duy nhất |
+| Aspect              | Old (Monolithic)                       | New (Microservices)            |
+| ------------------- | -------------------------------------- | ------------------------------ |
+| **Architecture**    | 2 services độc lập                     | 7 services phân tách rõ ràng   |
+| **Property Create** | property-service tự làm hết            | Admin Service điều phối        |
+| **IPFS Upload**     | Trong property-service                 | IPFS Service chuyên biệt       |
+| **Blockchain**      | minting-service độc lập                | Blockchain Service chuyên biệt |
+| **Event Listening** | eventListener.js trong minting-service | Indexer Service riêng          |
+| **Queries**         | Trong property-service                 | Query Service read-only        |
+| **Authentication**  | Không rõ ràng                          | Auth Service riêng             |
+| **Entry Point**     | Gọi trực tiếp services                 | API Gateway duy nhất           |
 
 ### Pattern "Admin Service điều phối":
 
@@ -349,21 +369,27 @@ async function mintProperty() {
 async function mintProperty() {
   // 1. Build metadata
   const metadata = buildMetadata();
-  
+
   // 2. Gọi IPFS Service
-  const ipfsResponse = await axios.post('http://localhost:4002/upload/metadata', metadata);
+  const ipfsResponse = await axios.post(
+    "http://localhost:4002/upload/metadata",
+    metadata
+  );
   const cid = ipfsResponse.data.cid;
-  
+
   // 3. Gọi Blockchain Service
-  const mintResponse = await axios.post('http://localhost:4004/mint', { tokenURI });
+  const mintResponse = await axios.post("http://localhost:4004/mint", {
+    tokenURI,
+  });
   const tokenId = mintResponse.data.tokenId;
-  
+
   // 4. Update MongoDB
   await property.save();
 }
 ```
 
 **Admin Service KHÔNG trực tiếp:**
+
 - ❌ Upload lên Pinata (gọi IPFS Service)
 - ❌ Gọi smart contract (gọi Blockchain Service)
 - ✅ CHỈ điều phối workflow và update MongoDB
@@ -392,15 +418,18 @@ async function mintProperty() {
 ## 📝 BƯỚC TIẾP THEO
 
 1. **Stop old services:**
+
    - Đóng terminals đang chạy `minting-service` và `property-service`
 
 2. **Delete old folders:**
+
    ```powershell
    Remove-Item -Recurse -Force .\minting-service
    Remove-Item -Recurse -Force .\property-service
    ```
 
 3. **Install dependencies:**
+
    ```powershell
    .\install-all.ps1
    ```
@@ -408,6 +437,7 @@ async function mintProperty() {
 4. **Configure .env files** (theo SETUP_GUIDE.md)
 
 5. **Start new microservices:**
+
    ```powershell
    .\start-all-services.ps1
    ```

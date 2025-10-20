@@ -6,27 +6,28 @@
  * ========================================================================
  */
 
-const express = require('express');
-const mongoose = require('mongoose');
-const { ethers } = require('ethers');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const express = require("express");
+const mongoose = require("mongoose");
+const { ethers } = require("ethers");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
-const { User } = require('../../shared/models');
+const { User } = require("../../shared/models");
 
 const app = express();
 const PORT = process.env.PORT || 4001;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 
 // ============================================================================
 // MONGODB CONNECTION
 // ============================================================================
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB connected'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // ============================================================================
 // MIDDLEWARE
@@ -36,26 +37,27 @@ app.use(express.json());
 // ============================================================================
 // HEALTH CHECK
 // ============================================================================
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
     success: true,
-    service: 'Auth Service',
+    service: "Auth Service",
     port: PORT,
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
 // ============================================================================
 // STEP 1: GET NONCE - Lấy nonce để user ký
 // ============================================================================
-app.post('/get-nonce', async (req, res) => {
+app.post("/get-nonce", async (req, res) => {
   try {
     const { walletAddress } = req.body;
 
     if (!walletAddress || !ethers.isAddress(walletAddress)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid wallet address'
+        error: "Invalid wallet address",
       });
     }
 
@@ -68,7 +70,7 @@ app.post('/get-nonce', async (req, res) => {
       // Tạo user mới
       user = new User({
         walletAddress: address,
-        nonce: Math.floor(Math.random() * 1000000).toString()
+        nonce: Math.floor(Math.random() * 1000000).toString(),
       });
       await user.save();
       console.log(`✅ Created new user: ${address}`);
@@ -80,17 +82,16 @@ app.post('/get-nonce', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Please sign this message to login',
+      message: "Please sign this message to login",
       nonce: user.nonce,
-      walletAddress: address
+      walletAddress: address,
     });
-
   } catch (error) {
-    console.error('❌ Get nonce error:', error);
+    console.error("❌ Get nonce error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get nonce',
-      message: error.message
+      error: "Failed to get nonce",
+      message: error.message,
     });
   }
 });
@@ -98,14 +99,14 @@ app.post('/get-nonce', async (req, res) => {
 // ============================================================================
 // STEP 2: VERIFY SIGNATURE - Xác thực chữ ký và tạo JWT token
 // ============================================================================
-app.post('/verify-signature', async (req, res) => {
+app.post("/verify-signature", async (req, res) => {
   try {
     const { walletAddress, signature } = req.body;
 
     if (!walletAddress || !signature) {
       return res.status(400).json({
         success: false,
-        error: 'Missing wallet address or signature'
+        error: "Missing wallet address or signature",
       });
     }
 
@@ -117,7 +118,7 @@ app.post('/verify-signature', async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found. Please get nonce first.'
+        error: "User not found. Please get nonce first.",
       });
     }
 
@@ -128,7 +129,7 @@ app.post('/verify-signature', async (req, res) => {
     if (recoveredAddress.toLowerCase() !== address) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid signature'
+        error: "Invalid signature",
       });
     }
 
@@ -137,10 +138,10 @@ app.post('/verify-signature', async (req, res) => {
       {
         walletAddress: address,
         userId: user._id,
-        role: user.role
+        role: user.role,
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
     // Lưu token vào database
@@ -153,21 +154,20 @@ app.post('/verify-signature', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       token,
       user: {
         walletAddress: user.walletAddress,
         role: user.role,
-        profile: user.profile
-      }
+        profile: user.profile,
+      },
     });
-
   } catch (error) {
-    console.error('❌ Verify signature error:', error);
+    console.error("❌ Verify signature error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to verify signature',
-      message: error.message
+      error: "Failed to verify signature",
+      message: error.message,
     });
   }
 });
@@ -177,23 +177,22 @@ app.post('/verify-signature', async (req, res) => {
 // ============================================================================
 const verifyToken = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const token = req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
       return res.status(401).json({
         success: false,
-        error: 'No token provided'
+        error: "No token provided",
       });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
-
   } catch (error) {
     return res.status(401).json({
       success: false,
-      error: 'Invalid or expired token'
+      error: "Invalid or expired token",
     });
   }
 };
@@ -201,14 +200,14 @@ const verifyToken = async (req, res, next) => {
 // ============================================================================
 // GET USER PROFILE
 // ============================================================================
-app.get('/profile', verifyToken, async (req, res) => {
+app.get("/profile", verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ walletAddress: req.user.walletAddress });
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: "User not found",
       });
     }
 
@@ -220,15 +219,14 @@ app.get('/profile', verifyToken, async (req, res) => {
         profile: user.profile,
         favorites: user.favorites,
         createdAt: user.createdAt,
-        lastLoginAt: user.lastLoginAt
-      }
+        lastLoginAt: user.lastLoginAt,
+      },
     });
-
   } catch (error) {
-    console.error('❌ Get profile error:', error);
+    console.error("❌ Get profile error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get profile'
+      error: "Failed to get profile",
     });
   }
 });
@@ -236,7 +234,7 @@ app.get('/profile', verifyToken, async (req, res) => {
 // ============================================================================
 // UPDATE USER PROFILE
 // ============================================================================
-app.put('/profile', verifyToken, async (req, res) => {
+app.put("/profile", verifyToken, async (req, res) => {
   try {
     const { name, email, phone, avatar, bio } = req.body;
 
@@ -244,12 +242,12 @@ app.put('/profile', verifyToken, async (req, res) => {
       { walletAddress: req.user.walletAddress },
       {
         $set: {
-          'profile.name': name,
-          'profile.email': email,
-          'profile.phone': phone,
-          'profile.avatar': avatar,
-          'profile.bio': bio
-        }
+          "profile.name": name,
+          "profile.email": email,
+          "profile.phone": phone,
+          "profile.avatar": avatar,
+          "profile.bio": bio,
+        },
       },
       { new: true }
     );
@@ -258,18 +256,17 @@ app.put('/profile', verifyToken, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Profile updated',
+      message: "Profile updated",
       user: {
         walletAddress: user.walletAddress,
-        profile: user.profile
-      }
+        profile: user.profile,
+      },
     });
-
   } catch (error) {
-    console.error('❌ Update profile error:', error);
+    console.error("❌ Update profile error:", error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update profile'
+      error: "Failed to update profile",
     });
   }
 });
@@ -283,7 +280,9 @@ app.listen(PORT, () => {
 ║                      AUTH SERVICE                            ║
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
-║  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}                                           ║
+║  MongoDB: ${
+    mongoose.connection.readyState === 1 ? "Connected" : "Disconnected"
+  }                                           ║
 ║                                                              ║
 ║  API Endpoints:                                              ║
 ║  ├─ POST /get-nonce          - Get nonce for signing        ║

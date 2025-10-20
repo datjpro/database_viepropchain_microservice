@@ -1,0 +1,742 @@
+{
+  "info": {
+    "_postman_id": "viepropchain-microservices-2025",
+    "name": "ViePropChain Microservices - Complete Workflow",
+    "description": "Test hoàn chỉnh workflow: Create Property → Upload to IPFS → Mint NFT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Health Checks",
+      "item": [
+        {
+          "name": "API Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "IPFS Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4002/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Admin Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Blockchain Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Query Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4005/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4005",
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Get Nonce",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('nonce', response.nonce);",
+                  "    console.log('Nonce saved:', response.nonce);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"walletAddress\": \"{{walletAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/auth/get-nonce",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "get-nonce"]
+            }
+          }
+        },
+        {
+          "name": "Verify Signature (Manual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('authToken', response.token);",
+                  "    pm.environment.set('userId', response.user._id);",
+                  "    console.log('Token saved:', response.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"walletAddress\": \"{{walletAddress}}\",\n    \"signature\": \"{{signature}}\",\n    \"nonce\": \"{{nonce}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/auth/verify-signature",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "verify-signature"]
+            },
+            "description": "MANUAL STEP: Sign the message in MetaMask and paste the signature in environment variable {{signature}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Create Property",
+      "item": [
+        {
+          "name": "Create Apartment (Vinhomes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('propertyId', response.data._id);",
+                  "    console.log('Property ID saved:', response.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Căn hộ Vinhomes Central Park 2PN\",\n    \"description\": \"Căn hộ cao cấp 2 phòng ngủ tại Vinhomes Central Park, view sông Sài Gòn tuyệt đẹp. Nội thất cao cấp đầy đủ, an ninh 24/7.\",\n    \"propertyType\": \"apartment\",\n    \"location\": {\n        \"address\": \"208 Nguyễn Hữu Cảnh\",\n        \"ward\": \"Phường 22\",\n        \"district\": \"Bình Thạnh\",\n        \"city\": \"Hồ Chí Minh\",\n        \"coordinates\": {\n            \"lat\": 10.7967,\n            \"lng\": 106.7218\n        }\n    },\n    \"price\": {\n        \"amount\": 5000000000,\n        \"currency\": \"VND\",\n        \"pricePerM2\": 58823529\n    },\n    \"details\": {\n        \"area\": {\n            \"value\": 85,\n            \"unit\": \"m2\"\n        },\n        \"bedrooms\": 2,\n        \"bathrooms\": 2,\n        \"floors\": 1,\n        \"legalStatus\": \"Sổ hồng\",\n        \"orientation\": \"Đông Nam\",\n        \"furnishing\": \"Đầy đủ nội thất\"\n    },\n    \"creator\": \"{{walletAddress}}\",\n    \"owner\": \"{{walletAddress}}\",\n    \"media\": {\n        \"images\": [],\n        \"documents\": []\n    }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties"]
+            }
+          }
+        },
+        {
+          "name": "Create House (Thảo Điền)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('propertyId2', response.data._id);",
+                  "    console.log('Property ID 2 saved:', response.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Biệt thự Thảo Điền sang trọng\",\n    \"description\": \"Biệt thự cao cấp tại khu Thảo Điền, diện tích 300m2, 4 phòng ngủ, sân vườn rộng rãi.\",\n    \"propertyType\": \"house\",\n    \"location\": {\n        \"address\": \"Đường Nguyễn Văn Hưởng\",\n        \"ward\": \"Phường Thảo Điền\",\n        \"district\": \"Quận 2\",\n        \"city\": \"Hồ Chí Minh\",\n        \"coordinates\": {\n            \"lat\": 10.8045,\n            \"lng\": 106.7391\n        }\n    },\n    \"price\": {\n        \"amount\": 25000000000,\n        \"currency\": \"VND\",\n        \"pricePerM2\": 83333333\n    },\n    \"details\": {\n        \"area\": {\n            \"value\": 300,\n            \"unit\": \"m2\"\n        },\n        \"bedrooms\": 4,\n        \"bathrooms\": 5,\n        \"floors\": 3,\n        \"legalStatus\": \"Sổ đỏ\",\n        \"orientation\": \"Nam\",\n        \"furnishing\": \"Không nội thất\"\n    },\n    \"creator\": \"{{walletAddress}}\",\n    \"owner\": \"{{walletAddress}}\",\n    \"media\": {\n        \"images\": [],\n        \"documents\": []\n    }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties"]
+            }
+          }
+        },
+        {
+          "name": "Create Land (Đất nền Bình Dương)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('propertyId3', response.data._id);",
+                  "    console.log('Property ID 3 saved:', response.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Đất nền KDC Bình Dương\",\n    \"description\": \"Lô đất nền 120m2 tại khu dân cư mới, gần trường học, chợ, bệnh viện. Sổ hồng riêng.\",\n    \"propertyType\": \"land\",\n    \"location\": {\n        \"address\": \"Khu dân cư Phú Hòa\",\n        \"ward\": \"Phường Phú Hòa\",\n        \"district\": \"Thủ Dầu Một\",\n        \"city\": \"Bình Dương\",\n        \"coordinates\": {\n            \"lat\": 10.9804,\n            \"lng\": 106.6519\n        }\n    },\n    \"price\": {\n        \"amount\": 3600000000,\n        \"currency\": \"VND\",\n        \"pricePerM2\": 30000000\n    },\n    \"details\": {\n        \"area\": {\n            \"value\": 120,\n            \"unit\": \"m2\"\n        },\n        \"legalStatus\": \"Sổ hồng\",\n        \"orientation\": \"Đông\",\n        \"roadWidth\": \"8m\"\n    },\n    \"creator\": \"{{walletAddress}}\",\n    \"owner\": \"{{walletAddress}}\",\n    \"media\": {\n        \"images\": [],\n        \"documents\": []\n    }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Upload Media to IPFS",
+      "item": [
+        {
+          "name": "Upload Property Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('imageCID', response.data.cid);",
+                  "    pm.environment.set('imageURL', response.data.url);",
+                  "    console.log('Image CID:', response.data.cid);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/upload/image",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "upload", "image"]
+            },
+            "description": "Upload ảnh property (chọn file từ máy tính)"
+          }
+        },
+        {
+          "name": "Upload Legal Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('documentCID', response.data.cid);",
+                  "    console.log('Document CID:', response.data.cid);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{propertyId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "soHong",
+                  "type": "text"
+                },
+                {
+                  "key": "documentName",
+                  "value": "Sổ hồng căn hộ Vinhomes",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/upload/document",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "upload", "document"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Update Property with Media",
+      "item": [
+        {
+          "name": "Update Property - Add Image URL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"imageUrl\": \"{{imageURL}}\",\n    \"media\": {\n        \"images\": [\n            {\n                \"url\": \"{{imageURL}}\",\n                \"cid\": \"{{imageCID}}\",\n                \"isPrimary\": true\n            }\n        ],\n        \"documents\": [\n            {\n                \"type\": \"soHong\",\n                \"name\": \"Sổ hồng\",\n                \"url\": \"https://gateway.pinata.cloud/ipfs/{{documentCID}}\",\n                \"cid\": \"{{documentCID}}\"\n            }\n        ]\n    }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties/{{propertyId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties", "{{propertyId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Mint Property as NFT",
+      "item": [
+        {
+          "name": "Mint Property to NFT (ĐIỀU PHỐI)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('tokenId', response.data.tokenId);",
+                  "    pm.environment.set('contractAddress', response.data.contractAddress);",
+                  "    pm.environment.set('transactionHash', response.data.transactionHash);",
+                  "    pm.environment.set('metadataCID', response.data.metadataCID);",
+                  "    console.log('NFT Minted!');",
+                  "    console.log('Token ID:', response.data.tokenId);",
+                  "    console.log('TX Hash:', response.data.transactionHash);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"recipient\": \"{{walletAddress}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties/{{propertyId}}/mint",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties", "{{propertyId}}", "mint"]
+            },
+            "description": "Admin Service sẽ:\n1. Build metadata\n2. Gọi IPFS Service upload metadata\n3. Gọi Blockchain Service mint NFT\n4. Update property trong MongoDB"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Query & Verify",
+      "item": [
+        {
+          "name": "Get Property Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/properties/{{propertyId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "properties", "{{propertyId}}"]
+            }
+          }
+        },
+        {
+          "name": "Search All Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/properties?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "properties"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search by City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/properties?city=Hồ Chí Minh&propertyType=apartment",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "properties"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Hồ Chí Minh"
+                },
+                {
+                  "key": "propertyType",
+                  "value": "apartment"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get NFT Info (On-chain)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/nft/{{tokenId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "nft", "{{tokenId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/stats/overview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "stats", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Get NFT from Query Service",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/nfts/{{tokenId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "nfts", "{{tokenId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get IPFS Metadata Content",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/content/{{metadataCID}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "content", "{{metadataCID}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Blockchain Operations",
+      "item": [
+        {
+          "name": "Transfer NFT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"from\": \"{{walletAddress}}\",\n    \"to\": \"0x...\",\n    \"tokenId\": \"{{tokenId}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/transfer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "transfer"]
+            },
+            "description": "Chuyển NFT sang địa chỉ khác (cần thay {{to}} bằng địa chỉ thực)"
+          }
+        },
+        {
+          "name": "Get Token Counter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/token-counter",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "token-counter"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "walletAddress",
+      "value": "0xYourWalletAddressHere",
+      "type": "string"
+    },
+    {
+      "key": "nonce",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "signature",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "propertyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "propertyId2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "propertyId3",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "imageCID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "imageURL",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documentCID",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "contractAddress",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transactionHash",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "metadataCID",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
