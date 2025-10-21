@@ -155,17 +155,17 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                      API GATEWAY                             ║
+║                      API GATEWAY(hẹ hẹ hẹ)                   ║
 ║══════════════════════════════════════════════════════════════║
-║  Port: ${PORT}                                                  ║
+║  Port: ${PORT}                                               ║
 ║  Frontend: http://localhost:3000                             ║
 ║                                                              ║
 ║  Routes:                                                     ║
-║  ├─ /api/auth/*       → Auth Service (4001)                 ║
-║  ├─ /api/ipfs/*       → IPFS Service (4002)                 ║
-║  ├─ /api/admin/*      → Admin Service (4003)                ║
-║  ├─ /api/blockchain/* → Blockchain Service (4004)           ║
-║  └─ /api/query/*      → Query Service (4005)                ║
+║  ├─ /api/auth/*       → Auth Service (4001)                  ║
+║  ├─ /api/ipfs/*       → IPFS Service (4002)                  ║
+║  ├─ /api/admin/*      → Admin Service (4003)                 ║
+║  ├─ /api/blockchain/* → Blockchain Service (4004)            ║
+║  └─ /api/query/*      → Query Service (4005)                 ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
