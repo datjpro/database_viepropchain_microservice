@@ -18,7 +18,11 @@ const upload = multer({ storage });
 router.post("/image", upload.single("file"), uploadController.uploadImage);
 
 // Upload document
-router.post("/document", upload.single("file"), uploadController.uploadDocument);
+router.post(
+  "/document",
+  upload.single("file"),
+  uploadController.uploadDocument
+);
 
 // Upload metadata JSON
 router.post("/metadata", uploadController.uploadMetadata);

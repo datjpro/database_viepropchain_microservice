@@ -127,7 +127,8 @@ class OrchestratorService {
       };
 
       property.status = "minted";
-      property.details.cachedAttributes = this.buildMetadata(property).attributes;
+      property.details.cachedAttributes =
+        this.buildMetadata(property).attributes;
 
       await property.save();
 
@@ -193,13 +194,19 @@ class OrchestratorService {
   async checkServicesHealth() {
     try {
       const [ipfsHealth, blockchainHealth] = await Promise.all([
-        axios.get(`${IPFS_SERVICE_URL}/health`, { timeout: 2000 }).catch(() => ({ data: { success: false } })),
-        axios.get(`${BLOCKCHAIN_SERVICE_URL}/health`, { timeout: 2000 }).catch(() => ({ data: { success: false } })),
+        axios
+          .get(`${IPFS_SERVICE_URL}/health`, { timeout: 2000 })
+          .catch(() => ({ data: { success: false } })),
+        axios
+          .get(`${BLOCKCHAIN_SERVICE_URL}/health`, { timeout: 2000 })
+          .catch(() => ({ data: { success: false } })),
       ]);
 
       return {
         ipfsService: ipfsHealth.data.success ? "connected" : "disconnected",
-        blockchainService: blockchainHealth.data.success ? "connected" : "disconnected",
+        blockchainService: blockchainHealth.data.success
+          ? "connected"
+          : "disconnected",
       };
     } catch (error) {
       return {

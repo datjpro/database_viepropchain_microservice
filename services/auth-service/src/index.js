@@ -1,8 +1,8 @@
 /**
  * ========================================================================
- * IPFS SERVICE - Port 4002
+ * AUTH SERVICE - Port 4001
  * ========================================================================
- * Nhiệm vụ: Upload files lên IPFS/Pinata, trả về CID
+ * Nhiệm vụ: Sign-in with Ethereum, verify signature, tạo JWT token
  * ========================================================================
  */
 
@@ -10,11 +10,10 @@ const express = require("express");
 require("dotenv").config();
 
 const connectDB = require("./config/database");
-const uploadRoutes = require("./routes/uploadRoutes");
-const contentRoutes = require("./routes/contentRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 4002;
+const PORT = process.env.PORT || 4001;
 
 // ============================================================================
 // MIDDLEWARE
@@ -33,9 +32,8 @@ app.get("/health", (req, res) => {
   const mongoose = require("mongoose");
   res.json({
     success: true,
-    service: "IPFS Service",
+    service: "Auth Service",
     port: PORT,
-    pinata: process.env.PINATA_JWT ? "configured" : "not configured",
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
@@ -44,27 +42,27 @@ app.get("/health", (req, res) => {
 // ============================================================================
 // ROUTES
 // ============================================================================
-app.use("/upload", uploadRoutes);
-app.use("/content", contentRoutes);
+app.use("/", authRoutes);
 
 // ============================================================================
 // START SERVER
 // ============================================================================
 app.listen(PORT, () => {
+  const mongoose = require("mongoose");
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                      IPFS SERVICE                            ║
+║                      AUTH SERVICE                            ║
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
-║  Pinata: ${
-    process.env.PINATA_JWT ? "Configured" : "Not configured"
-  }                                          ║
+║  MongoDB: ${
+    mongoose.connection.readyState === 1 ? "Connected" : "Disconnected"
+  }                                           ║
 ║                                                              ║
 ║  API Endpoints:                                              ║
-║  ├─ POST /upload/image      - Upload image                   ║
-║  ├─ POST /upload/document   - Upload document                ║
-║  ├─ POST /upload/metadata   - Upload metadata JSON           ║
-║  └─ GET  /content/:cid      - Get content by CID             ║
+║  ├─ POST /get-nonce          - Get nonce for signing        ║
+║  ├─ POST /verify-signature   - Verify & login               ║
+║  ├─ GET  /profile            - Get user profile             ║
+║  └─ PUT  /profile            - Update user profile          ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });

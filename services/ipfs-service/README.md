@@ -30,11 +30,13 @@ ipfs-service/
 ## 🔄 Changes from Old Structure
 
 ### Before:
+
 - All code in `index.js` (500+ lines)
 - Hard to maintain and test
 - Tight coupling
 
 ### After:
+
 - **Config**: Separated configuration (database, Pinata)
 - **Controllers**: Handle HTTP requests/responses
 - **Services**: Business logic (upload files, save to DB)

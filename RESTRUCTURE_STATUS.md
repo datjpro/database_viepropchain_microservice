@@ -2,21 +2,22 @@
 
 ## 📊 Trạng Thái
 
-| Service | Status | Structure |
-|---------|--------|-----------|
-| **IPFS Service** | ✅ DONE | MVC Complete |
-| **Admin Service** | ✅ DONE | MVC Complete |
-| **Blockchain Service** | 🔄 In Progress | Folders created |
-| **Auth Service** | 📁 Folders Ready | Need code split |
-| **Query Service** | 📁 Folders Ready | Need code split |
-| **Indexer Service** | 📁 Folders Ready | Need code split |
-| **API Gateway** | ⏭️ Skip | Simple proxy, no need |
+| Service                | Status           | Structure             |
+| ---------------------- | ---------------- | --------------------- |
+| **IPFS Service**       | ✅ DONE          | MVC Complete          |
+| **Admin Service**      | ✅ DONE          | MVC Complete          |
+| **Blockchain Service** | 🔄 In Progress   | Folders created       |
+| **Auth Service**       | 📁 Folders Ready | Need code split       |
+| **Query Service**      | 📁 Folders Ready | Need code split       |
+| **Indexer Service**    | 📁 Folders Ready | Need code split       |
+| **API Gateway**        | ⏭️ Skip          | Simple proxy, no need |
 
 ---
 
 ## 🎯 Cấu Trúc Chuẩn MVC
 
 ### **Service Structure Template:**
+
 ```
 service-name/
 ├── src/
@@ -49,6 +50,7 @@ service-name/
 ## ✅ **1. IPFS SERVICE** - DONE
 
 ### Structure:
+
 ```
 ipfs-service/src/
 ├── config/
@@ -66,6 +68,7 @@ ipfs-service/src/
 ```
 
 ### Endpoints:
+
 - `POST /upload/image`
 - `POST /upload/document`
 - `POST /upload/metadata`
@@ -76,6 +79,7 @@ ipfs-service/src/
 ## ✅ **2. ADMIN SERVICE** - DONE
 
 ### Structure:
+
 ```
 admin-service/src/
 ├── config/
@@ -93,6 +97,7 @@ admin-service/src/
 ```
 
 ### Endpoints:
+
 - `POST /properties` - Create property
 - `GET /properties` - Get all properties
 - `GET /properties/:id` - Get property
@@ -102,6 +107,7 @@ admin-service/src/
 - `GET /properties/stats/overview` - Statistics
 
 ### Key Features:
+
 - **OrchestratorService**: Điều phối workflow mint NFT
   - Build metadata
   - Call IPFS Service → upload metadata
@@ -113,6 +119,7 @@ admin-service/src/
 ## 🔄 **3. BLOCKCHAIN SERVICE** - In Progress
 
 ### Proposed Structure:
+
 ```
 blockchain-service/src/
 ├── config/
@@ -129,6 +136,7 @@ blockchain-service/src/
 ```
 
 ### Endpoints (Keep same):
+
 - `POST /mint`
 - `GET /nft/:tokenId`
 - `GET /nfts/:owner`
@@ -140,6 +148,7 @@ blockchain-service/src/
 ## 📁 **4. AUTH SERVICE** - Folders Ready
 
 ### Proposed Structure:
+
 ```
 auth-service/src/
 ├── config/
@@ -157,6 +166,7 @@ auth-service/src/
 ```
 
 ### Endpoints:
+
 - `POST /request-nonce` - Get nonce for signing
 - `POST /verify-signature` - Verify signature & return JWT
 - `GET /profile` - Get user profile (with JWT)
@@ -166,6 +176,7 @@ auth-service/src/
 ## 📁 **5. QUERY SERVICE** - Folders Ready
 
 ### Proposed Structure:
+
 ```
 query-service/src/
 ├── config/
@@ -183,6 +194,7 @@ query-service/src/
 ```
 
 ### Endpoints:
+
 - `GET /properties` - Search properties (filters, pagination)
 - `GET /properties/:id` - Property detail
 - `GET /stats/overview` - Platform statistics
@@ -193,6 +205,7 @@ query-service/src/
 ## 📁 **6. INDEXER SERVICE** - Folders Ready
 
 ### Proposed Structure:
+
 ```
 indexer-service/src/
 ├── config/
@@ -206,6 +219,7 @@ indexer-service/src/
 ```
 
 ### Features:
+
 - Listen to blockchain events (Transfer, Approval)
 - Sync on-chain data to MongoDB
 - Update Property, NFT, Transaction collections
@@ -215,6 +229,7 @@ indexer-service/src/
 ## 🚀 Hướng Dẫn Hoàn Thành
 
 ### **Bước 1: Blockchain Service**
+
 ```powershell
 cd services/blockchain-service
 # Copy code từ index.js cũ vào:
@@ -238,6 +253,7 @@ npm start  # Test
 ## 📝 Template Code Samples
 
 ### **config/database.js** (Dùng chung)
+
 ```javascript
 const mongoose = require("mongoose");
 
@@ -258,6 +274,7 @@ module.exports = connectDB;
 ```
 
 ### **Controller Template**
+
 ```javascript
 class FeatureController {
   async action(req, res) {
@@ -265,9 +282,9 @@ class FeatureController {
       const result = await featureService.doSomething(req.body);
       res.json({ success: true, data: result });
     } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -277,6 +294,7 @@ module.exports = new FeatureController();
 ```
 
 ### **Service Template**
+
 ```javascript
 class FeatureService {
   async doSomething(data) {
@@ -293,6 +311,7 @@ module.exports = new FeatureService();
 ```
 
 ### **Routes Template**
+
 ```javascript
 const express = require("express");
 const controller = require("../controllers/controller");
@@ -306,6 +325,7 @@ module.exports = router;
 ```
 
 ### **Main index.js Template**
+
 ```javascript
 const express = require("express");
 require("dotenv").config();
@@ -335,14 +355,14 @@ app.listen(PORT, () => {
 
 ## ✅ Benefits Recap
 
-| Aspect | Before | After |
-|--------|--------|-------|
+| Aspect                | Before              | After                               |
+| --------------------- | ------------------- | ----------------------------------- |
 | **Code Organization** | 1 file (500+ lines) | Multiple small files (50-100 lines) |
-| **Maintainability** | ❌ Hard | ✅ Easy |
-| **Testability** | ❌ Difficult | ✅ Simple (mock services) |
-| **Scalability** | ❌ Limited | ✅ Modular |
-| **Onboarding** | ❌ Confusing | ✅ Clear structure |
-| **Code Reuse** | ❌ Tight coupling | ✅ Loose coupling |
+| **Maintainability**   | ❌ Hard             | ✅ Easy                             |
+| **Testability**       | ❌ Difficult        | ✅ Simple (mock services)           |
+| **Scalability**       | ❌ Limited          | ✅ Modular                          |
+| **Onboarding**        | ❌ Confusing        | ✅ Clear structure                  |
+| **Code Reuse**        | ❌ Tight coupling   | ✅ Loose coupling                   |
 
 ---
 

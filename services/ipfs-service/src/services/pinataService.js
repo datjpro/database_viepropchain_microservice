@@ -51,7 +51,9 @@ class PinataService {
       };
     } catch (error) {
       throw new Error(
-        `Failed to upload file: ${error.response?.data?.message || error.message}`
+        `Failed to upload file: ${
+          error.response?.data?.message || error.message
+        }`
       );
     }
   }
@@ -83,7 +85,9 @@ class PinataService {
       };
     } catch (error) {
       throw new Error(
-        `Failed to upload JSON: ${error.response?.data?.message || error.message}`
+        `Failed to upload JSON: ${
+          error.response?.data?.message || error.message
+        }`
       );
     }
   }

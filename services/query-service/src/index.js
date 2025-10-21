@@ -1,8 +1,8 @@
 /**
  * ========================================================================
- * IPFS SERVICE - Port 4002
+ * QUERY SERVICE - Port 4005
  * ========================================================================
- * Nhiệm vụ: Upload files lên IPFS/Pinata, trả về CID
+ * Nhiệm vụ: Read-only queries cho frontend
  * ========================================================================
  */
 
@@ -10,11 +10,12 @@ const express = require("express");
 require("dotenv").config();
 
 const connectDB = require("./config/database");
-const uploadRoutes = require("./routes/uploadRoutes");
-const contentRoutes = require("./routes/contentRoutes");
+const propertyRoutes = require("./routes/propertyRoutes");
+const statsRoutes = require("./routes/statsRoutes");
+const nftRoutes = require("./routes/nftRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 4002;
+const PORT = process.env.PORT || 4005;
 
 // ============================================================================
 // MIDDLEWARE
@@ -33,9 +34,8 @@ app.get("/health", (req, res) => {
   const mongoose = require("mongoose");
   res.json({
     success: true,
-    service: "IPFS Service",
+    service: "Query Service",
     port: PORT,
-    pinata: process.env.PINATA_JWT ? "configured" : "not configured",
     mongodb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
@@ -44,27 +44,34 @@ app.get("/health", (req, res) => {
 // ============================================================================
 // ROUTES
 // ============================================================================
-app.use("/upload", uploadRoutes);
-app.use("/content", contentRoutes);
+app.use("/", propertyRoutes);
+app.use("/", statsRoutes);
+app.use("/", nftRoutes);
 
 // ============================================================================
 // START SERVER
 // ============================================================================
 app.listen(PORT, () => {
+  const mongoose = require("mongoose");
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                      IPFS SERVICE                            ║
+║                     QUERY SERVICE                            ║
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
-║  Pinata: ${
-    process.env.PINATA_JWT ? "Configured" : "Not configured"
-  }                                          ║
+║  MongoDB: ${
+    mongoose.connection.readyState === 1 ? "Connected" : "Disconnected"
+  }                                           ║
 ║                                                              ║
 ║  API Endpoints:                                              ║
-║  ├─ POST /upload/image      - Upload image                   ║
-║  ├─ POST /upload/document   - Upload document                ║
-║  ├─ POST /upload/metadata   - Upload metadata JSON           ║
-║  └─ GET  /content/:cid      - Get content by CID             ║
+║  ├─ GET  /properties               - Search properties       ║
+║  ├─ GET  /properties/:id           - Get property detail     ║
+║  ├─ GET  /properties/featured/list - Get featured           ║
+║  ├─ POST /properties/:id/view      - Track view              ║
+║  ├─ GET  /stats/overview           - Get statistics          ║
+║  ├─ GET  /stats/price-trends       - Get price trends        ║
+║  ├─ GET  /nfts/:tokenId            - Get NFT info            ║
+║  ├─ GET  /locations/cities         - Get cities              ║
+║  └─ GET  /locations/districts      - Get districts           ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });

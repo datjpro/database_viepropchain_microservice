@@ -2,9 +2,9 @@
   "name": "query-service",
   "version": "1.0.0",
   "description": "Read-only query service for property searches",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node src/index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {

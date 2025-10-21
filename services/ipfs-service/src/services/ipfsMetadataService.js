@@ -26,14 +26,14 @@ class IPFSMetadataService {
   async getByCID(cid) {
     try {
       const metadata = await IPFSMetadata.findOne({ cid });
-      
+
       if (metadata) {
         // Update access count
         metadata.accessCount = (metadata.accessCount || 0) + 1;
         metadata.lastAccessedAt = new Date();
         await metadata.save();
       }
-      
+
       return metadata;
     } catch (error) {
       throw new Error(`Failed to get metadata: ${error.message}`);

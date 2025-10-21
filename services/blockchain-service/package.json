@@ -2,9 +2,9 @@
   "name": "blockchain-service",
   "version": "1.0.0",
   "description": "Blockchain Service - Interact with Smart Contract",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node src/index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
