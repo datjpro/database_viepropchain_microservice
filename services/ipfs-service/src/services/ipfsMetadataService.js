@@ -4,7 +4,7 @@
  * ========================================================================
  */
 
-const { IPFSMetadata } = require("../../../../shared/models");
+const IPFSMetadata = require("../models/IPFSMetadata");
 
 class IPFSMetadataService {
   /**

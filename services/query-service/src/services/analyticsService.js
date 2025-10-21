@@ -4,7 +4,8 @@
  * ========================================================================
  */
 
-const { Property, NFT, Analytics } = require("../../../../shared/models");
+const Property = require("../models/Property");
+const Analytics = require("../models/Analytics");
 
 class AnalyticsService {
   /**

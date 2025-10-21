@@ -19,7 +19,7 @@ class EventListenerService {
    */
   async initializeLastBlock() {
     try {
-      const { Transaction } = require("../../../../shared/models");
+      const Transaction = require("../models/Transaction");
 
       const latestTransaction = await Transaction.findOne()
         .sort({ blockNumber: -1 })

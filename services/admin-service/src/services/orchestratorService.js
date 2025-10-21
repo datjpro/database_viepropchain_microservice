@@ -5,7 +5,7 @@
  */
 
 const axios = require("axios");
-const { Property } = require("../../../../shared/models");
+const Property = require("../models/Property");
 const {
   IPFS_SERVICE_URL,
   BLOCKCHAIN_SERVICE_URL,

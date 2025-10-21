@@ -5,7 +5,7 @@
  */
 
 const jwt = require("jsonwebtoken");
-const { User } = require("../../../../shared/models");
+const User = require("../models/User");
 const { JWT_SECRET, JWT_EXPIRY } = require("../config/jwt");
 
 class JWTService {

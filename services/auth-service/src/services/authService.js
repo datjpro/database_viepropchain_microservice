@@ -5,7 +5,7 @@
  */
 
 const { ethers } = require("ethers");
-const { User } = require("../../../../shared/models");
+const User = require("../models/User");
 
 class AuthService {
   /**

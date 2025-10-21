@@ -4,7 +4,7 @@
  * ========================================================================
  */
 
-const { Transaction } = require("../../../../shared/models");
+const Transaction = require("../models/Transaction");
 
 class TransactionSyncService {
   /**

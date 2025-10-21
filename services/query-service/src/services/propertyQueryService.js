@@ -4,7 +4,7 @@
  * ========================================================================
  */
 
-const { Property } = require("../../../../shared/models");
+const Property = require("../models/Property");
 
 class PropertyQueryService {
   /**

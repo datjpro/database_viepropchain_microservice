@@ -4,7 +4,8 @@
  * ========================================================================
  */
 
-const { NFT, Property } = require("../../../../shared/models");
+const NFT = require("../models/NFT");
+const Property = require("../models/Property");
 
 class NFTSyncService {
   /**
