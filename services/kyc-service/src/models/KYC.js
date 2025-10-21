@@ -15,7 +15,6 @@ const kycSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      index: true,
       validate: {
         validator: function (v) {
           return /^0x[a-fA-F0-9]{40}$/.test(v);
@@ -53,7 +52,6 @@ const kycSchema = new mongoose.Schema(
 );
 
 // Indexes
-kycSchema.index({ walletAddress: 1 });
 kycSchema.index({ idNumber: 1 });
 
 module.exports = mongoose.model("KYC", kycSchema);
