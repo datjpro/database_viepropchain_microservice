@@ -1,0 +1,487 @@
+{
+  "info": {
+    "name": "ViePropChain - Property Service",
+    "description": "Complete API collection for Property Service testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Check",
+      "item": [
+        {
+          "name": "Check Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["health"]
+            },
+            "description": "Kiểm tra trạng thái của Property Service và kết nối với các service khác"
+          },
+          "response": []
+        }
+      ],
+      "description": "Kiểm tra trạng thái service"
+    },
+    {
+      "name": "2. Create Properties",
+      "item": [
+        {
+          "name": "Create Apartment (Căn hộ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyType\": \"apartment\",\n  \"name\": \"Căn hộ Vinhomes Central Park\",\n  \"description\": \"Căn hộ cao cấp 2 phòng ngủ view sông Saigon tuyệt đẹp, nội thất đầy đủ cao cấp. Vị trí đắc địa ngay trung tâm quận Bình Thạnh.\",\n  \"price\": {\n    \"amount\": 5000000000,\n    \"currency\": \"VND\"\n  },\n  \"location\": {\n    \"address\": \"208 Nguyễn Hữu Cảnh, P.22, Q.Bình Thạnh\",\n    \"ward\": \"Phường 22\",\n    \"district\": \"Bình Thạnh\",\n    \"city\": \"TP. Hồ Chí Minh\",\n    \"coordinates\": {\n      \"latitude\": 10.7967,\n      \"longitude\": 106.7219\n    }\n  },\n  \"details\": {\n    \"projectName\": \"Vinhomes Central Park\",\n    \"apartmentCode\": \"L3-1205\",\n    \"block\": \"Landmark 3\",\n    \"floor\": 12,\n    \"grossArea\": \"85m2\",\n    \"netArea\": \"80m2\",\n    \"bedrooms\": 2,\n    \"bathrooms\": 2,\n    \"balconyDirection\": \"Đông Nam\",\n    \"interiorStatus\": \"Nội thất đầy đủ\",\n    \"legalStatus\": \"Sổ hồng\"\n  },\n  \"media\": {\n    \"images\": [\n      {\n        \"url\": \"https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800\",\n        \"caption\": \"Phòng khách view sông\",\n        \"isPrimary\": true\n      }\n    ]\n  },\n  \"status\": \"published\",\n  \"owner\": {\n    \"walletAddress\": \"0xC6890b26A32d9d92aefbc8635C4588247529CdfE\",\n    \"name\": \"Nguyễn Văn A\",\n    \"email\": \"nguyenvana@example.com\"\n  },\n  \"isPublic\": true,\n  \"isFeatured\": true,\n  \"tags\": [\"cao-cap\", \"view-song\", \"noi-that-day-du\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"]
+            },
+            "description": "Tạo một căn hộ chung cư mới với đầy đủ thông tin"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Land (Đất nền)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyType\": \"land\",\n  \"name\": \"Đất nền Nhơn Trạch\",\n  \"description\": \"Lô đất nền đẹp mặt tiền đường lớn, phù hợp xây nhà ở hoặc kinh doanh. Vị trí thuận lợi gần khu công nghiệp.\",\n  \"price\": {\n    \"amount\": 2000000000,\n    \"currency\": \"VND\"\n  },\n  \"location\": {\n    \"address\": \"Đường D1, KDC Tân Phú, Nhơn Trạch\",\n    \"ward\": \"Xã Phước Khánh\",\n    \"district\": \"Nhơn Trạch\",\n    \"city\": \"Đồng Nai\"\n  },\n  \"details\": {\n    \"landNumber\": \"123\",\n    \"mapSheetNumber\": \"4\",\n    \"area\": {\n      \"value\": 100,\n      \"unit\": \"m2\"\n    },\n    \"frontWidth\": \"5m\",\n    \"length\": \"20m\",\n    \"landType\": \"ODT (Đất ở tại đô thị)\",\n    \"zoning\": \"Khu dân cư hiện hữu\",\n    \"roadFrontage\": \"Đường nhựa 8m\",\n    \"legalStatus\": \"Sổ đỏ\"\n  },\n  \"media\": {\n    \"images\": [\n      {\n        \"url\": \"https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800\",\n        \"caption\": \"Mặt tiền lô đất\",\n        \"isPrimary\": true\n      }\n    ]\n  },\n  \"status\": \"published\",\n  \"owner\": {\n    \"walletAddress\": \"0xd1ABb2a4c79EffD3F94C70E00F58d9EC05114444\",\n    \"name\": \"Trần Thị B\",\n    \"email\": \"tranthib@example.com\"\n  },\n  \"isPublic\": true,\n  \"tags\": [\"dat-nen\", \"mat-tien\", \"shr\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"]
+            },
+            "description": "Tạo một lô đất nền mới"
+          },
+          "response": []
+        },
+        {
+          "name": "Create House (Nhà phố)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyType\": \"house\",\n  \"name\": \"Nhà phố Thảo Điền\",\n  \"description\": \"Nhà phố hiện đại 1 trệt 2 lầu, khu vực an ninh cao cấp. Thiết kế sang trọng, tiện nghi đầy đủ.\",\n  \"price\": {\n    \"amount\": 8000000000,\n    \"currency\": \"VND\"\n  },\n  \"location\": {\n    \"address\": \"45 Xuân Thủy, Thảo Điền, Quận 2\",\n    \"ward\": \"Phường Thảo Điền\",\n    \"district\": \"Quận 2\",\n    \"city\": \"TP. Hồ Chí Minh\"\n  },\n  \"details\": {\n    \"landArea\": \"80m2 (5m x 16m)\",\n    \"constructionArea\": \"60m2\",\n    \"usableArea\": \"180m2\",\n    \"structure\": \"1 trệt, 2 lầu, 1 sân thượng\",\n    \"bedrooms\": 4,\n    \"bathrooms\": 3,\n    \"houseDirection\": \"Đông Nam\",\n    \"roadFrontage\": \"Đường 12m có vỉa hè\",\n    \"constructionYear\": 2020,\n    \"legalStatus\": \"Sổ hồng riêng hoàn công\"\n  },\n  \"media\": {\n    \"images\": [\n      {\n        \"url\": \"https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800\",\n        \"caption\": \"Mặt tiền nhà\",\n        \"isPrimary\": true\n      }\n    ]\n  },\n  \"status\": \"published\",\n  \"owner\": {\n    \"walletAddress\": \"0xC6890b26A32d9d92aefbc8635C4588247529CdfE\",\n    \"name\": \"Lê Văn C\",\n    \"email\": \"levanc@example.com\"\n  },\n  \"isPublic\": true,\n  \"isFeatured\": true,\n  \"tags\": [\"nha-pho\", \"thao-dien\", \"hoan-cong\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"]
+            },
+            "description": "Tạo một nhà phố mới"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tạo các loại bất động sản khác nhau"
+    },
+    {
+      "name": "3. Get Properties",
+      "item": [
+        {
+          "name": "Get All Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"]
+            },
+            "description": "Lấy tất cả bất động sản"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Properties with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?page=1&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lấy danh sách có phân trang"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Property Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?propertyType=apartment",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "propertyType",
+                  "value": "apartment",
+                  "description": "apartment | land | house | villa"
+                }
+              ]
+            },
+            "description": "Lọc theo loại bất động sản"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?status=published",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "draft | published | minted | for_sale | sold"
+                }
+              ]
+            },
+            "description": "Lọc theo trạng thái"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by City",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?city=TP. Hồ Chí Minh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "TP. Hồ Chí Minh"
+                }
+              ]
+            },
+            "description": "Lọc theo thành phố"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?minPrice=3000000000&maxPrice=7000000000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "3000000000"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "7000000000"
+                }
+              ]
+            },
+            "description": "Lọc theo khoảng giá"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties?search=Vinhomes",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Vinhomes"
+                }
+              ]
+            },
+            "description": "Tìm kiếm theo từ khóa"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}"]
+            },
+            "description": "Lấy chi tiết một bất động sản (thay {{propertyId}} bằng ID thực tế)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property with View Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}?incrementView=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}"],
+              "query": [
+                {
+                  "key": "incrementView",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Xem chi tiết và tăng lượt view"
+          },
+          "response": []
+        }
+      ],
+      "description": "Lấy danh sách và chi tiết bất động sản"
+    },
+    {
+      "name": "4. Update Property",
+      "item": [
+        {
+          "name": "Update Property Info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": {\n    \"amount\": 5500000000\n  },\n  \"status\": \"for_sale\",\n  \"details\": {\n    \"interiorStatus\": \"Nội thất cao cấp\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}"]
+            },
+            "description": "Cập nhật thông tin bất động sản (giá, trạng thái, nội thất...)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Cập nhật thông tin bất động sản"
+    },
+    {
+      "name": "5. Mint NFT",
+      "item": [
+        {
+          "name": "Mint Property to NFT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": \"0xC6890b26A32d9d92aefbc8635C4588247529CdfE\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}/mint",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}", "mint"]
+            },
+            "description": "Mint bất động sản thành NFT trên blockchain. Cần Minting Service chạy trên port 3002."
+          },
+          "response": []
+        }
+      ],
+      "description": "Mint bất động sản thành NFT"
+    },
+    {
+      "name": "6. Statistics",
+      "item": [
+        {
+          "name": "Get Overview Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/stats/overview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "stats", "overview"]
+            },
+            "description": "Lấy thống kê tổng quan: tổng số BĐS, đã mint, views..."
+          },
+          "response": []
+        }
+      ],
+      "description": "Thống kê tổng quan"
+    },
+    {
+      "name": "7. Analytics",
+      "item": [
+        {
+          "name": "Increment Favorite",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}/favorite",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}", "favorite"]
+            },
+            "description": "Tăng số lượt yêu thích"
+          },
+          "response": []
+        },
+        {
+          "name": "Increment Share",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}/share",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}", "share"]
+            },
+            "description": "Tăng số lượt chia sẻ"
+          },
+          "response": []
+        }
+      ],
+      "description": "Theo dõi analytics (favorite, share, view)"
+    },
+    {
+      "name": "8. Delete Property",
+      "item": [
+        {
+          "name": "Archive Property (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}"]
+            },
+            "description": "Xóa mềm (archive) - BĐS vẫn còn trong database nhưng status = archived"
+          },
+          "response": []
+        },
+        {
+          "name": "Permanent Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3003/properties/{{propertyId}}?permanent=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3003",
+              "path": ["properties", "{{propertyId}}"],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Xóa vĩnh viễn - Xóa hoàn toàn khỏi database"
+          },
+          "response": []
+        }
+      ],
+      "description": "Xóa bất động sản"
+    }
+  ],
+  "variable": [
+    {
+      "key": "propertyId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

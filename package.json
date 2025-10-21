@@ -1,0 +1,22 @@
+{
+  "name": "database_viepropchain_microservice",
+  "version": "1.0.0",
+  "description": "database_viepropchain_microservice_mongodb",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pinata/sdk": "^2.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.19.1",
+    "multer": "^2.0.2",
+    "web3": "^4.16.0"
+  }
+}
