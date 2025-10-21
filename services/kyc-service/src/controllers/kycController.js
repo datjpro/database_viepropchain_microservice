@@ -1,6 +1,6 @@
 /**
  * ========================================================================
- * KYC CONTROLLER
+ * KYC CONTROLLER (SIMPLIFIED)
  * ========================================================================
  */
 
@@ -8,20 +8,33 @@ const kycService = require("../services/kycService");
 
 class KYCController {
   /**
-   * Submit KYC application
+   * Submit KYC - Auto verify
    */
   async submitKYC(req, res) {
     try {
-      const kyc = await kycService.submitKYC(req.body);
+      const { walletAddress, fullName, idNumber } = req.body;
+
+      if (!walletAddress || !fullName || !idNumber) {
+        return res.status(400).json({
+          success: false,
+          error: "walletAddress, fullName, and idNumber are required",
+        });
+      }
+
+      const kyc = await kycService.submitKYC({
+        walletAddress,
+        fullName,
+        idNumber,
+      });
 
       res.json({
         success: true,
-        message: "KYC application submitted successfully",
+        message: "KYC verified successfully",
         data: kyc,
       });
     } catch (error) {
       console.error("❌ Submit KYC error:", error.message);
-      const status = error.message.includes("already have") ? 400 : 500;
+      const status = error.message.includes("already verified") ? 400 : 500;
       res.status(status).json({
         success: false,
         error: "Failed to submit KYC",
@@ -55,164 +68,57 @@ class KYCController {
   }
 
   /**
-   * Get KYC by ID
+   * Check if wallet is verified
    */
-  async getKYCById(req, res) {
+  async checkVerified(req, res) {
     try {
-      const { id } = req.params;
+      const { walletAddress } = req.params;
 
-      const KYC = require("../models/KYC");
-      const kyc = await KYC.findById(id);
-
-      if (!kyc) {
-        return res.status(404).json({
-          success: false,
-          error: "KYC not found",
-        });
-      }
+      const isVerified = await kycService.isVerified(walletAddress);
 
       res.json({
         success: true,
-        data: kyc,
+        data: {
+          walletAddress,
+          isVerified,
+        },
       });
     } catch (error) {
-      console.error("❌ Get KYC by ID error:", error.message);
+      console.error("❌ Check verified error:", error.message);
       res.status(500).json({
         success: false,
-        error: "Failed to get KYC",
+        error: "Failed to check verification",
         message: error.message,
       });
     }
   }
 
   /**
-   * Update KYC status (Admin only)
+   * Get all verified users
    */
-  async updateKYCStatus(req, res) {
+  async getAllVerified(req, res) {
     try {
-      const { id } = req.params;
-      const { reviewerWallet } = req.body;
+      const { page = 1, limit = 20 } = req.query;
 
-      if (!reviewerWallet) {
-        return res.status(400).json({
-          success: false,
-          error: "Reviewer wallet address is required",
-        });
-      }
-
-      const kyc = await kycService.updateKYCStatus(
-        id,
-        req.body,
-        reviewerWallet
-      );
+      const result = await kycService.getAllVerified(page, limit);
 
       res.json({
         success: true,
-        message: "KYC status updated",
-        data: kyc,
-      });
-    } catch (error) {
-      console.error("❌ Update KYC status error:", error.message);
-      res.status(500).json({
-        success: false,
-        error: "Failed to update KYC status",
-        message: error.message,
-      });
-    }
-  }
-
-  /**
-   * Verify documents (Admin only)
-   */
-  async verifyDocuments(req, res) {
-    try {
-      const { id } = req.params;
-      const { reviewerWallet } = req.body;
-
-      if (!reviewerWallet) {
-        return res.status(400).json({
-          success: false,
-          error: "Reviewer wallet address is required",
-        });
-      }
-
-      const kyc = await kycService.verifyDocuments(
-        id,
-        req.body,
-        reviewerWallet
-      );
-
-      res.json({
-        success: true,
-        message: "Documents verified",
-        data: kyc,
-      });
-    } catch (error) {
-      console.error("❌ Verify documents error:", error.message);
-      res.status(500).json({
-        success: false,
-        error: "Failed to verify documents",
-        message: error.message,
-      });
-    }
-  }
-
-  /**
-   * Run compliance checks (Admin only)
-   */
-  async runComplianceChecks(req, res) {
-    try {
-      const { id } = req.params;
-      const { reviewerWallet } = req.body;
-
-      if (!reviewerWallet) {
-        return res.status(400).json({
-          success: false,
-          error: "Reviewer wallet address is required",
-        });
-      }
-
-      const kyc = await kycService.runComplianceChecks(id, reviewerWallet);
-
-      res.json({
-        success: true,
-        message: "Compliance checks completed",
-        data: kyc,
-      });
-    } catch (error) {
-      console.error("❌ Compliance checks error:", error.message);
-      res.status(500).json({
-        success: false,
-        error: "Failed to run compliance checks",
-        message: error.message,
-      });
-    }
-  }
-
-  /**
-   * Search KYC applications (Admin only)
-   */
-  async searchKYC(req, res) {
-    try {
-      const result = await kycService.searchKYC(req.query);
-
-      res.json({
-        success: true,
-        data: result.applications,
+        data: result.users,
         pagination: result.pagination,
       });
     } catch (error) {
-      console.error("❌ Search KYC error:", error.message);
+      console.error("❌ Get all verified error:", error.message);
       res.status(500).json({
         success: false,
-        error: "Failed to search KYC",
+        error: "Failed to get verified users",
         message: error.message,
       });
     }
   }
 
   /**
-   * Get statistics (Admin only)
+   * Get statistics
    */
   async getStatistics(req, res) {
     try {

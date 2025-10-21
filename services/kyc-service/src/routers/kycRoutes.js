@@ -1,6 +1,6 @@
 /**
  * ========================================================================
- * KYC ROUTES
+ * KYC ROUTES (SIMPLIFIED)
  * ========================================================================
  */
 
@@ -9,28 +9,19 @@ const kycController = require("../controllers/kycController");
 
 const router = express.Router();
 
-// Submit KYC application
+// Submit KYC (auto-verify)
 router.post("/kyc", kycController.submitKYC);
 
 // Get KYC by wallet address
-router.get("/kyc/wallet/:walletAddress", kycController.getKYC);
+router.get("/kyc/:walletAddress", kycController.getKYC);
 
-// Get KYC by ID
-router.get("/kyc/:id", kycController.getKYCById);
+// Check if wallet is verified
+router.get("/kyc/:walletAddress/verified", kycController.checkVerified);
 
-// Update KYC status (Admin)
-router.put("/kyc/:id/status", kycController.updateKYCStatus);
+// Get all verified users
+router.get("/verified/all", kycController.getAllVerified);
 
-// Verify documents (Admin)
-router.put("/kyc/:id/verify-documents", kycController.verifyDocuments);
-
-// Run compliance checks (Admin)
-router.post("/kyc/:id/compliance-checks", kycController.runComplianceChecks);
-
-// Search KYC applications (Admin)
-router.get("/kyc/search/all", kycController.searchKYC);
-
-// Get statistics (Admin)
-router.get("/kyc/statistics/all", kycController.getStatistics);
+// Get statistics
+router.get("/statistics", kycController.getStatistics);
 
 module.exports = router;

@@ -51,22 +51,21 @@ app.listen(PORT, () => {
   const mongoose = require("mongoose");
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                       KYC SERVICE                            ║
+║                  KYC SERVICE (SIMPLIFIED)                    ║
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
 ║  MongoDB: ${
     mongoose.connection.readyState === 1 ? "Connected" : "Disconnected"
   }                                           ║
 ║                                                              ║
+║  Chức năng: User nhập Họ tên + CCCD → Auto verified         ║
+║                                                              ║
 ║  API Endpoints:                                              ║
-║  ├─ POST /kyc                           - Submit KYC         ║
-║  ├─ GET  /kyc/wallet/:address           - Get by wallet     ║
-║  ├─ GET  /kyc/:id                       - Get by ID         ║
-║  ├─ PUT  /kyc/:id/status                - Update status     ║
-║  ├─ PUT  /kyc/:id/verify-documents      - Verify docs       ║
-║  ├─ POST /kyc/:id/compliance-checks     - Run compliance    ║
-║  ├─ GET  /kyc/search/all                - Search KYC        ║
-║  └─ GET  /kyc/statistics/all            - Get statistics    ║
+║  ├─ POST /kyc                           - Submit & verify    ║
+║  ├─ GET  /kyc/:walletAddress            - Get KYC info      ║
+║  ├─ GET  /kyc/:walletAddress/verified   - Check verified    ║
+║  ├─ GET  /verified/all                  - All verified      ║
+║  └─ GET  /statistics                    - Statistics        ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
