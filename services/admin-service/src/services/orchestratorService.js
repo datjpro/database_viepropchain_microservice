@@ -6,6 +6,7 @@
 
 const axios = require("axios");
 const Property = require("../models/Property");
+const NFT = require("../models/NFT");
 const {
   IPFS_SERVICE_URL,
   BLOCKCHAIN_SERVICE_URL,
@@ -114,10 +115,11 @@ class OrchestratorService {
   }
 
   /**
-   * Update property with NFT info
+   * Update property with NFT info and create NFT record
    */
-  async updatePropertyWithNFT(property, mintData, metadataCID) {
+  async updatePropertyWithNFT(property, mintData, metadataCID, recipient) {
     try {
+      // 1. Update property
       property.nft = {
         isMinted: true,
         tokenId: mintData.tokenId,
@@ -128,10 +130,40 @@ class OrchestratorService {
       };
 
       property.status = "minted";
-
       await property.save();
 
-      return property;
+      // 2. Create NFT record in database
+      const nft = new NFT({
+        tokenId: mintData.tokenId,
+        contractAddress: mintData.contractAddress,
+        propertyId: property._id,
+        currentOwner: recipient.toLowerCase(),
+        originalOwner: recipient.toLowerCase(),
+        metadataUri: `ipfs://${metadataCID}`,
+        metadataCID: metadataCID,
+        mintedAt: new Date(),
+        mintedBy: recipient.toLowerCase(),
+        mintTransactionHash: mintData.transactionHash,
+        mintBlockNumber: mintData.blockNumber,
+        status: "minted",
+        transferHistory: [
+          {
+            from: "0x0000000000000000000000000000000000000000",
+            to: recipient.toLowerCase(),
+            transactionHash: mintData.transactionHash,
+            blockNumber: mintData.blockNumber,
+            transferredAt: new Date(),
+            transferType: "mint",
+          },
+        ],
+        totalTransfers: 1,
+        lastTransferAt: new Date(),
+      });
+
+      await nft.save();
+      console.log(`   ✅ NFT record created in database`);
+
+      return { property, nft };
     } catch (error) {
       throw new Error(`Failed to update property: ${error.message}`);
     }
@@ -185,13 +217,19 @@ class OrchestratorService {
       // 3. Mint on blockchain
       const mintResult = await this.mintNFTOnBlockchain(recipient, tokenURI);
 
-      // 4. Update property
-      await this.updatePropertyWithNFT(property, mintResult, ipfsResult.cid);
+      // 4. Update property and create NFT record
+      const { property: updatedProperty, nft } =
+        await this.updatePropertyWithNFT(
+          property,
+          mintResult,
+          ipfsResult.cid,
+          recipient
+        );
 
       console.log(`✅ Mint workflow completed successfully`);
 
       return {
-        propertyId: property._id,
+        propertyId: updatedProperty._id,
         tokenId: mintResult.tokenId,
         contractAddress: mintResult.contractAddress,
         owner: recipient,

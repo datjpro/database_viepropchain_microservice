@@ -370,6 +370,7 @@ POST http://localhost:4003/properties/{{property_id}}/mint
 1. Gọi Blockchain Service để mint NFT
 2. Nhận tokenId từ blockchain
 3. Update Property với NFT info (tokenId, contractAddress, metadataUri)
+4. **Tự động tạo NFT record trong MongoDB** để track giá, status, history
 
 **Response mong đợi:**
 
@@ -378,22 +379,214 @@ POST http://localhost:4003/properties/{{property_id}}/mint
   "success": true,
   "message": "Property minted successfully",
   "data": {
-    "tokenId": "1",
-    "contractAddress": "0x...",
-    "transactionHash": "0x...",
-    "metadataUri": "ipfs://..."
+    "tokenId": "8",
+    "contractAddress": "0x52B42Ac0e051A4c3386791b04391510C3cE06632",
+    "owner": "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+    "transactionHash": "0x638aee567d1d9aacfce0f96579a7047b6f2ff32d259c933b4d6825e8a2258670",
+    "blockNumber": 32,
+    "tokenURI": "ipfs://QmR6FtgPMLKkmHpAhhMBTH94Nocy62GeVynDMcsPrdFCxm",
+    "metadataCID": "QmR6FtgPMLKkmHpAhhMBTH94Nocy62GeVynDMcsPrdFCxm"
   }
 }
 ```
 
+**✨ Sau khi mint:**
+
+- NFT được lưu trong MongoDB với status: `minted`
+- Property status: `minted`
+- `{{token_id}}` được lưu vào environment variable
+
 **⚠️ LỖI CÓ THỂ XẢY RA:**
 
-- `Blockchain Service not available` → Blockchain Service chưa chạy
-- `IPFS Service not available` → IPFS Service chưa chạy
+- `Blockchain Service not available` → Blockchain Service chưa chạy (Port 4004)
+- `Property already minted` → Property đã được mint rồi
+- `Property not found` → Property ID không tồn tại
 
 ---
 
-### **BƯỚC 7: Search & Statistics** 📊
+### **BƯỚC 7: NFT Management (Owner Operations)** 💎
+
+**Mục đích:** Owner quản lý NFT của mình (giá, status, metadata)
+
+#### 7.1. Get NFT Details
+
+**Request:**
+
+```http
+GET http://localhost:4003/nfts/{{token_id}}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "tokenId": 8,
+    "contractAddress": "0x52B42Ac0e051A4c3386791b04391510C3cE06632",
+    "propertyId": "68f88b446dcb6241698a902c",
+    "currentOwner": "0xc6890b26a32d9d92aefbc8635c4588247529cdfe",
+    "status": "minted",
+    "metadataUri": "ipfs://QmR6FtgPMLKkmHpAhhMBTH94Nocy62GeVynDMcsPrdFCxm",
+    "listing": {
+      "isListed": false,
+      "price": null,
+      "priceETH": null
+    },
+    "transferHistory": [...],
+    "saleHistory": [],
+    "totalTransfers": 1,
+    "totalSales": 0,
+    "views": 0
+  }
+}
+```
+
+---
+
+#### 7.2. List NFT for Sale
+
+**Request:**
+
+```json
+POST http://localhost:4003/nfts/{{token_id}}/list
+{
+  "price": "1000000000000000000",
+  "seller": "{{user1_wallet}}",
+  "listingId": 1
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "NFT listed for sale",
+  "data": {
+    "tokenId": 8,
+    "status": "listed",
+    "listing": {
+      "isListed": true,
+      "price": "1000000000000000000",
+      "priceETH": 1,
+      "listedAt": "2025-10-22T...",
+      "seller": "0xc6890b26..."
+    }
+  }
+}
+```
+
+**✨ Giá được tính:**
+
+- `price`: Wei (1 ETH = 10^18 wei)
+- `priceETH`: ETH readable (1.0, 2.5, etc.)
+
+---
+
+#### 7.3. Update NFT Price (Owner only)
+
+**Request:**
+
+```json
+PUT http://localhost:4003/nfts/{{token_id}}/price
+{
+  "price": "2000000000000000000",
+  "owner": "{{user1_wallet}}"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Price updated successfully",
+  "data": {
+    "tokenId": 8,
+    "price": "2000000000000000000",
+    "priceETH": 2
+  }
+}
+```
+
+**⚠️ Chỉ owner mới update được giá!**
+
+---
+
+#### 7.4. Update NFT Status (Owner only)
+
+**Request:**
+
+```json
+PUT http://localhost:4003/nfts/{{token_id}}/status
+{
+  "status": "transferred",
+  "owner": "{{user1_wallet}}"
+}
+```
+
+**Valid statuses:**
+
+- `minted` - Vừa mint xong
+- `listed` - Đang bán
+- `sold` - Đã bán
+- `transferred` - Đã chuyển nhượng
+- `burned` - Đã burn
+
+---
+
+#### 7.5. Unlist NFT (Cancel Sale)
+
+**Request:**
+
+```json
+POST http://localhost:4003/nfts/{{token_id}}/unlist
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "NFT unlisted",
+  "data": {
+    "tokenId": 8,
+    "status": "minted",
+    "listing": {
+      "isListed": false
+    }
+  }
+}
+```
+
+---
+
+#### 7.6. Get NFTs by Owner
+
+**Request:**
+
+```http
+GET http://localhost:4003/nfts/owner/{{user1_wallet}}
+```
+
+**Response:** Danh sách tất cả NFT của owner
+
+---
+
+#### 7.7. Get Listed NFTs (Marketplace)
+
+**Request:**
+
+```http
+GET http://localhost:4003/nfts/marketplace/listed?minPrice=0.5&maxPrice=10
+```
+
+**Response:** Tất cả NFT đang bán trong khoảng giá
+
+---
+
+### **BƯỚC 8: Search & Statistics** 📊
 
 Kiểm tra dữ liệu tổng quan:
 
@@ -408,7 +601,7 @@ Kiểm tra dữ liệu tổng quan:
 
 Sau khi hoàn thành workflow:
 
-### MongoDB Collections:
+### MongoDB Collections
 
 **User Service:**
 
@@ -421,6 +614,7 @@ Sau khi hoàn thành workflow:
 **Admin Service:**
 
 - `properties`: 1 property với NFT info (tokenId, contractAddress)
+- `nfts`: 1 NFT record với currentOwner, listing (price, status), saleHistory, transferHistory
 
 **IPFS Service:**
 
@@ -478,7 +672,11 @@ npm start
 - [ ] ✅ Property created successfully
 - [ ] ✅ Image uploaded to IPFS
 - [ ] ✅ Metadata uploaded to IPFS
-- [ ] ✅ Property minted to NFT (nếu Blockchain Service available)
+- [ ] ✅ Property minted to NFT (Blockchain Service required)
+- [ ] ✅ NFT record created in MongoDB
+- [ ] ✅ Owner can list NFT for sale
+- [ ] ✅ Owner can update price/status
+- [ ] ✅ Marketplace queries working
 - [ ] ✅ Statistics endpoints working
 
 ---
@@ -487,13 +685,45 @@ npm start
 
 **Environment Variables được tự động set:**
 
-- `user1_wallet` - Wallet address của user
+- `user1_wallet` - Wallet address của user (từ KYC)
 - `property_id` - ID của property vừa tạo
 - `image_cid` - CID của ảnh trên IPFS
 - `metadata_cid` - CID của metadata trên IPFS
 - `token_id` - Token ID của NFT (sau khi mint)
 
 **Các biến này được sử dụng trong các request tiếp theo bằng cú pháp `{{variable_name}}`**
+
+---
+
+## 🏗️ DATA ARCHITECTURE
+
+### IPFS (Immutable - Không thay đổi)
+
+Upload **1 lần duy nhất** khi mint NFT:
+
+- Property metadata: name, description, image
+- Attributes: property type, area, bedrooms, location
+- CID được lưu on-chain trong `tokenURI`
+
+**❌ KHÔNG nên thay đổi sau khi mint!**
+
+### MongoDB (Mutable - Có thể thay đổi)
+
+Lưu **dynamic marketplace data** mà owner có thể update:
+
+- `listing.price` / `listing.priceETH` - Giá bán hiện tại
+- `status` - Trạng thái NFT (minted/listed/sold/transferred)
+- `currentOwner` - Owner hiện tại (tự động update khi transfer)
+- `saleHistory` - Lịch sử bán (price, from, to, timestamp)
+- `transferHistory` - Lịch sử chuyển nhượng
+- `views`, `favorites` - Thống kê engagement
+
+**✅ Frontend query từ cả 2 sources:**
+
+- Metadata (immutable) từ IPFS gateway
+- Current price/status/owner từ API (`GET /nfts/:tokenId`)
+
+**Đây là pattern chuẩn của OpenSea, Rarible!**
 
 ---
 

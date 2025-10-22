@@ -496,7 +496,210 @@
       ]
     },
     {
-      "name": "7. Search & Statistics",
+      "name": "7. NFT Management (Owner Operations)",
+      "item": [
+        {
+          "name": "Get NFT Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}"]
+            },
+            "description": "Get NFT details including property, owner, price, status, history"
+          }
+        },
+        {
+          "name": "List NFT for Sale",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"NFT listed\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.status).to.eql(\"listed\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": \"1000000000000000000\",\n  \"seller\": \"{{user1_wallet}}\",\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/list",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "list"]
+            },
+            "description": "List NFT for sale with price in wei (1 ETH = 10^18 wei)"
+          }
+        },
+        {
+          "name": "Update NFT Price",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": \"2000000000000000000\",\n  \"owner\": \"{{user1_wallet}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/price",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "price"]
+            },
+            "description": "Owner updates NFT price (requires ownership verification)"
+          }
+        },
+        {
+          "name": "Update NFT Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"transferred\",\n  \"owner\": \"{{user1_wallet}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "status"]
+            },
+            "description": "Owner updates NFT status: minted/listed/sold/transferred/burned"
+          }
+        },
+        {
+          "name": "Update NFT Metadata URI",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadataUri\": \"ipfs://QmNewMetadataCID...\",\n  \"owner\": \"{{user1_wallet}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/metadata",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "metadata"]
+            },
+            "description": "Owner updates NFT metadata URI (rare, usually immutable)"
+          }
+        },
+        {
+          "name": "Unlist NFT (Cancel Sale)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/unlist",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "unlist"]
+            },
+            "description": "Cancel NFT sale listing"
+          }
+        },
+        {
+          "name": "Get NFTs by Owner",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/owner/{{user1_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "owner", "{{user1_wallet}}"]
+            },
+            "description": "Get all NFTs owned by a specific wallet address"
+          }
+        },
+        {
+          "name": "Get Listed NFTs (Marketplace)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/marketplace/listed?minPrice=0.5&maxPrice=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "marketplace", "listed"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "0.5",
+                  "description": "Minimum price in ETH (optional)"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "10",
+                  "description": "Maximum price in ETH (optional)"
+                }
+              ]
+            },
+            "description": "Get all NFTs currently listed for sale"
+          }
+        },
+        {
+          "name": "Get NFT Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/stats/overview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "stats", "overview"]
+            },
+            "description": "Get NFT marketplace statistics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Search & Statistics",
       "item": [
         {
           "name": "Search Users",
