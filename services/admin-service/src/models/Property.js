@@ -1,128 +1,81 @@
-/**
- * ========================================================================
- * ADMIN SERVICE - PROPERTY MODEL
- * ========================================================================
- */
-
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 
 const propertySchema = new mongoose.Schema(
   {
+    title: {
+      type: String,
+      trim: true,
+    },
+    name: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
     propertyType: {
       type: String,
       required: true,
       enum: ["apartment", "land", "house", "villa", "commercial"],
       index: true,
     },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      index: "text",
-    },
-    description: {
-      type: String,
-      required: true,
-      index: "text",
-    },
-    imageUrl: String,
-
-    location: {
-      address: { type: String, required: true, index: "text" },
+    address: {
+      street: String,
       ward: String,
-      district: { type: String, index: true },
-      city: { type: String, required: true, index: true },
-      coordinates: {
-        latitude: Number,
-        longitude: Number,
-      },
+      district: String,
+      city: String,
+      country: String,
     },
-
-    details: {
-      area: { value: Number, unit: { type: String, default: "m2" } },
-      bedrooms: { type: Number, index: true },
-      bathrooms: Number,
-      legalStatus: String,
-      cachedAttributes: [{ trait_type: String, value: String }],
-    },
-
+    area: Number,
+    bedrooms: Number,
+    bathrooms: Number,
+    features: [String],
+    legalStatus: String,
     price: {
-      amount: { type: Number, required: true, index: true },
-      currency: { type: String, default: "VND" },
-      updatedAt: Date,
-    },
-
-    nft: {
-      isMinted: { type: Boolean, default: false, index: true },
-      nftId: { type: mongoose.Schema.Types.ObjectId, ref: "NFT" },
-      tokenId: { type: Number, index: true, sparse: true },
-      contractAddress: { type: String, lowercase: true, index: true },
-      currentOwner: { type: String, lowercase: true, index: true },
-      metadataCID: String,
-      mintedAt: Date,
-      mintedBy: String,
-      transactionHash: String,
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "draft",
-        "approved",
-        "pending_mint",
-        "minted",
-        "listed",
-        "sold",
-        "archived",
-      ],
-      default: "draft",
+      type: Number,
+      required: true,
       index: true,
     },
-
-    creator: {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-      walletAddress: { type: String, lowercase: true, index: true },
-      name: String,
+    currency: {
+      type: String,
+      default: "VND",
     },
-
     owner: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      walletAddress: { type: String, lowercase: true, index: true },
-      name: String,
+      type: String,
+      lowercase: true,
+      required: true,
+      index: true,
     },
-
-    media: {
-      images: [{ url: String, cid: String, isPrimary: Boolean }],
-      documents: [{ name: String, url: String, cid: String, type: String }],
+    nft: {
+      isMinted: { type: Boolean, default: false, index: true },
+      tokenId: { type: Number, sparse: true },
+      contractAddress: { type: String, lowercase: true },
+      metadataUri: String,
+      transactionHash: String,
+      mintedAt: Date,
     },
-
-    analytics: {
-      views: { type: Number, default: 0 },
-      favorites: { type: Number, default: 0 },
-      shares: { type: Number, default: 0 },
-      lastViewedAt: Date,
+    images: [String],
+    status: {
+      type: String,
+      enum: ["draft", "active", "minted", "sold", "archived"],
+      default: "active",
+      index: true,
     },
-
-    isPublic: { type: Boolean, default: false, index: true },
-    isFeatured: { type: Boolean, default: false, index: true },
-    tags: [{ type: String, lowercase: true, index: true }],
-
-    createdAt: { type: Date, default: Date.now, index: true },
-    updatedAt: Date,
+    views: { type: Number, default: 0 },
+    isPublic: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-propertySchema.index({ propertyType: 1, status: 1, createdAt: -1 });
-propertySchema.index({
-  "location.city": 1,
-  "location.district": 1,
-  propertyType: 1,
+propertySchema.virtual("displayName").get(function () {
+  return this.title || this.name || "Unnamed Property";
 });
-propertySchema.index({ "price.amount": 1, propertyType: 1, status: 1 });
+
+propertySchema.index({ propertyType: 1, status: 1, createdAt: -1 });
+propertySchema.index({ "address.city": 1, "address.district": 1 });
+propertySchema.index({ price: 1, propertyType: 1 });
+propertySchema.index({ owner: 1, status: 1 });
 
 module.exports = mongoose.model("Property", propertySchema);

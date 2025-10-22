@@ -12,21 +12,33 @@ class MintController {
    */
   async mintProperty(req, res) {
     try {
-      const { recipient } = req.body;
+      const { recipient, to, metadataUri } = req.body;
       const propertyId = req.params.id;
 
-      if (!recipient) {
+      // Accept both 'recipient' and 'to' field names
+      const recipientAddress = recipient || to;
+
+      if (!recipientAddress) {
         return res.status(400).json({
           success: false,
-          error: "Missing recipient address",
+          error: "Missing recipient address (use 'to' or 'recipient' field)",
         });
       }
 
-      console.log(`🔄 Minting property ${propertyId} for ${recipient}`);
+      if (!metadataUri) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing metadataUri",
+        });
+      }
+
+      console.log(`🔄 Minting property ${propertyId} for ${recipientAddress}`);
+      console.log(`📎 Metadata URI: ${metadataUri}`);
 
       const result = await orchestratorService.mintPropertyToNFT(
         propertyId,
-        recipient
+        recipientAddress,
+        metadataUri
       );
 
       res.json({

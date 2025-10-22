@@ -1,0 +1,588 @@
+{
+  "info": {
+    "name": "ViePropChain - Complete Flow Test",
+    "description": "Test workflow hoàn chỉnh: Auth → KYC → User Profile → Property → IPFS → Mint NFT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health Checks",
+      "item": [
+        {
+          "name": "Admin Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "IPFS Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4002/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "User Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "KYC Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. KYC Flow (Identity Verification)",
+      "item": [
+        {
+          "name": "Submit KYC - User 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"KYC submitted successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.status).to.eql(\"verified\");",
+                  "    pm.environment.set(\"user1_wallet\", jsonData.data.walletAddress);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x1234567890123456789012345678901234567890\",\n  \"fullName\": \"Nguyen Van A\",\n  \"idNumber\": \"123456789012\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4007/kyc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc"]
+            },
+            "description": "Submit KYC - Auto verify và notify User Service"
+          }
+        },
+        {
+          "name": "Get KYC Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/kyc/{{user1_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc", "{{user1_wallet}}"]
+            }
+          }
+        },
+        {
+          "name": "Check if Verified",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/kyc/{{user1_wallet}}/verified",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc", "{{user1_wallet}}", "verified"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. User Profile Management",
+      "item": [
+        {
+          "name": "Get or Create Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile created/retrieved\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"{{user1_wallet}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4006/profiles",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["profiles"]
+            }
+          }
+        },
+        {
+          "name": "Update Basic Info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Van A\",\n  \"lastName\": \"Nguyen\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"gender\": \"male\",\n  \"nationality\": \"Vietnam\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4006/profiles/{{user1_wallet}}/basic-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["profiles", "{{user1_wallet}}", "basic-info"]
+            }
+          }
+        },
+        {
+          "name": "Update Contact Info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nguyenvana@example.com\",\n  \"phone\": \"+84912345678\",\n  \"address\": {\n    \"street\": \"123 Nguyen Hue\",\n    \"ward\": \"Ben Nghe\",\n    \"district\": \"District 1\",\n    \"city\": \"Ho Chi Minh City\",\n    \"country\": \"Vietnam\",\n    \"postalCode\": \"700000\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4006/profiles/{{user1_wallet}}/contact-info",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["profiles", "{{user1_wallet}}", "contact-info"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/profiles/{{user1_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["profiles", "{{user1_wallet}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Property Management",
+      "item": [
+        {
+          "name": "Create Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Property created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Luxury Villa in District 2\",\n  \"description\": \"Beautiful 3-bedroom villa with swimming pool and garden\",\n  \"propertyType\": \"villa\",\n  \"address\": {\n    \"street\": \"123 Thao Dien\",\n    \"ward\": \"Thao Dien\",\n    \"district\": \"District 2\",\n    \"city\": \"Ho Chi Minh City\",\n    \"country\": \"Vietnam\"\n  },\n  \"area\": 250,\n  \"price\": 15000000000,\n  \"currency\": \"VND\",\n  \"bedrooms\": 3,\n  \"bathrooms\": 3,\n  \"features\": [\"Swimming Pool\", \"Garden\", \"Parking\", \"Security\"],\n  \"owner\": \"{{user1_wallet}}\",\n  \"legalStatus\": \"verified\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties"]
+            }
+          }
+        },
+        {
+          "name": "Get All Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties"]
+            }
+          }
+        },
+        {
+          "name": "Get Property Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties/{{property_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "{{property_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Property",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 16000000000,\n  \"description\": \"Beautiful 3-bedroom villa with swimming pool, garden and modern kitchen\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/properties/{{property_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "{{property_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties/stats/overview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "stats", "overview"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. IPFS File Upload",
+      "item": [
+        {
+          "name": "Upload Property Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"image_cid\", jsonData.data.cid);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{property_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4002/upload/image",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["upload", "image"]
+            },
+            "description": "⚠️ Chọn file ảnh từ máy tính trong tab Body → form-data → file"
+          }
+        },
+        {
+          "name": "Upload NFT Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Metadata uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"metadata_cid\", jsonData.data.cid);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"metadata\": {\n    \"name\": \"Luxury Villa in District 2\",\n    \"description\": \"Beautiful 3-bedroom villa with swimming pool, garden and modern kitchen\",\n    \"image\": \"ipfs://{{image_cid}}\",\n    \"attributes\": [\n      {\"trait_type\": \"Property Type\", \"value\": \"Villa\"},\n      {\"trait_type\": \"Bedrooms\", \"value\": 3},\n      {\"trait_type\": \"Bathrooms\", \"value\": 3},\n      {\"trait_type\": \"Area\", \"value\": \"250 sqm\"},\n      {\"trait_type\": \"Location\", \"value\": \"District 2, HCMC\"},\n      {\"trait_type\": \"Price\", \"value\": \"16,000,000,000 VND\"}\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4002/upload/metadata",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["upload", "metadata"]
+            }
+          }
+        },
+        {
+          "name": "Get Content by CID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4002/content/{{metadata_cid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["content", "{{metadata_cid}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. NFT Minting (Orchestrator)",
+      "item": [
+        {
+          "name": "Mint Property to NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"NFT minted successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"token_id\", jsonData.data.tokenId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"{{user1_wallet}}\",\n  \"metadataUri\": \"ipfs://{{metadata_cid}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/properties/{{property_id}}/mint",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "{{property_id}}", "mint"]
+            },
+            "description": "Admin Service orchestrates:\n1. Call IPFS Service (if needed)\n2. Call Blockchain Service to mint\n3. Update Property with NFT info"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Search & Statistics",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/users/search?verified=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["users", "search"],
+              "query": [
+                {
+                  "key": "verified",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/users/statistics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["users", "statistics"]
+            }
+          }
+        },
+        {
+          "name": "KYC Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/statistics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["statistics"]
+            }
+          }
+        },
+        {
+          "name": "Property Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties/stats/overview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "stats", "overview"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "user1_wallet",
+      "value": "0x1234567890123456789012345678901234567890"
+    },
+    {
+      "key": "property_id",
+      "value": ""
+    },
+    {
+      "key": "image_cid",
+      "value": ""
+    },
+    {
+      "key": "metadata_cid",
+      "value": ""
+    },
+    {
+      "key": "token_id",
+      "value": ""
+    }
+  ]
+}
