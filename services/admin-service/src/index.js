@@ -11,6 +11,7 @@ require("dotenv").config();
 
 const connectDB = require("./config/database");
 const propertyRoutes = require("./routes/propertyRoutes");
+const nftRoutes = require("./routes/nftRoutes");
 const orchestratorService = require("./services/orchestratorService");
 
 const app = express();
@@ -54,6 +55,7 @@ app.get("/health", async (req, res) => {
 // ROUTES
 // ============================================================================
 app.use("/properties", propertyRoutes);
+app.use("/nfts", nftRoutes);
 
 // ============================================================================
 // START SERVER
@@ -65,7 +67,7 @@ app.listen(PORT, () => {
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
 ║                                                              ║
-║  API Endpoints:                                              ║
+║  Property Endpoints:                                         ║
 ║  ├─ POST /properties            - Create property            ║
 ║  ├─ GET  /properties            - Get all properties         ║
 ║  ├─ GET  /properties/:id        - Get property               ║
@@ -73,6 +75,14 @@ app.listen(PORT, () => {
 ║  ├─ DELETE /properties/:id      - Archive property           ║
 ║  ├─ POST /properties/:id/mint   - Mint property to NFT       ║
 ║  └─ GET  /properties/stats/overview - Get statistics         ║
+║                                                              ║
+║  NFT Endpoints:                                              ║
+║  ├─ GET  /nfts/:tokenId         - Get NFT details            ║
+║  ├─ GET  /nfts/owner/:owner     - Get NFTs by owner          ║
+║  ├─ GET  /nfts/marketplace/listed - Get listed NFTs          ║
+║  ├─ POST /nfts/:tokenId/list    - List NFT for sale          ║
+║  ├─ POST /nfts/:tokenId/unlist  - Unlist NFT                 ║
+║  └─ GET  /nfts/stats/overview   - Get NFT statistics         ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });

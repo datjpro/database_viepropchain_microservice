@@ -14,19 +14,23 @@ class PropertyController {
     try {
       const propertyData = req.body;
 
-      // Validate required fields
+      // Validate required fields (accept either title or name)
       if (
-        !propertyData.name ||
+        (!propertyData.name && !propertyData.title) ||
         !propertyData.propertyType ||
-        !propertyData.price
+        !propertyData.price ||
+        !propertyData.description
       ) {
         return res.status(400).json({
           success: false,
-          error: "Missing required fields: name, propertyType, price",
+          error:
+            "Missing required fields: name/title, description, propertyType, price",
         });
       }
 
-      console.log(`🔄 Creating property: ${propertyData.name}`);
+      console.log(
+        `🔄 Creating property: ${propertyData.title || propertyData.name}`
+      );
 
       const property = await propertyService.createProperty(propertyData);
 

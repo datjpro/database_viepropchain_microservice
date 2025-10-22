@@ -34,7 +34,7 @@ const userProfileSchema = new mongoose.Schema(
 
     // Contact Info
     contactInfo: {
-      email: { type: String, lowercase: true, trim: true, index: true },
+      email: { type: String, lowercase: true, trim: true },
       phone: { type: String, trim: true },
       address: {
         street: String,
@@ -78,7 +78,7 @@ const userProfileSchema = new mongoose.Schema(
 
     // KYC Status (reference to KYC Service)
     kycStatus: {
-      isVerified: { type: Boolean, default: false, index: true },
+      isVerified: { type: Boolean, default: false },
       verificationLevel: {
         type: String,
         enum: ["none", "basic", "advanced", "full"],

@@ -4,7 +4,7 @@
   "description": "Blockchain Service - Interact with Smart Contract",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
