@@ -138,12 +138,24 @@ app.post("/mint", async (req, res) => {
     const receipt = await tx.wait();
     console.log(`   ✅ Transaction confirmed in block ${receipt.blockNumber}`);
 
+    // Debug: Print all logs
+    console.log(`   📋 Transaction logs (${receipt.logs.length} total):`);
+    receipt.logs.forEach((log, index) => {
+      console.log(`      Log ${index}:`, {
+        address: log.address,
+        topics: log.topics,
+        data: log.data,
+      });
+    });
+
     // Get tokenId from Transfer event
     const transferEvent = receipt.logs.find((log) => {
       try {
         const parsed = contract.interface.parseLog(log);
+        console.log(`      ✅ Parsed log:`, parsed.name, parsed.args);
         return parsed?.name === "Transfer";
-      } catch {
+      } catch (error) {
+        console.log(`      ⚠️ Failed to parse log:`, error.message);
         return false;
       }
     });
@@ -152,13 +164,23 @@ app.post("/mint", async (req, res) => {
     if (transferEvent) {
       const parsed = contract.interface.parseLog(transferEvent);
       tokenId = Number(parsed.args.tokenId);
+      console.log(
+        `   ✅ NFT minted with tokenId: ${tokenId} (from Transfer event)`
+      );
     } else {
-      // Fallback: Get current token counter
-      const counter = await contract.tokenCounter();
-      tokenId = Number(counter) - 1;
+      // Fallback: Get current token counter (this is the tokenId that was just minted)
+      try {
+        const counter = await contract.tokenCounter();
+        tokenId = Number(counter);
+        console.log(
+          `   ✅ NFT minted with tokenId: ${tokenId} (from tokenCounter)`
+        );
+      } catch (error) {
+        console.error("❌ Failed to get tokenCounter:", error.message);
+        // Last resort: parse return value from mint function if available
+        throw new Error("Could not determine tokenId from transaction");
+      }
     }
-
-    console.log(`   ✅ NFT minted with tokenId: ${tokenId}`);
 
     res.json({
       success: true,

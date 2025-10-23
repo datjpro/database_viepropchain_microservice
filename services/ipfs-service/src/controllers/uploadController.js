@@ -153,19 +153,95 @@ class UploadController {
 
   /**
    * Upload metadata JSON
+   * NEW: Auto-generate metadata from propertyId if provided
    */
   async uploadMetadata(req, res) {
     try {
-      const metadata = req.body;
+      const { propertyId, imageCID, metadata: customMetadata } = req.body;
 
-      if (!metadata || Object.keys(metadata).length === 0) {
+      let metadata;
+
+      // Option 1: Auto-generate metadata from propertyId
+      if (propertyId) {
+        console.log(`🔄 Auto-generating metadata for property: ${propertyId}`);
+
+        try {
+          // Fetch property data from Admin Service
+          const axios = require("axios");
+          const adminServiceUrl =
+            process.env.ADMIN_SERVICE_URL || "http://localhost:4003";
+
+          const response = await axios.get(
+            `${adminServiceUrl}/properties/${propertyId}`
+          );
+
+          if (!response.data.success) {
+            throw new Error("Property not found in Admin Service");
+          }
+
+          const property = response.data.data;
+
+          // Build metadata from property data
+          metadata = {
+            name: property.title || property.name || "Untitled Property",
+            description:
+              property.description || "Real estate property on ViePropChain",
+            image: imageCID ? `ipfs://${imageCID}` : undefined,
+            external_url: `https://viepropchain.com/property/${propertyId}`,
+            attributes: [
+              {
+                trait_type: "Property Type",
+                value: property.propertyType || "Unknown",
+              },
+              {
+                trait_type: "Area",
+                value: property.area ? `${property.area} sqm` : "N/A",
+              },
+              {
+                trait_type: "Bedrooms",
+                value: property.bedrooms || 0,
+              },
+              {
+                trait_type: "Bathrooms",
+                value: property.bathrooms || 0,
+              },
+              {
+                trait_type: "Location",
+                value: property.address
+                  ? `${property.address.district || ""}, ${
+                      property.address.city || ""
+                    }`.trim()
+                  : "Unknown",
+              },
+              {
+                trait_type: "Legal Status",
+                value: property.legalStatus || "pending",
+              },
+            ],
+          };
+
+          console.log(`   ✅ Auto-generated metadata for: ${metadata.name}`);
+        } catch (error) {
+          console.error("❌ Failed to fetch property data:", error.message);
+          return res.status(400).json({
+            success: false,
+            error: "Failed to generate metadata from propertyId",
+            message: error.message,
+          });
+        }
+      }
+      // Option 2: Use custom metadata provided by user
+      else if (customMetadata && Object.keys(customMetadata).length > 0) {
+        metadata = customMetadata;
+        console.log(`🔄 Uploading custom metadata: ${metadata.name}`);
+      }
+      // Option 3: No propertyId and no metadata - error
+      else {
         return res.status(400).json({
           success: false,
-          error: "No metadata provided",
+          error: "Either propertyId or metadata must be provided",
         });
       }
-
-      console.log(`🔄 Uploading metadata: ${metadata.name}`);
 
       // Upload to Pinata
       const result = await pinataService.uploadJSON(metadata);
@@ -175,7 +251,7 @@ class UploadController {
         cid: result.cid,
         type: "metadata",
         content: metadata,
-        propertyId: metadata.propertyId || null,
+        propertyId: propertyId || null,
         pinataInfo: {
           pinataId: result.pinataId,
           pinStatus: "pinned",
