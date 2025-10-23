@@ -63,6 +63,39 @@
               "path": ["health"]
             }
           }
+        },
+        {
+          "name": "Blockchain Service Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Blockchain connected\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.blockchain.connected).to.eql(true);",
+                  "    console.log(\"Admin: \" + jsonData.blockchain.adminAddress);",
+                  "    console.log(\"Contract: \" + jsonData.blockchain.contractAddress);",
+                  "    console.log(\"Balance: \" + jsonData.blockchain.adminBalance + \" ETH\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["health"]
+            },
+            "description": "Check Blockchain Service connection và contract address"
+          }
         }
       ]
     },
@@ -97,7 +130,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"walletAddress\": \"0x1234567890123456789012345678901234567890\",\n  \"fullName\": \"Nguyen Van A\",\n  \"idNumber\": \"123456789012\"\n}"
+              "raw": "{\n  \"walletAddress\": \"0xd1ABb2a4Bb9652f90E0944AFfDf53F0cFFf54D13\",\n  \"fullName\": \"Nguyen Van A\",\n  \"idNumber\": \"123456789012\"\n}"
             },
             "url": {
               "raw": "http://localhost:4007/kyc",
@@ -135,6 +168,37 @@
               "port": "4007",
               "path": ["kyc", "{{user1_wallet}}", "verified"]
             }
+          }
+        },
+        {
+          "name": "Verify User Profile Auto-Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile auto-created with KYC status\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.kycStatus.isVerified).to.eql(true);",
+                  "    console.log(\"✅ Profile auto-created by KYC Service!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/profiles/{{user1_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["profiles", "{{user1_wallet}}"]
+            },
+            "description": "✨ NEW: Verify that User Profile was auto-created when KYC was submitted"
           }
         }
       ]
@@ -398,7 +462,7 @@
           }
         },
         {
-          "name": "Upload NFT Metadata",
+          "name": "Upload NFT Metadata (Auto-Generated)",
           "event": [
             {
               "listen": "test",
@@ -424,7 +488,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"metadata\": {\n    \"name\": \"Luxury Villa in District 2\",\n    \"description\": \"Beautiful 3-bedroom villa with swimming pool, garden and modern kitchen\",\n    \"image\": \"ipfs://{{image_cid}}\",\n    \"attributes\": [\n      {\"trait_type\": \"Property Type\", \"value\": \"Villa\"},\n      {\"trait_type\": \"Bedrooms\", \"value\": 3},\n      {\"trait_type\": \"Bathrooms\", \"value\": 3},\n      {\"trait_type\": \"Area\", \"value\": \"250 sqm\"},\n      {\"trait_type\": \"Location\", \"value\": \"District 2, HCMC\"},\n      {\"trait_type\": \"Price\", \"value\": \"16,000,000,000 VND\"}\n    ]\n  }\n}"
+              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"imageCID\": \"{{image_cid}}\"\n}"
             },
             "url": {
               "raw": "http://localhost:4002/upload/metadata",
@@ -432,7 +496,47 @@
               "host": ["localhost"],
               "port": "4002",
               "path": ["upload", "metadata"]
+            },
+            "description": "✨ Auto-generate metadata từ propertyId - KHÔNG cần nhập lại thông tin property!"
+          }
+        },
+        {
+          "name": "Upload Custom Metadata (Optional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Metadata uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"metadata_cid\", jsonData.data.cid);",
+                  "});"
+                ]
+              }
             }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"name\": \"Luxury Villa in District 2\",\n    \"description\": \"Beautiful 3-bedroom villa with swimming pool, garden and modern kitchen\",\n    \"image\": \"ipfs://{{image_cid}}\",\n    \"external_url\": \"https://viepropchain.com/property/{{property_id}}\",\n    \"attributes\": [\n      {\"trait_type\": \"Property Type\", \"value\": \"Villa\"},\n      {\"trait_type\": \"Area\", \"value\": \"250 sqm\"},\n      {\"trait_type\": \"Bedrooms\", \"value\": 3},\n      {\"trait_type\": \"Bathrooms\", \"value\": 3},\n      {\"trait_type\": \"Location\", \"value\": \"District 2, HCMC\"},\n      {\"trait_type\": \"Legal Status\", \"value\": \"verified\"}\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4002/upload/metadata",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["upload", "metadata"]
+            },
+            "description": "Optional: Upload custom metadata thay vì auto-generate"
           }
         },
         {
@@ -452,10 +556,10 @@
       ]
     },
     {
-      "name": "6. NFT Minting (Orchestrator)",
+      "name": "6. NFT Minting & Transfer",
       "item": [
         {
-          "name": "Mint Property to NFT",
+          "name": "Mint NFT Directly to User (Blockchain Service)",
           "event": [
             {
               "listen": "test",
@@ -465,7 +569,9 @@
                   "    pm.response.to.have.status(200);",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.recipient).to.eql(pm.environment.get(\"user1_wallet\"));",
                   "    pm.environment.set(\"token_id\", jsonData.data.tokenId);",
+                  "    console.log(\"✅ NFT tokenId #\" + jsonData.data.tokenId + \" minted to USER: \" + jsonData.data.recipient);",
                   "});"
                 ]
               }
@@ -481,16 +587,131 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"to\": \"{{user1_wallet}}\",\n  \"metadataUri\": \"ipfs://{{metadata_cid}}\"\n}"
+              "raw": "{\n  \"recipient\": \"{{user1_wallet}}\",\n  \"tokenURI\": \"ipfs://{{metadata_cid}}\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4003/properties/{{property_id}}/mint",
+              "raw": "http://localhost:4004/mint",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4003",
-              "path": ["properties", "{{property_id}}", "mint"]
+              "port": "4004",
+              "path": ["mint"]
             },
-            "description": "Admin Service orchestrates:\n1. Call IPFS Service (if needed)\n2. Call Blockchain Service to mint\n3. Update Property with NFT info"
+            "description": "✅ BEST PRACTICE: Mint NFT trực tiếp cho USER\n- Admin ký transaction (với ADMIN_PRIVATE_KEY)\n- User nhận NFT ownership ngay lập tức\n- Không cần transfer thêm!"
+          }
+        },
+        {
+          "name": "Verify NFT Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User owns the NFT\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.owner.toLowerCase()).to.eql(pm.environment.get(\"user1_wallet\").toLowerCase());",
+                  "    console.log(\"✅ Verified: User owns NFT #\" + jsonData.data.tokenId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/nft/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["nft", "{{token_id}}"]
+            },
+            "description": "Verify user sở hữu NFT sau khi mint"
+          }
+        },
+        {
+          "name": "Transfer NFT (Admin to User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"NFT transferred\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ NFT transferred from Admin to User\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"0xC6890b26A32d9d92aefbc8635C4588247529CdfE\",\n  \"to\": \"{{user1_wallet}}\",\n  \"tokenId\": {{token_id}}\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4004/transfer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["transfer"]
+            },
+            "description": "⚠️ CHỈ DÙNG KHI CẦN: Transfer NFT từ Admin sang User\n- Trường hợp: Đã mint nhầm cho admin\n- Tốn thêm gas fee\n- Không nên dùng thường xuyên!"
+          }
+        },
+        {
+          "name": "Get Token Counter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/token-counter",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["token-counter"]
+            },
+            "description": "Get total số lượng NFT đã mint"
+          }
+        },
+        {
+          "name": "Get NFTs by Owner (User)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/nfts/{{user1_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["nfts", "{{user1_wallet}}"]
+            },
+            "description": "Get số lượng NFT của user"
+          }
+        },
+        {
+          "name": "Get NFTs by Owner (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/nfts/0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["nfts", "0xC6890b26A32d9d92aefbc8635C4588247529CdfE"]
+            },
+            "description": "Get số lượng NFT của admin (thường = 0 nếu mint đúng cách)"
           }
         }
       ]
@@ -769,23 +990,38 @@
   "variable": [
     {
       "key": "user1_wallet",
-      "value": "0x1234567890123456789012345678901234567890"
+      "value": "0xd1ABb2a4Bb9652f90E0944AFfDf53F0cFFf54D13",
+      "type": "string"
+    },
+    {
+      "key": "admin_wallet",
+      "value": "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+      "type": "string"
+    },
+    {
+      "key": "contract_address",
+      "value": "0x5995e09c8CE97519539213cEC3349a023095780b",
+      "type": "string"
     },
     {
       "key": "property_id",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "image_cid",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "metadata_cid",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "token_id",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ]
 }

@@ -181,12 +181,14 @@ class UserProfileService {
 
   /**
    * Update KYC status (called by KYC Service)
+   * Auto-creates profile if not exists
    */
   async updateKYCStatus(walletAddress, kycData) {
     try {
       const { isVerified, verificationLevel, kycId } = kycData;
 
-      const profile = await UserProfile.findOneAndUpdate(
+      // Try to update existing profile
+      let profile = await UserProfile.findOneAndUpdate(
         { walletAddress: walletAddress.toLowerCase() },
         {
           $set: {
@@ -200,11 +202,32 @@ class UserProfileService {
         { new: true }
       );
 
+      // If profile doesn't exist, create it with KYC info
       if (!profile) {
-        throw new Error("User profile not found");
+        console.log(
+          `⚠️ Profile not found for ${walletAddress}, creating new profile with KYC data...`
+        );
+
+        profile = new UserProfile({
+          walletAddress: walletAddress.toLowerCase(),
+          kycStatus: {
+            isVerified,
+            verificationLevel,
+            verifiedAt: isVerified ? new Date() : undefined,
+            kycId,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        await profile.save();
+        console.log(
+          `✅ Auto-created profile with KYC status: ${walletAddress}`
+        );
+      } else {
+        console.log(`✅ KYC status updated: ${walletAddress}`);
       }
 
-      console.log(`✅ KYC status updated: ${walletAddress}`);
       return profile;
     } catch (error) {
       throw new Error(`Failed to update KYC status: ${error.message}`);
