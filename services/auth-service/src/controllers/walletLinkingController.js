@@ -16,7 +16,7 @@ class WalletLinkingController {
   async linkWallet(req, res) {
     try {
       const { walletAddress, signature } = req.body;
-      const user = req.user; // From verifyToken middleware
+      const tokenData = req.user; // From verifyToken middleware (decoded JWT)
 
       if (!walletAddress || !signature) {
         return res.status(400).json({
@@ -30,6 +30,18 @@ class WalletLinkingController {
         return res.status(400).json({
           success: false,
           error: "Invalid wallet address",
+        });
+      }
+
+      // Get user from database (Mongoose document)
+      const user = await User.findOne({
+        $or: [{ _id: tokenData.userId }, { email: tokenData.email }],
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
         });
       }
 
@@ -114,7 +126,19 @@ class WalletLinkingController {
    */
   async unlinkWallet(req, res) {
     try {
-      const user = req.user; // From verifyToken middleware
+      const tokenData = req.user; // From verifyToken middleware (decoded JWT)
+
+      // Get user from database (Mongoose document)
+      const user = await User.findOne({
+        $or: [{ _id: tokenData.userId }, { email: tokenData.email }],
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
 
       if (!user.walletAddress) {
         return res.status(400).json({
@@ -168,7 +192,7 @@ class WalletLinkingController {
   async getLinkMessage(req, res) {
     try {
       const { walletAddress } = req.body;
-      const user = req.user; // From verifyToken middleware
+      const tokenData = req.user; // From verifyToken middleware (decoded JWT)
 
       if (!walletAddress) {
         return res.status(400).json({
@@ -184,15 +208,16 @@ class WalletLinkingController {
         });
       }
 
-      const message = `Link wallet ${walletAddress.toLowerCase()} to ViePropChain account ${
-        user.email
-      }`;
+      // Get user email from token data
+      const userEmail = tokenData.email;
+
+      const message = `Link wallet ${walletAddress.toLowerCase()} to ViePropChain account ${userEmail}`;
 
       res.json({
         success: true,
         message,
         walletAddress: walletAddress.toLowerCase(),
-        email: user.email,
+        email: userEmail,
       });
     } catch (error) {
       console.error("❌ Get link message error:", error);
