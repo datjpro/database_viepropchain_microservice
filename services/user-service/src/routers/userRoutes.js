@@ -39,7 +39,27 @@ router.put(
   userProfileController.updatePreferences
 );
 
-// Update KYC status (internal - called by KYC Service)
+// ========================================================================
+// NEW: USER-ID BASED ROUTES (for Gmail OAuth users)
+// ========================================================================
+
+// Update KYC status by userId (internal - called by KYC Service)
+router.put(
+  "/profiles/user/:userId/kyc-status",
+  userProfileController.updateKYCStatusByUserId
+);
+
+// Update wallet address when user links wallet (internal - called by Auth Service)
+router.put(
+  "/profiles/user/:userId/wallet",
+  userProfileController.updateWalletAddress
+);
+
+// ========================================================================
+// BACKWARD COMPATIBILITY: WALLET-BASED ROUTES
+// ========================================================================
+
+// Update KYC status by wallet (internal - called by KYC Service)
 router.put(
   "/profiles/:walletAddress/kyc-status",
   userProfileController.updateKYCStatus

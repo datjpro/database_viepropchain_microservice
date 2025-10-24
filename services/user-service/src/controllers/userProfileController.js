@@ -172,7 +172,81 @@ class UserProfileController {
   }
 
   /**
-   * Update KYC status (internal endpoint for KYC Service)
+   * Update KYC status by userId (NEW - for Gmail OAuth users)
+   * Called by KYC Service
+   */
+  async updateKYCStatusByUserId(req, res) {
+    try {
+      const { userId } = req.params;
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: "Email is required",
+        });
+      }
+
+      const profile = await userProfileService.updateKYCStatusByUserId(
+        userId,
+        email,
+        req.body
+      );
+
+      res.json({
+        success: true,
+        message: "KYC status updated by userId",
+        data: profile,
+      });
+    } catch (error) {
+      console.error("❌ Update KYC status by userId error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update KYC status",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update wallet address when user links wallet (NEW)
+   * Called by Auth Service
+   */
+  async updateWalletAddress(req, res) {
+    try {
+      const { userId } = req.params;
+      const { walletAddress } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          error: "Wallet address is required",
+        });
+      }
+
+      const profile = await userProfileService.updateWalletAddress(
+        userId,
+        walletAddress
+      );
+
+      res.json({
+        success: true,
+        message: "Wallet address updated",
+        data: profile,
+      });
+    } catch (error) {
+      console.error("❌ Update wallet address error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update wallet address",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update KYC status by wallet (BACKWARD COMPATIBILITY)
+   * Internal endpoint for KYC Service
    */
   async updateKYCStatus(req, res) {
     try {

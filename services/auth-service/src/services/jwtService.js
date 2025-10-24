@@ -16,9 +16,12 @@ class JWTService {
     try {
       const token = jwt.sign(
         {
-          walletAddress: user.walletAddress,
-          userId: user._id,
+          userId: user._id.toString(),
+          email: user.email,
+          walletAddress: user.walletAddress || null,
           role: user.role,
+          emailVerified: user.emailVerified,
+          authMethods: user.authMethods.map((m) => m.type),
         },
         JWT_SECRET,
         { expiresIn: JWT_EXPIRY }
@@ -63,7 +66,14 @@ class JWTService {
   async getUserFromToken(token) {
     try {
       const decoded = this.verifyToken(token);
-      const user = await User.findOne({ walletAddress: decoded.walletAddress });
+
+      // Find user by userId (primary) or walletAddress (fallback for old tokens)
+      let user;
+      if (decoded.userId) {
+        user = await User.findById(decoded.userId);
+      } else if (decoded.walletAddress) {
+        user = await User.findOne({ walletAddress: decoded.walletAddress });
+      }
 
       if (!user) {
         throw new Error("User not found");
