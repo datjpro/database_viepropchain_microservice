@@ -50,7 +50,7 @@
    ✅ Xem NFT
    ✅ Xem marketplace
    ✅ Quản lý profile
-   
+
 → User KHÔNG thể:
    ❌ Mua/bán NFT (cần wallet để trả tiền)
    ❌ Sở hữu NFT on-chain (cần wallet làm owner)

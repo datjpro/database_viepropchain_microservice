@@ -174,7 +174,7 @@ app.post("/mint", async (req, res) => {
         );
       } catch (counterError) {
         console.log("❌ Failed to get tokenCounter:", counterError.message);
-        
+
         // Fallback 2: Estimate tokenId from balance difference
         if (balanceAfter > balanceBefore) {
           // This is a rough estimate - the actual tokenId might be different

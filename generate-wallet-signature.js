@@ -2,9 +2,9 @@
  * ========================================================================
  * WALLET SIGNATURE GENERATOR - FOR POSTMAN TESTING
  * ========================================================================
- * 
+ *
  * Mục đích: Generate signature để test "Wallet Linking" trong Postman
- * 
+ *
  * Vì Postman KHÔNG CÓ MetaMask, nên phải dùng script này để:
  * 1. Lấy message từ Step 1 trong Postman
  * 2. Sign message bằng private key từ Ganache
@@ -20,15 +20,15 @@ const { ethers } = require("ethers");
 /**
  * Ganache Accounts (from mnemonic):
  * "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
- * 
+ *
  * Account 0:
  *   Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2
  *   Private Key: 0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d
- * 
+ *
  * Account 1:
  *   Address: 0xd1ABb2a4Bb9652f90E0944AFfDf53F0cFFf54D13
  *   Private Key: 0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1
- * 
+ *
  * Account 2:
  *   Address: 0x2546BcD3c84621e976D8185a91A922aE77ECEc30
  *   Private Key: 0x6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c
@@ -41,7 +41,8 @@ const PRIVATE_KEY =
   "0x843501ecc602247126b5c52ff65d3b0050a9039f23480f005535465ac2734fae"; // ← Paste private key của 0xC6890... từ Ganache
 
 // 👇 PASTE MESSAGE TỪ POSTMAN TẠI ĐÂY (từ response ở trên)
-const MESSAGE = "Link wallet 0xc6890b26a32d9d92aefbc8635c4588247529cdfe to ViePropChain account todat2207@gmail.com";
+const MESSAGE =
+  "Link wallet 0xc6890b26a32d9d92aefbc8635c4588247529cdfe to ViePropChain account todat2207@gmail.com";
 
 // ========================================================================
 // GENERATE SIGNATURE
@@ -88,11 +89,13 @@ async function generateSignature() {
     console.log("🔍 VERIFICATION (for debugging):");
     console.log(`   Original Address:  ${wallet.address}`);
     console.log(`   Recovered Address: ${recoveredAddress}`);
-    console.log(`   Match: ${
-      recoveredAddress.toLowerCase() === wallet.address.toLowerCase()
-        ? "✅ YES"
-        : "❌ NO"
-    }`);
+    console.log(
+      `   Match: ${
+        recoveredAddress.toLowerCase() === wallet.address.toLowerCase()
+          ? "✅ YES"
+          : "❌ NO"
+      }`
+    );
     console.log("");
   } catch (error) {
     console.error("❌ ERROR:", error.message);
