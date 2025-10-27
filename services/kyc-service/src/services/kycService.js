@@ -12,24 +12,33 @@ const { USER_SERVICE_URL } = require("../config/services");
 
 class KYCService {
   /**
-   * Submit KYC - Tự động verified luôn
+   * Submit KYC - Tự động verified (with Gmail login)
    */
   async submitKYC(kycData) {
     try {
-      const { walletAddress, fullName, idNumber } = kycData;
+      const { userId, email, walletAddress, fullName, idNumber } = kycData;
 
-      // Check if already verified
-      const existingKYC = await KYC.findOne({
-        walletAddress: walletAddress.toLowerCase(),
-      });
+      // Check if user already has KYC
+      const existingKYC = await KYC.findOne({ userId });
 
       if (existingKYC) {
-        throw new Error("Wallet address already verified");
+        throw new Error("User already has KYC verified");
+      }
+
+      // Check if idNumber already used
+      const duplicateId = await KYC.findOne({ idNumber });
+      if (duplicateId) {
+        throw new Error("ID number already registered");
       }
 
       // Create and auto-verify
+      // Use userId as placeholder for walletAddress if not provided
       const kyc = new KYC({
-        walletAddress: walletAddress.toLowerCase(),
+        userId,
+        email: email.toLowerCase(),
+        walletAddress: walletAddress
+          ? walletAddress.toLowerCase()
+          : `temp_${userId}`, // Temporary unique value using userId
         fullName,
         idNumber,
         status: "verified",
@@ -39,13 +48,14 @@ class KYCService {
       await kyc.save();
 
       // Notify User Service
-      await this.notifyUserService(walletAddress, {
+      await this.notifyUserService(userId, email, walletAddress, {
         isVerified: true,
         verificationLevel: "basic",
         kycId: kyc._id,
+        fullName,
       });
 
-      console.log(`✅ KYC auto-verified: ${walletAddress}`);
+      console.log(`✅ KYC auto-verified for user: ${email}`);
 
       return kyc;
     } catch (error) {
@@ -54,9 +64,26 @@ class KYCService {
   }
 
   /**
-   * Get KYC by wallet address
+   * Get KYC by userId
    */
-  async getKYC(walletAddress) {
+  async getKYCByUserId(userId) {
+    try {
+      const kyc = await KYC.findOne({ userId });
+
+      if (!kyc) {
+        throw new Error("KYC not found");
+      }
+
+      return kyc;
+    } catch (error) {
+      throw new Error(`Failed to get KYC: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get KYC by wallet address (backward compatibility)
+   */
+  async getKYCByWallet(walletAddress) {
     try {
       const kyc = await KYC.findOne({
         walletAddress: walletAddress.toLowerCase(),
@@ -73,9 +100,25 @@ class KYCService {
   }
 
   /**
-   * Check if wallet is verified
+   * Check if user is verified
    */
-  async isVerified(walletAddress) {
+  async isVerifiedByUserId(userId) {
+    try {
+      const kyc = await KYC.findOne({
+        userId,
+        status: "verified",
+      });
+
+      return !!kyc;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Check if wallet is verified (backward compatibility)
+   */
+  async isVerifiedByWallet(walletAddress) {
     try {
       const kyc = await KYC.findOne({
         walletAddress: walletAddress.toLowerCase(),
@@ -85,6 +128,38 @@ class KYCService {
       return !!kyc;
     } catch (error) {
       return false;
+    }
+  }
+
+  /**
+   * Update wallet address when user links wallet
+   */
+  async updateWalletAddress(userId, walletAddress) {
+    try {
+      const kyc = await KYC.findOne({ userId });
+
+      if (!kyc) {
+        throw new Error("KYC not found");
+      }
+
+      // Check if wallet address is already linked to another user
+      const existingWallet = await KYC.findOne({
+        walletAddress: walletAddress.toLowerCase(),
+        userId: { $ne: userId }, // Not the current user
+      });
+
+      if (existingWallet) {
+        throw new Error("Wallet address is already linked to another account");
+      }
+
+      kyc.walletAddress = walletAddress.toLowerCase();
+      await kyc.save();
+
+      console.log(`✅ KYC wallet updated for user ${userId}: ${walletAddress}`);
+
+      return kyc;
+    } catch (error) {
+      throw new Error(`Failed to update wallet: ${error.message}`);
     }
   }
 
@@ -136,15 +211,22 @@ class KYCService {
   /**
    * Notify User Service
    */
-  async notifyUserService(walletAddress, kycData) {
+  async notifyUserService(userId, email, walletAddress, kycData) {
     try {
+      // Notify by userId (primary)
       await axios.put(
-        `${USER_SERVICE_URL}/profiles/${walletAddress}/kyc-status`,
-        kycData
+        `${USER_SERVICE_URL}/profiles/user/${userId}/kyc-status`,
+        {
+          ...kycData,
+          email,
+          walletAddress,
+        }
       );
-      console.log(`✅ User Service notified: ${walletAddress}`);
+
+      console.log(`✅ User Service notified for user: ${email}`);
     } catch (error) {
       console.error("❌ Failed to notify User Service:", error.message);
+      // Don't throw, just log
     }
   }
 }

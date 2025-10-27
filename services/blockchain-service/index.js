@@ -24,17 +24,8 @@ const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 
-// Smart Contract ABI
-const CONTRACT_ABI = [
-  "function mint(address recipient, string memory tokenURI) public returns (uint256)",
-  "function transferFrom(address from, address to, uint256 tokenId) public",
-  "function approve(address to, uint256 tokenId) public",
-  "function ownerOf(uint256 tokenId) public view returns (address)",
-  "function tokenURI(uint256 tokenId) public view returns (string memory)",
-  "function tokenCounter() public view returns (uint256)",
-  "function balanceOf(address owner) public view returns (uint256)",
-  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-];
+// Smart Contract ABI - Load from file
+const CONTRACT_ABI = require("./contract-abi.json");
 
 let provider;
 let signer;
@@ -130,6 +121,10 @@ app.post("/mint", async (req, res) => {
     console.log(`   Recipient: ${recipient}`);
     console.log(`   TokenURI: ${tokenURI}`);
 
+    // Get recipient's NFT balance BEFORE minting
+    const balanceBefore = await contract.balanceOf(recipient);
+    console.log(`   📊 Recipient balance before: ${balanceBefore}`);
+
     // Call smart contract mint function
     const tx = await contract.mint(recipient, tokenURI);
     console.log(`   Transaction sent: ${tx.hash}`);
@@ -137,6 +132,10 @@ app.post("/mint", async (req, res) => {
     // Wait for confirmation
     const receipt = await tx.wait();
     console.log(`   ✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+    // Get recipient's NFT balance AFTER minting
+    const balanceAfter = await contract.balanceOf(recipient);
+    console.log(`   📊 Recipient balance after: ${balanceAfter}`);
 
     // Debug: Print all logs
     console.log(`   📋 Transaction logs (${receipt.logs.length} total):`);
@@ -149,37 +148,54 @@ app.post("/mint", async (req, res) => {
     });
 
     // Get tokenId from Transfer event
+    let tokenId;
     const transferEvent = receipt.logs.find((log) => {
       try {
         const parsed = contract.interface.parseLog(log);
         console.log(`      ✅ Parsed log:`, parsed.name, parsed.args);
-        return parsed?.name === "Transfer";
+        if (parsed?.name === "Transfer") {
+          tokenId = Number(parsed.args.tokenId);
+          return true;
+        }
+        return false;
       } catch (error) {
         console.log(`      ⚠️ Failed to parse log:`, error.message);
         return false;
       }
     });
 
-    let tokenId;
-    if (transferEvent) {
-      const parsed = contract.interface.parseLog(transferEvent);
-      tokenId = Number(parsed.args.tokenId);
-      console.log(
-        `   ✅ NFT minted with tokenId: ${tokenId} (from Transfer event)`
-      );
-    } else {
-      // Fallback: Get current token counter (this is the tokenId that was just minted)
+    if (!tokenId) {
+      // Fallback 1: Try to get tokenCounter
       try {
         const counter = await contract.tokenCounter();
         tokenId = Number(counter);
         console.log(
           `   ✅ NFT minted with tokenId: ${tokenId} (from tokenCounter)`
         );
-      } catch (error) {
-        console.error("❌ Failed to get tokenCounter:", error.message);
-        // Last resort: parse return value from mint function if available
-        throw new Error("Could not determine tokenId from transaction");
+      } catch (counterError) {
+        console.log("❌ Failed to get tokenCounter:", counterError.message);
+
+        // Fallback 2: Estimate tokenId from balance difference
+        if (balanceAfter > balanceBefore) {
+          // This is a rough estimate - the actual tokenId might be different
+          // But at least we know a new NFT was minted
+          tokenId = Number(balanceAfter); // Use balance as estimate
+          console.log(
+            `   ⚠️ Estimated tokenId: ${tokenId} (from balance difference)`
+          );
+          console.log(
+            `   💡 Note: This is an estimate. Check blockchain explorer for actual tokenId.`
+          );
+        } else {
+          throw new Error(
+            "Could not determine tokenId from transaction. Mint may have failed."
+          );
+        }
       }
+    } else {
+      console.log(
+        `   ✅ NFT minted with tokenId: ${tokenId} (from Transfer event)`
+      );
     }
 
     res.json({

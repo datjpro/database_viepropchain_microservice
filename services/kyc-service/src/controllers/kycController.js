@@ -8,20 +8,34 @@ const kycService = require("../services/kycService");
 
 class KYCController {
   /**
-   * Submit KYC - Auto verify
+   * Submit KYC - Auto verify (with Gmail login)
    */
   async submitKYC(req, res) {
     try {
-      const { walletAddress, fullName, idNumber } = req.body;
+      const { fullName, idNumber } = req.body;
 
-      if (!walletAddress || !fullName || !idNumber) {
+      // userId và email đến từ JWT token (req.user từ verifyToken middleware)
+      const userId = req.user?.userId || req.user?._id;
+      const email = req.user?.email;
+      const walletAddress = req.user?.walletAddress || null;
+
+      if (!userId || !email) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized - Please login with Google first",
+        });
+      }
+
+      if (!fullName || !idNumber) {
         return res.status(400).json({
           success: false,
-          error: "walletAddress, fullName, and idNumber are required",
+          error: "fullName and idNumber are required",
         });
       }
 
       const kyc = await kycService.submitKYC({
+        userId,
+        email,
         walletAddress,
         fullName,
         idNumber,
@@ -44,13 +58,20 @@ class KYCController {
   }
 
   /**
-   * Get KYC by wallet address
+   * Get current user's KYC
    */
-  async getKYC(req, res) {
+  async getMyKYC(req, res) {
     try {
-      const { walletAddress } = req.params;
+      const userId = req.user?.userId || req.user?._id;
 
-      const kyc = await kycService.getKYC(walletAddress);
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      const kyc = await kycService.getKYCByUserId(userId);
 
       res.json({
         success: true,
@@ -68,13 +89,71 @@ class KYCController {
   }
 
   /**
-   * Check if wallet is verified
+   * Get KYC by wallet address (for backward compatibility)
    */
-  async checkVerified(req, res) {
+  async getKYCByWallet(req, res) {
     try {
       const { walletAddress } = req.params;
 
-      const isVerified = await kycService.isVerified(walletAddress);
+      const kyc = await kycService.getKYCByWallet(walletAddress);
+
+      res.json({
+        success: true,
+        data: kyc,
+      });
+    } catch (error) {
+      console.error("❌ Get KYC error:", error.message);
+      const status = error.message.includes("not found") ? 404 : 500;
+      res.status(status).json({
+        success: false,
+        error: "Failed to get KYC",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Check if current user is verified
+   */
+  async checkMyVerified(req, res) {
+    try {
+      const userId = req.user?.userId || req.user?._id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      const isVerified = await kycService.isVerifiedByUserId(userId);
+
+      res.json({
+        success: true,
+        data: {
+          userId,
+          email: req.user?.email,
+          isVerified,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Check verified error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to check verification",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Check if wallet is verified (for backward compatibility)
+   */
+  async checkVerifiedByWallet(req, res) {
+    try {
+      const { walletAddress } = req.params;
+
+      const isVerified = await kycService.isVerifiedByWallet(walletAddress);
 
       res.json({
         success: true,

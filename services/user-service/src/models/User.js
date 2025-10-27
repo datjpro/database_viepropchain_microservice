@@ -8,19 +8,42 @@ const mongoose = require("mongoose");
 
 const userProfileSchema = new mongoose.Schema(
   {
-    walletAddress: {
+    // Link với User từ Auth Service (PRIMARY KEY)
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      unique: true,
+      index: true,
+      ref: "User", // Reference to Auth Service User collection
+    },
+
+    // Email từ Auth Service (denormalized for quick lookup)
+    email: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+      index: true,
+    },
+
+    // Wallet address (OPTIONAL - added after user links wallet)
+    walletAddress: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null/undefined with unique index
+      lowercase: true,
       index: true,
       validate: {
         validator: function (v) {
-          return /^0x[a-fA-F0-9]{40}$/.test(v);
+          return !v || /^0x[a-fA-F0-9]{40}$/.test(v);
         },
         message: "Invalid Ethereum address",
       },
     },
+
+    // Timestamp khi link wallet
+    walletLinkedAt: Date,
 
     // Basic Info
     basicInfo: {
@@ -121,7 +144,6 @@ const userProfileSchema = new mongoose.Schema(
 );
 
 // Indexes for queries
-userProfileSchema.index({ "contactInfo.email": 1 });
 userProfileSchema.index({ userType: 1, status: 1 });
 userProfileSchema.index({ "kycStatus.isVerified": 1 });
 userProfileSchema.index({ createdAt: -1 });
@@ -132,7 +154,13 @@ userProfileSchema.virtual("displayName").get(function () {
   if (this.basicInfo.firstName && this.basicInfo.lastName) {
     return `${this.basicInfo.firstName} ${this.basicInfo.lastName}`;
   }
-  return this.walletAddress.slice(0, 6) + "..." + this.walletAddress.slice(-4);
+  if (this.email) return this.email.split("@")[0];
+  if (this.walletAddress) {
+    return (
+      this.walletAddress.slice(0, 6) + "..." + this.walletAddress.slice(-4)
+    );
+  }
+  return "Unknown User";
 });
 
 module.exports = mongoose.model("UserProfile", userProfileSchema);

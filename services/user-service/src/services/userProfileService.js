@@ -8,7 +8,51 @@ const UserProfile = require("../models/User");
 
 class UserProfileService {
   /**
-   * Get or create user profile
+   * Get or create user profile by userId (NEW - for Gmail OAuth users)
+   */
+  async getOrCreateProfileByUserId(userId, email) {
+    try {
+      let profile = await UserProfile.findOne({ userId });
+
+      if (!profile) {
+        profile = new UserProfile({
+          userId,
+          email: email.toLowerCase(),
+          createdAt: new Date(),
+        });
+        await profile.save();
+        console.log(
+          `✅ Created new user profile for userId: ${userId}, email: ${email}`
+        );
+      }
+
+      return profile;
+    } catch (error) {
+      throw new Error(
+        `Failed to get/create profile by userId: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Get profile by userId (NEW - PRIMARY method)
+   */
+  async getProfileByUserId(userId) {
+    try {
+      const profile = await UserProfile.findOne({ userId });
+
+      if (!profile) {
+        throw new Error("User profile not found");
+      }
+
+      return profile;
+    } catch (error) {
+      throw new Error(`Failed to get profile by userId: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get or create user profile by wallet (BACKWARD COMPATIBILITY)
    */
   async getOrCreateProfile(walletAddress) {
     try {
@@ -32,7 +76,7 @@ class UserProfileService {
   }
 
   /**
-   * Get user profile by wallet address
+   * Get user profile by wallet address (BACKWARD COMPATIBILITY)
    */
   async getProfile(walletAddress) {
     try {
@@ -180,7 +224,97 @@ class UserProfileService {
   }
 
   /**
-   * Update KYC status (called by KYC Service)
+   * Update KYC status by userId (NEW - PRIMARY method for Gmail OAuth users)
+   * Called by KYC Service after user submits KYC
+   */
+  async updateKYCStatusByUserId(userId, email, kycData) {
+    try {
+      const { isVerified, verificationLevel, kycId, walletAddress } = kycData;
+
+      // Try to update existing profile
+      let profile = await UserProfile.findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            "kycStatus.isVerified": isVerified,
+            "kycStatus.verificationLevel": verificationLevel,
+            "kycStatus.verifiedAt": isVerified ? new Date() : undefined,
+            "kycStatus.kycId": kycId,
+            walletAddress: walletAddress || undefined,
+            updatedAt: new Date(),
+          },
+        },
+        { new: true }
+      );
+
+      // If profile doesn't exist, create it with KYC info
+      if (!profile) {
+        console.log(
+          `⚠️ Profile not found for userId: ${userId}, creating new profile with KYC data...`
+        );
+
+        profile = new UserProfile({
+          userId,
+          email: email.toLowerCase(),
+          walletAddress: walletAddress || undefined,
+          kycStatus: {
+            isVerified,
+            verificationLevel,
+            verifiedAt: isVerified ? new Date() : undefined,
+            kycId,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        await profile.save();
+        console.log(
+          `✅ Auto-created profile with KYC status for userId: ${userId}, email: ${email}`
+        );
+      } else {
+        console.log(`✅ KYC status updated for userId: ${userId}`);
+      }
+
+      return profile;
+    } catch (error) {
+      throw new Error(
+        `Failed to update KYC status by userId: ${error.message}`
+      );
+    }
+  }
+
+  /**
+   * Update wallet address when user links wallet (NEW)
+   */
+  async updateWalletAddress(userId, walletAddress) {
+    try {
+      const profile = await UserProfile.findOneAndUpdate(
+        { userId },
+        {
+          $set: {
+            walletAddress: walletAddress.toLowerCase(),
+            walletLinkedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+        { new: true }
+      );
+
+      if (!profile) {
+        throw new Error("User profile not found");
+      }
+
+      console.log(
+        `✅ Wallet linked to profile: userId=${userId}, wallet=${walletAddress}`
+      );
+      return profile;
+    } catch (error) {
+      throw new Error(`Failed to update wallet address: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update KYC status by wallet (BACKWARD COMPATIBILITY)
    * Auto-creates profile if not exists
    */
   async updateKYCStatus(walletAddress, kycData) {

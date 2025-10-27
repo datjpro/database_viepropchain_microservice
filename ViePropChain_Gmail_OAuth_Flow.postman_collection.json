@@ -1,0 +1,881 @@
+{
+  "info": {
+    "name": "ViePropChain - Gmail OAuth Flow (NEW)",
+    "description": "🆕 Test workflow mới: Gmail Login → KYC → Optional Wallet Link → NFT Minting\n\n**THAY ĐỔI LỚN:**\n- User login bằng Gmail thay vì MetaMask\n- KYC dùng userId thay vì wallet\n- Wallet linking là OPTIONAL\n- Admin mint NFT cho user",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Setup Instructions",
+      "item": [
+        {
+          "name": "📖 README - How to Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["health"]
+            },
+            "description": "## 🚀 HƯỚNG DẪN TEST GMAIL OAUTH FLOW\n\n### **Bước 1: Start Services**\n```bash\n# Terminal 1: Auth Service\ncd services/auth-service\nnpm start\n\n# Terminal 2: KYC Service  \ncd services/kyc-service\nnpm start\n\n# Terminal 3: User Service\ncd services/user-service\nnpm start\n\n# Terminal 4: Admin Service\ncd services/admin-service\nnpm start\n\n# Terminal 5: Blockchain Service\ncd services/blockchain-service\nnpm start\n\n# Terminal 6: IPFS Service\ncd services/ipfs-service\nnpm start\n```\n\n### **Bước 2: Test Google OAuth (MANUAL - Dùng Browser)**\n\n⚠️ **QUAN TRỌNG**: Google OAuth KHÔNG THỂ test trong Postman!\n\nBạn phải dùng **Browser** để test:\n\n1. Mở browser, truy cập:\n   ```\n   http://localhost:4001/auth/google\n   ```\n\n2. Chọn tài khoản Gmail để đăng nhập\n\n3. Sau khi đăng nhập thành công, bạn sẽ được redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n\n4. **Copy JWT token** từ URL (phần sau `?token=`)\n\n5. Paste token vào Postman Environment variable:\n   - Variable name: `jwt_token`\n   - Value: `<paste token ở đây>`\n\n### **Bước 3: Test trong Postman**\n\nSau khi có JWT token, bạn có thể test các endpoints sau:\n- ✅ Get My Info (`/auth/me`)\n- ✅ Submit KYC (`POST /kyc`)\n- ✅ Get My KYC (`GET /kyc/me`)\n- ✅ Link Wallet (optional)\n- ✅ Admin mint NFT cho user\n\n### **Lưu ý:**\n- JWT token hết hạn sau 7 ngày (hoặc theo config)\n- Nếu token hết hạn, login lại bằng browser\n- User có thể dùng app mà KHÔNG cần link wallet!"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Health Checks",
+      "item": [
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "KYC Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "User Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4006/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4006",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Admin Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Blockchain Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "IPFS Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4002/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Gmail OAuth Login (BROWSER ONLY)",
+      "item": [
+        {
+          "name": "🌐 Step 1: Open in Browser",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4001/auth/google",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "google"]
+            },
+            "description": "⚠️ **KHÔNG THỂ CHẠY REQUEST NÀY TRONG POSTMAN!**\n\n**Làm thế nào:**\n1. Copy URL: `http://localhost:4001/auth/google`\n2. Mở **Browser** (Chrome/Edge/Firefox)\n3. Paste URL vào browser và Enter\n4. Chọn tài khoản Gmail để login\n5. Sau khi login thành công, browser sẽ redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n6. **Copy JWT token** từ URL (phần sau `?token=`)\n7. Paste vào Environment variable `jwt_token`\n8. Tiếp tục test các endpoint khác trong Postman\n\n**Tại sao phải dùng Browser?**\n- Google OAuth yêu cầu user interaction (chọn account, consent)\n- Postman không support OAuth popup/redirect flow\n- JWT token được trả về qua URL redirect"
+          }
+        },
+        {
+          "name": "✅ Step 2: Get My Info (After Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User logged in\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    ",
+                  "    // Save user info to environment",
+                  "    pm.environment.set(\"user_id\", jsonData.user._id);",
+                  "    pm.environment.set(\"user_email\", jsonData.user.email);",
+                  "    pm.environment.set(\"user_wallet\", jsonData.user.walletAddress || \"\");",
+                  "    ",
+                  "    console.log(\"✅ User ID: \" + jsonData.user._id);",
+                  "    console.log(\"📧 Email: \" + jsonData.user.email);",
+                  "    console.log(\"👛 Wallet: \" + (jsonData.user.walletAddress || \"Not linked yet\"));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4001/auth/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "me"]
+            },
+            "description": "**Sau khi login Gmail thành công:**\n\n1. Paste JWT token vào Environment variable `jwt_token`\n2. Chạy request này để verify token\n3. Response sẽ chứa:\n   - `userId`: ID của user trong database\n   - `email`: Email từ Gmail\n   - `emailVerified`: true/false\n   - `walletAddress`: null (nếu chưa link wallet)\n   - `authMethods`: [\"google\"] hoặc [\"google\", \"wallet\"]"
+          }
+        },
+        {
+          "name": "🚪 Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4001/auth/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout - clear session và token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. KYC Verification (userId-based)",
+      "item": [
+        {
+          "name": "✅ Submit KYC (with JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"KYC submitted successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.status).to.eql(\"verified\");",
+                  "    ",
+                  "    console.log(\"✅ KYC Verified!\");",
+                  "    console.log(\"📧 Email: \" + jsonData.data.email);",
+                  "    console.log(\"👤 Full Name: \" + jsonData.data.fullName);",
+                  "    console.log(\"🆔 ID Number: \" + jsonData.data.idNumber);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyen Van A\",\n  \"idNumber\": \"123456789012\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4007/kyc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc"]
+            },
+            "description": "**🆕 THAY ĐỔI LỚN:**\n\n**TRƯỚC:**\n```json\n{\n  \"walletAddress\": \"0x...\",\n  \"fullName\": \"...\",\n  \"idNumber\": \"...\"\n}\n```\n\n**SAU (HIỆN TẠI):**\n```json\n{\n  \"fullName\": \"...\",\n  \"idNumber\": \"...\"\n}\n```\n\n**Giải thích:**\n- `userId` và `email` được lấy TỰ ĐỘNG từ JWT token\n- Không cần gửi `walletAddress` nữa\n- Wallet là OPTIONAL, có thể link sau\n- KYC Service tự động:\n  1. Extract userId/email từ JWT\n  2. Create KYC record\n  3. Auto verify (status: \"verified\")\n  4. Notify User Service để update profile"
+          }
+        },
+        {
+          "name": "📋 Get My KYC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4007/kyc/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc", "me"]
+            },
+            "description": "Get KYC của user hiện tại (dùng userId từ JWT)"
+          }
+        },
+        {
+          "name": "✔️ Check My Verified Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4007/kyc/me/verified",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["kyc", "me", "verified"]
+            },
+            "description": "Check xem user hiện tại đã verified chưa"
+          }
+        },
+        {
+          "name": "📊 Get All Verified Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/verified/all",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["verified", "all"]
+            }
+          }
+        },
+        {
+          "name": "📈 KYC Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4007/statistics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4007",
+              "path": ["statistics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Wallet Linking (OPTIONAL)",
+      "item": [
+        {
+          "name": "� README - Wallet Linking Explained",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["health"]
+            },
+            "description": "## �🔗 GIẢI THÍCH: WALLET LINKING LÀ GÌ?\n\n### **TẠI SAO CẦN WALLET LINKING?**\n\n**Trước đây (Workflow cũ):**\n```\n❌ User PHẢI có MetaMask từ đầu\n❌ Sign message để login\n❌ Khó tiếp cận với người không biết crypto\n```\n\n**Bây giờ (Workflow mới):**\n```\n✅ User login bằng Gmail (dễ!)\n✅ Làm KYC (xác minh danh tính)\n✅ Có thể dùng app ngay\n\n🔗 [OPTIONAL] Link wallet sau nếu muốn:\n   - Mua/bán NFT\n   - Sở hữu NFT\n   - Nhận payment từ giao dịch\n```\n\n---\n\n### **WALLET LINKING HOẠT ĐỘNG NHƯ THẾ NÀO?**\n\n#### **Bước 1: User đã login Gmail**\n```\n👤 User: example@gmail.com\n✅ KYC: Đã verify\n❌ Wallet: CHƯA CÓ\n\n→ User có thể:\n   ✅ Xem NFT\n   ✅ Xem marketplace\n   ✅ Quản lý profile\n   \n→ User KHÔNG thể:\n   ❌ Mua/bán NFT (cần wallet)\n   ❌ Mint NFT (cần wallet)\n   ❌ Nhận tiền (cần wallet)\n```\n\n#### **Bước 2: User muốn link wallet**\n```\n1️⃣ User vào Settings → Click \"Connect Wallet\"\n\n2️⃣ Chọn địa chỉ ví từ Ganache:\n   Ví dụ: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\n   (Từ mnemonic: \"arm either chef prosper...\")\n\n3️⃣ Gửi request lên server:\n   POST /auth/link-wallet/message\n   Body: { walletAddress: \"0x742d35...\" }\n\n4️⃣ Server trả về message:\n   \"Link wallet 0x742d35... to account example@gmail.com\"\n\n5️⃣ User PHẢI ký message này bằng MetaMask\n   → Chứng minh user sở hữu wallet đó!\n   → Chỉ người có private key mới ký được\n\n6️⃣ Gửi signature lên server:\n   POST /auth/link-wallet\n   Body: {\n     walletAddress: \"0x742d35...\",\n     signature: \"0xabc123...\"\n   }\n\n7️⃣ Server verify signature:\n   ✅ Signature hợp lệ\n   ✅ Wallet chưa bị link bởi user khác\n   ✅ Lưu walletAddress vào account\n```\n\n#### **Bước 3: Sau khi link thành công**\n```\n👤 User: example@gmail.com\n✅ KYC: Đã verify\n✅ Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\n\n→ User giờ có thể:\n   ✅ Mua/bán NFT\n   ✅ Mint NFT (admin mint cho user)\n   ✅ Nhận payment\n   ✅ Login bằng Gmail HOẶC Wallet\n```\n\n---\n\n### **TEST TRONG POSTMAN NHƯ THẾ NÀO?**\n\n⚠️ **VẤN ĐỀ**: Postman KHÔNG CÓ MetaMask để sign message!\n\n#### **GIẢI PHÁP: Dùng Node.js script để generate signature**\n\n**Tạo file `generate-signature.js`:**\n```javascript\nconst { ethers } = require('ethers');\n\n// Private key từ Ganache (account đầu tiên)\nconst PRIVATE_KEY = '0x...(copy từ Ganache)';\nconst wallet = new ethers.Wallet(PRIVATE_KEY);\n\n// Message từ Step 1\nconst message = 'Link wallet 0x742d35... to account example@gmail.com';\n\n// Sign message\nwallet.signMessage(message).then(signature => {\n  console.log('Wallet Address:', wallet.address);\n  console.log('Message:', message);\n  console.log('Signature:', signature);\n  console.log('');\n  console.log('✅ Copy signature này vào Postman!');\n});\n```\n\n**Chạy script:**\n```bash\nnode generate-signature.js\n```\n\n**Output:**\n```\nWallet Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\nMessage: Link wallet 0x742d35... to account example@gmail.com\nSignature: 0xabc123def456...\n\n✅ Copy signature này vào Postman!\n```\n\n---\n\n### **LUỒNG TEST TRONG POSTMAN:**\n\n```\n1️⃣ Login Gmail (Browser) → Get JWT token\n\n2️⃣ Submit KYC (Postman)\n   POST /kyc\n   Body: { fullName: \"Nguyen Van A\", idNumber: \"123456789012\" }\n\n3️⃣ Get Link Message (Postman)\n   POST /auth/link-wallet/message\n   Body: { walletAddress: \"0x742d35...\" }\n   \n   Response: {\n     message: \"Link wallet 0x742d35... to account example@gmail.com\"\n   }\n\n4️⃣ Generate Signature (Node.js script)\n   node generate-signature.js\n   → Copy signature: 0xabc123...\n\n5️⃣ Link Wallet (Postman)\n   POST /auth/link-wallet\n   Body: {\n     walletAddress: \"0x742d35...\",\n     signature: \"0xabc123...\"\n   }\n   \n   Response: {\n     success: true,\n     user: {\n       email: \"example@gmail.com\",\n       walletAddress: \"0x742d35...\",\n       authMethods: [\"google\", \"wallet\"]\n     }\n   }\n\n6️⃣ Verify (Postman)\n   GET /auth/me\n   \n   Response: {\n     email: \"example@gmail.com\",\n     walletAddress: \"0x742d35...\",  ← ✅ Đã link!\n     kycVerified: true\n   }\n```\n\n---\n\n### **TẠI SAO CẦN SIGNATURE?**\n\n**Nếu KHÔNG có signature:**\n```javascript\n❌ Ai cũng có thể lấy địa chỉ wallet của người khác\n❌ Paste vào form và claim là của mình\n❌ Ví dụ: Copy wallet của Elon Musk và claim ownership!\n❌ → LỖI BẢO MẬT NGHIÊM TRỌNG!\n```\n\n**Với signature:**\n```javascript\n✅ User phải sign message bằng private key\n✅ Chỉ người có private key mới sign được\n✅ Backend verify được user thực sự sở hữu wallet\n✅ Message chứa email → Không thể reuse cho account khác\n✅ → AN TOÀN!\n```\n\n**Cơ chế verify:**\n```javascript\n// Backend làm:\n1. Nhận: walletAddress + signature\n2. Recover address từ signature:\n   recoveredAddress = ethers.verifyMessage(message, signature)\n3. So sánh:\n   if (recoveredAddress === walletAddress) {\n     ✅ Hợp lệ - User sở hữu wallet\n   } else {\n     ❌ Không hợp lệ - Signature giả mạo\n   }\n```\n\n---\n\n### **TÓM LẠI:**\n\n```\n📧 Login Gmail\n   ↓\n✅ Làm KYC\n   ↓\n🎯 Dùng app (xem NFT, marketplace)\n   ↓\n🔗 [OPTIONAL] Link wallet:\n   1. Get message từ server\n   2. Sign message (MetaMask hoặc Node.js script)\n   3. Gửi signature lên server\n   4. Server verify → Link thành công\n   ↓\n💎 Có thể mua/bán/sở hữu NFT!\n```\n\n**Wallet linking là OPTIONAL - User có thể dùng app mà không cần wallet!**\n\n---\n\n**Tiếp tục với các steps bên dưới để test! 👇**"
+          }
+        },
+        {
+          "name": "🔗 Step 1: Get Link Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Message generated\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    ",
+                  "    console.log(\"📝 Message to sign:\");",
+                  "    console.log(jsonData.message);",
+                  "    console.log(\"\");",
+                  "    console.log(\"⚠️ NEXT STEP:\");",
+                  "    console.log(\"1. Copy message ở trên\");",
+                  "    console.log(\"2. Dùng Node.js script (xem README) để generate signature\");",
+                  "    console.log(\"3. Paste signature vào Step 2\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4001/auth/link-wallet/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "link-wallet", "message"]
+            },
+            "description": "**🎯 MỤC ĐÍCH:**\nLấy message cần ký để link wallet với account Gmail.\n\n**📋 INPUT:**\n```json\n{\n  \"walletAddress\": \"0x742d35...\"\n}\n```\n→ Địa chỉ ví từ Ganache (account 0)\n→ Chạy Ganache với mnemonic:\n  \"arm either chef prosper fish lonely rigid antique dawn stumble wife camera\"\n\n**📤 OUTPUT:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Link wallet 0x742d35... to account example@gmail.com\"\n}\n```\n\n**⚠️ QUAN TRỌNG:**\n- Message này chứa CẢ wallet address VÀ email\n- Phải ký message này bằng private key của wallet\n- Signature chỉ hợp lệ cho account này\n\n**NEXT STEP:**\n1. Copy message từ response\n2. Dùng Node.js script để generate signature (xem README)\n3. Paste signature vào Step 2"
+          }
+        },
+        {
+          "name": "🔗 Step 2: Link Wallet with Signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Wallet linked successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    ",
+                  "    pm.environment.set(\"user_wallet\", jsonData.user.walletAddress);",
+                  "    ",
+                  "    console.log(\"✅ Wallet linked successfully!\");",
+                  "    console.log(\"👛 Wallet: \" + jsonData.user.walletAddress);",
+                  "    console.log(\"� Email: \" + jsonData.user.email);",
+                  "    console.log(\"�🔐 Auth methods: \" + jsonData.user.authMethods.join(\", \"));",
+                  "    console.log(\"\");",
+                  "    console.log(\"🎉 User giờ có thể:\");",
+                  "    console.log(\"   - Mua/bán NFT\");",
+                  "    console.log(\"   - Sở hữu NFT\");",
+                  "    console.log(\"   - Nhận payment\");",
+                  "    console.log(\"   - Login bằng Gmail HOẶC Wallet\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"signature\": \"0x...(paste signature từ Node.js script)...\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4001/auth/link-wallet",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "link-wallet"]
+            },
+            "description": "**🎯 MỤC ĐÍCH:**\nLink wallet address với Gmail account (bằng cách verify signature).\n\n**📋 INPUT:**\n```json\n{\n  \"walletAddress\": \"0x742d35...\",\n  \"signature\": \"0xabc123...\"  ← Từ Node.js script\n}\n```\n\n**🔐 SERVER XỬ LÝ:**\n```javascript\n1. Verify signature:\n   recoveredAddress = ethers.verifyMessage(message, signature)\n   \n2. Kiểm tra:\n   ✅ recoveredAddress === walletAddress?\n   ✅ Wallet chưa bị link bởi user khác?\n   \n3. Nếu hợp lệ:\n   - Update User.walletAddress = \"0x742d35...\"\n   - Add authMethod: \"wallet\"\n   - Update KYC.walletAddress\n   - Update UserProfile.walletAddress\n```\n\n**📤 OUTPUT:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Wallet linked successfully\",\n  \"user\": {\n    \"email\": \"example@gmail.com\",\n    \"walletAddress\": \"0x742d35...\",\n    \"authMethods\": [\"google\", \"wallet\"],\n    \"walletLinkedAt\": \"2025-10-24T...\"\n  }\n}\n```\n\n**✅ SAU KHI LINK THÀNH CÔNG:**\n- User có 2 cách login: Gmail HOẶC Wallet\n- User có thể mua/bán/sở hữu NFT\n- KYC và UserProfile được update với wallet\n- Biến `{{user_wallet}}` được set tự động\n\n**🧪 VERIFY:**\nChạy request `GET /auth/me` để verify wallet đã được link!"
+          }
+        },
+        {
+          "name": "🔓 Unlink Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4001/auth/unlink-wallet",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4001",
+              "path": ["auth", "unlink-wallet"]
+            },
+            "description": "Unlink wallet khỏi account (rare use case)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Property Management",
+      "item": [
+        {
+          "name": "Create Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Property created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "    console.log(\"✅ Property ID: \" + jsonData.data._id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Luxury Villa in District 2\",\n  \"description\": \"Beautiful 3-bedroom villa with swimming pool and garden\",\n  \"propertyType\": \"villa\",\n  \"address\": {\n    \"street\": \"123 Thao Dien\",\n    \"ward\": \"Thao Dien\",\n    \"district\": \"District 2\",\n    \"city\": \"Ho Chi Minh City\",\n    \"country\": \"Vietnam\"\n  },\n  \"area\": 250,\n  \"price\": 15000000000,\n  \"currency\": \"VND\",\n  \"bedrooms\": 3,\n  \"bathrooms\": 3,\n  \"features\": [\"Swimming Pool\", \"Garden\", \"Parking\", \"Security\"],\n  \"owner\": \"{{user_id}}\",\n  \"legalStatus\": \"verified\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties"]
+            },
+            "description": "⚠️ **LƯU Ý**: `owner` giờ là `userId` (từ Gmail OAuth), không phải `walletAddress`"
+          }
+        },
+        {
+          "name": "Get Property Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties/{{property_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties", "{{property_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get All Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["properties"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. IPFS Upload",
+      "item": [
+        {
+          "name": "Upload Property Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"image_cid\", jsonData.data.cid);",
+                  "    console.log(\"✅ Image CID: \" + jsonData.data.cid);",
+                  "    console.log(\"🔗 Gateway URL: \" + jsonData.data.gateway);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file ảnh property từ máy tính"
+                },
+                {
+                  "key": "propertyId",
+                  "value": "{{property_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4002/upload/image",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["upload", "image"]
+            },
+            "description": "⚠️ Chọn file ảnh trong tab **Body → form-data → file**"
+          }
+        },
+        {
+          "name": "Upload NFT Metadata (Auto-Generated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Metadata uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"metadata_cid\", jsonData.data.cid);",
+                  "    console.log(\"✅ Metadata CID: \" + jsonData.data.cid);",
+                  "    console.log(\"🔗 Token URI: ipfs://\" + jsonData.data.cid);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"imageCID\": \"{{image_cid}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4002/upload/metadata",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["upload", "metadata"]
+            },
+            "description": "✨ Auto-generate metadata từ property data"
+          }
+        },
+        {
+          "name": "Get Metadata Content",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4002/content/{{metadata_cid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4002",
+              "path": ["content", "{{metadata_cid}}"]
+            },
+            "description": "Preview metadata JSON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. NFT Minting (Admin mints for User)",
+      "item": [
+        {
+          "name": "🎨 Admin Mints NFT for User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"NFT minted successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.environment.set(\"token_id\", jsonData.data.tokenId);",
+                  "    ",
+                  "    console.log(\"✅ NFT Minted!\");",
+                  "    console.log(\"🎫 Token ID: \" + jsonData.data.tokenId);",
+                  "    console.log(\"👤 Owner: \" + jsonData.data.recipient);",
+                  "    console.log(\"🔗 Token URI: \" + jsonData.data.tokenURI);",
+                  "    console.log(\"⛽ Gas Used: \" + jsonData.data.gasUsed);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": \"{{user_wallet}}\",\n  \"tokenURI\": \"ipfs://{{metadata_cid}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4004/mint",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["mint"]
+            },
+            "description": "**🆕 WORKFLOW MỚI:**\n\n1. User login Gmail → KYC → (Optional: Link wallet)\n2. User tạo property\n3. User upload ảnh → IPFS\n4. IPFS auto-generate metadata\n5. **ADMIN** mint NFT cho user\n6. User sở hữu NFT ngay lập tức!\n\n**Lưu ý:**\n- `recipient` = `user_wallet` (nếu user đã link wallet)\n- Admin ký transaction bằng ADMIN_PRIVATE_KEY\n- User nhận ownership của NFT\n- Không cần transfer thêm!"
+          }
+        },
+        {
+          "name": "✅ Verify NFT Ownership",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"User owns the NFT\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.owner.toLowerCase()).to.eql(pm.environment.get(\"user_wallet\").toLowerCase());",
+                  "    ",
+                  "    console.log(\"✅ Verified: User owns NFT #\" + jsonData.data.tokenId);",
+                  "    console.log(\"👤 Owner: \" + jsonData.data.owner);",
+                  "    console.log(\"🔗 Token URI: \" + jsonData.data.tokenURI);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/nft/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["nft", "{{token_id}}"]
+            },
+            "description": "Verify user sở hữu NFT"
+          }
+        },
+        {
+          "name": "📋 Get User's NFTs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/nfts/{{user_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["nfts", "{{user_wallet}}"]
+            },
+            "description": "Get tất cả NFT của user"
+          }
+        },
+        {
+          "name": "🎫 Get Token Counter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4004/token-counter",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4004",
+              "path": ["token-counter"]
+            },
+            "description": "Get tổng số NFT đã mint"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. NFT Management (Owner Operations)",
+      "item": [
+        {
+          "name": "Get NFT Details (Admin Service)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}"]
+            },
+            "description": "Get NFT details từ Admin Service (property info, owner, price, etc.)"
+          }
+        },
+        {
+          "name": "List NFT for Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": \"1000000000000000000\",\n  \"seller\": \"{{user_wallet}}\",\n  \"listingId\": 1\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4003/nfts/{{token_id}}/list",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "{{token_id}}", "list"]
+            },
+            "description": "List NFT for sale (price in wei: 1 ETH = 10^18 wei)"
+          }
+        },
+        {
+          "name": "Get Listed NFTs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4003/nfts/marketplace/listed",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4003",
+              "path": ["nfts", "marketplace", "listed"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token from Gmail OAuth (paste after login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "User ID (from Auth Service)"
+    },
+    {
+      "key": "user_email",
+      "value": "",
+      "type": "string",
+      "description": "User email (from Gmail)"
+    },
+    {
+      "key": "user_wallet",
+      "value": "",
+      "type": "string",
+      "description": "User wallet address (after linking, optional)"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "image_cid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "metadata_cid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_wallet",
+      "value": "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+      "type": "string",
+      "description": "Admin wallet address (for reference)"
+    }
+  ]
+}

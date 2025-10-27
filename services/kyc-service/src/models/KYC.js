@@ -10,20 +10,45 @@ const mongoose = require("mongoose");
 
 const kycSchema = new mongoose.Schema(
   {
-    walletAddress: {
+    // ============================================================================
+    // USER LINK (Primary - from Auth Service via JWT)
+    // ============================================================================
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      // unique handled by MongoDB index
+    },
+
+    email: {
       type: String,
       required: true,
-      unique: true,
+      lowercase: true,
+      trim: true,
+      // index handled by MongoDB
+    },
+
+    // ============================================================================
+    // WALLET (Optional - có sau khi user link wallet)
+    // ============================================================================
+    walletAddress: {
+      type: String,
+      // Unique handled by MongoDB index
       lowercase: true,
       validate: {
         validator: function (v) {
+          if (!v) return true; // Allow null/empty
+          // Allow temp_ placeholder or valid Ethereum address
+          if (v.startsWith("temp_")) return true;
           return /^0x[a-fA-F0-9]{40}$/.test(v);
         },
         message: "Invalid Ethereum address",
       },
     },
 
-    // Thông tin KYC đơn giản
+    // ============================================================================
+    // KYC INFO
+    // ============================================================================
     fullName: {
       type: String,
       required: true,
@@ -33,10 +58,13 @@ const kycSchema = new mongoose.Schema(
     idNumber: {
       type: String,
       required: true,
+      // unique handled by MongoDB index
       trim: true,
     },
 
-    // Trạng thái (tự động verified khi submit)
+    // ============================================================================
+    // STATUS (Tự động verified khi submit)
+    // ============================================================================
     status: {
       type: String,
       enum: ["verified"],
@@ -51,7 +79,6 @@ const kycSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
-kycSchema.index({ idNumber: 1 });
+// No schema-level indexes - all handled by MongoDB directly
 
 module.exports = mongoose.model("KYC", kycSchema);
