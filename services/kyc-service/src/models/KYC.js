@@ -17,8 +17,7 @@ const kycSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
-      index: true,
+      // unique handled by MongoDB index
     },
 
     email: {
@@ -26,7 +25,7 @@ const kycSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       trim: true,
-      index: true,
+      // index handled by MongoDB
     },
 
     // ============================================================================
@@ -34,12 +33,13 @@ const kycSchema = new mongoose.Schema(
     // ============================================================================
     walletAddress: {
       type: String,
-      unique: true,
-      sparse: true, // Allow null, but unique if exists
+      // Unique handled by MongoDB index
       lowercase: true,
       validate: {
         validator: function (v) {
-          if (!v) return true; // Allow empty
+          if (!v) return true; // Allow null/empty
+          // Allow temp_ placeholder or valid Ethereum address
+          if (v.startsWith("temp_")) return true;
           return /^0x[a-fA-F0-9]{40}$/.test(v);
         },
         message: "Invalid Ethereum address",
@@ -58,9 +58,8 @@ const kycSchema = new mongoose.Schema(
     idNumber: {
       type: String,
       required: true,
-      unique: true,
+      // unique handled by MongoDB index
       trim: true,
-      index: true,
     },
 
     // ============================================================================
@@ -80,9 +79,6 @@ const kycSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Additional indexes
-kycSchema.index({ userId: 1 });
-kycSchema.index({ email: 1 });
-kycSchema.index({ walletAddress: 1 });
+// No schema-level indexes - all handled by MongoDB directly
 
 module.exports = mongoose.model("KYC", kycSchema);

@@ -32,10 +32,13 @@ class KYCService {
       }
 
       // Create and auto-verify
+      // Use userId as placeholder for walletAddress if not provided
       const kyc = new KYC({
         userId,
         email: email.toLowerCase(),
-        walletAddress: walletAddress ? walletAddress.toLowerCase() : null,
+        walletAddress: walletAddress
+          ? walletAddress.toLowerCase()
+          : `temp_${userId}`, // Temporary unique value using userId
         fullName,
         idNumber,
         status: "verified",
@@ -137,6 +140,16 @@ class KYCService {
 
       if (!kyc) {
         throw new Error("KYC not found");
+      }
+
+      // Check if wallet address is already linked to another user
+      const existingWallet = await KYC.findOne({
+        walletAddress: walletAddress.toLowerCase(),
+        userId: { $ne: userId }, // Not the current user
+      });
+
+      if (existingWallet) {
+        throw new Error("Wallet address is already linked to another account");
       }
 
       kyc.walletAddress = walletAddress.toLowerCase();
