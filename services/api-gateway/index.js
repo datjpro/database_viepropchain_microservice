@@ -175,6 +175,25 @@ app.use(
   })
 );
 
+// Marketplace Service (4008) - /api/marketplace/*
+app.use(
+  "/api/marketplace",
+  createProxyMiddleware({
+    target: "http://localhost:4008",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/marketplace": "",
+    },
+    onError: (err, req, res) => {
+      console.error("❌ Marketplace Service Error:", err.message);
+      res.status(503).json({
+        success: false,
+        error: "Marketplace Service unavailable",
+      });
+    },
+  })
+);
+
 // ============================================================================
 // ERROR HANDLER
 // ============================================================================
@@ -202,10 +221,11 @@ app.listen(PORT, () => {
 ║  ├─ /api/auth/*       → Auth Service (4010) Gmail OAuth     ║
 ║  ├─ /api/ipfs/*       → IPFS Service (4002)                  ║
 ║  ├─ /api/admin/*      → Admin Service (4003)                 ║
-║  ├─ /api/blockchain/* → Blockchain Service (4004)            ║
-║  ├─ /api/query/*      → Query Service (4005)                 ║
-║  ├─ /api/user/*       → User Service (4006)                  ║
-║  └─ /api/kyc/*        → KYC Service (4007)                   ║
+║  ├─ /api/blockchain/*    → Blockchain Service (4004)         ║
+║  ├─ /api/query/*         → Query Service (4005)              ║
+║  ├─ /api/user/*          → User Service (4006)               ║
+║  ├─ /api/kyc/*           → KYC Service (4007)                ║
+║  └─ /api/marketplace/*   → Marketplace Service (4008)        ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
