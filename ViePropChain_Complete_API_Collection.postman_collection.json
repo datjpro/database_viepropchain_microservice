@@ -1,0 +1,1181 @@
+{
+  "info": {
+    "name": "ViePropChain - Toàn Bộ API (Qua API Gateway)",
+    "description": "📦 Collection đầy đủ cho ViePropChain - Tất cả requests đi qua API Gateway (port 4000)\n\n**Kiến Trúc:**\n- API Gateway: http://localhost:4000 (điểm vào duy nhất cho frontend)\n- Auth Service: 4010 (Gmail OAuth + Wallet Linking)\n- IPFS Service: 4002 (Upload ảnh/metadata)\n- Admin Service: 4003 (Quản lý property)\n- Blockchain Service: 4004 (Smart contract)\n- Query Service: 4005 (Tìm kiếm property)\n- User Service: 4006 (Quản lý user profile)\n- KYC Service: 4007 (Xác minh danh tính)\n- Marketplace Service: 4008 (Mua bán NFT)\n\n**Workflow:**\n1. Login bằng Gmail → Nhận JWT token\n2. Làm KYC để xác minh danh tính\n3. (Optional) Link wallet để giao dịch NFT\n4. Tạo property → Upload ảnh → Mint NFT\n5. List NFT lên marketplace → Nhận offers → Bán",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "📖 0. Hướng Dẫn Sử Dụng",
+      "item": [
+        {
+          "name": "README - Cách Test API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["health"]
+            },
+            "description": "## 🚀 HƯỚNG DẪN TEST API VIEPROPCHAIN\n\n### **Bước 1: Khởi động các services**\n\n```bash\n# Terminal 1: API Gateway (BẮT BUỘC)\ncd database_viepropchain_microservice/services/api-gateway\nnpm install\nnpm start\n→ Chạy trên port 4000\n\n# Terminal 2: Auth Service\ncd database_viepropchain_microservice/services/auth-service\nnpm start\n→ Port 4010 (Gmail OAuth + Wallet)\n\n# Terminal 3: KYC Service\ncd database_viepropchain_microservice/services/kyc-service\nnpm start\n→ Port 4007 (Xác minh danh tính)\n\n# Terminal 4: User Service\ncd database_viepropchain_microservice/services/user-service\nnpm start\n→ Port 4006 (User profile)\n\n# Terminal 5: Admin Service\ncd database_viepropchain_microservice/services/admin-service\nnpm start\n→ Port 4003 (Quản lý property)\n\n# Terminal 6: IPFS Service\ncd database_viepropchain_microservice/services/ipfs-service\nnpm start\n→ Port 4002 (Upload files)\n\n# Terminal 7: Blockchain Service\ncd database_viepropchain_microservice/services/blockchain-service\nnpm start\n→ Port 4004 (Smart contract)\n\n# Terminal 8: Marketplace Service\ncd database_viepropchain_microservice/services/marketplace-service\nnpm start\n→ Port 4008 (Mua bán NFT)\n\n# Terminal 9: Ganache (Blockchain local)\nganache -m \"arm either chef prosper fish lonely rigid antique dawn stumble wife camera\" --database.dbPath \"./ganache-data-dev\" --chain.networkId 1337 --server.port 8545\n```\n\n---\n\n### **Bước 2: Login bằng Gmail (PHẢI DÙNG BROWSER)**\n\n⚠️ **QUAN TRỌNG**: Google OAuth KHÔNG thể test trong Postman!\n\n**Cách làm:**\n\n1. Mở browser, truy cập:\n   ```\n   http://localhost:4000/api/auth/google\n   ```\n\n2. Chọn tài khoản Gmail để đăng nhập\n\n3. Sau khi login thành công, browser redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n\n4. **Copy JWT token** từ URL (phần sau `?token=`)\n\n5. Paste vào Postman:\n   - Click **Environment** (góc trên bên phải)\n   - Tạo variable: `jwt_token`\n   - Paste token vào Value\n   - Save\n\n---\n\n### **Bước 3: Verify token**\n\nChạy request: **1. Auth & User → Get My Info**\n\n```\nGET http://localhost:4000/api/auth/me\nHeader: Authorization: Bearer {{jwt_token}}\n```\n\nResponse sẽ chứa:\n```json\n{\n  \"success\": true,\n  \"user\": {\n    \"userId\": \"507f1f77bcf86cd799439011\",\n    \"email\": \"example@gmail.com\",\n    \"emailVerified\": true,\n    \"walletAddress\": null,\n    \"kycVerified\": false,\n    \"authMethods\": [\"google\"]\n  }\n}\n```\n\n→ Copy `userId` và set vào biến `{{user_id}}`\n\n---\n\n### **Bước 4: Làm KYC**\n\nChạy request: **2. KYC → Submit KYC**\n\n```\nPOST http://localhost:4000/api/kyc\nBody:\n{\n  \"fullName\": \"Nguyễn Văn A\",\n  \"idNumber\": \"123456789012\"\n}\n```\n\n→ KYC tự động verify ngay lập tức\n\n---\n\n### **Bước 5: (Optional) Link Wallet**\n\n**5.1. Get link message:**\n```\nPOST http://localhost:4000/api/auth/link-wallet/message\nBody:\n{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\"\n}\n```\n\n**5.2. Generate signature bằng Node.js:**\n\nTạo file `generate-wallet-signature.js`:\n```javascript\nconst { ethers } = require('ethers');\n\n// Private key từ Ganache account 0\nconst PRIVATE_KEY = '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';\nconst wallet = new ethers.Wallet(PRIVATE_KEY);\n\nconst message = 'Link wallet 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2 to account example@gmail.com';\n\nwallet.signMessage(message).then(signature => {\n  console.log('Signature:', signature);\n});\n```\n\nChạy: `node generate-wallet-signature.js`\n\n**5.3. Link wallet:**\n```\nPOST http://localhost:4000/api/auth/link-wallet\nBody:\n{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"signature\": \"0x...\"\n}\n```\n\n→ Set biến `{{user_wallet}}` = \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\"\n\n---\n\n### **Bước 6: Tạo Property**\n\nChạy request: **3. Property → Create Property**\n\n→ Nhận `property_id`\n\n---\n\n### **Bước 7: Upload ảnh & Mint NFT**\n\n**7.1. Upload ảnh:**\n```\nPOST http://localhost:4000/api/ipfs/upload/image\n→ Nhận image_cid\n```\n\n**7.2. Generate metadata:**\n```\nPOST http://localhost:4000/api/ipfs/upload/metadata\n→ Nhận metadata_cid\n```\n\n**7.3. Admin mint NFT:**\n```\nPOST http://localhost:4000/api/blockchain/mint\n→ Nhận token_id\n```\n\n---\n\n### **Bước 8: List NFT lên Marketplace**\n\n```\nPOST http://localhost:4000/api/marketplace/listings\nBody:\n{\n  \"tokenId\": {{token_id}},\n  \"price\": \"1000000000000000000\",\n  \"description\": \"Beautiful villa for sale\"\n}\n```\n\n→ Nhận `listing_id`\n\n---\n\n### **Bước 9: Tạo Offer**\n\n```\nPOST http://localhost:4000/api/marketplace/offers\nBody:\n{\n  \"listingId\": \"{{listing_id}}\",\n  \"price\": \"900000000000000000\",\n  \"message\": \"Tôi muốn mua\"\n}\n```\n\n---\n\n### **Tóm tắt Flow:**\n\n```\n1. Login Gmail (Browser) → jwt_token\n2. GET /api/auth/me → user_id\n3. POST /api/kyc → KYC verified\n4. POST /api/auth/link-wallet/message → message\n5. Node.js generate signature\n6. POST /api/auth/link-wallet → wallet linked\n7. POST /api/admin/properties → property_id\n8. POST /api/ipfs/upload/image → image_cid\n9. POST /api/ipfs/upload/metadata → metadata_cid\n10. POST /api/blockchain/mint → token_id\n11. POST /api/marketplace/listings → listing_id\n12. POST /api/marketplace/offers → offer created\n```\n\n**Tất cả requests đi qua API Gateway: http://localhost:4000/api/***"
+          }
+        }
+      ]
+    },
+    {
+      "name": "✅ Health Checks",
+      "item": [
+        {
+          "name": "API Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["health"]
+            },
+            "description": "Kiểm tra API Gateway đang chạy"
+          }
+        },
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/auth/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "health"]
+            },
+            "description": "Kiểm tra Auth Service"
+          }
+        },
+        {
+          "name": "Marketplace Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "health"]
+            },
+            "description": "Kiểm tra Marketplace Service"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1️⃣ Auth & User",
+      "item": [
+        {
+          "name": "🌐 Login Gmail (Mở trong Browser)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/auth/google",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "google"]
+            },
+            "description": "⚠️ **KHÔNG CHẠY REQUEST NÀY TRONG POSTMAN!**\n\n**Cách làm:**\n1. Copy URL: http://localhost:4000/api/auth/google\n2. Mở **Browser**\n3. Paste URL và Enter\n4. Chọn Gmail để login\n5. Sau khi login, copy JWT token từ URL redirect\n6. Paste vào biến {{jwt_token}}"
+          }
+        },
+        {
+          "name": "Get My Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user info success\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    if (jsonData.user && jsonData.user.userId) {",
+                  "        pm.environment.set(\"user_id\", jsonData.user.userId);",
+                  "        console.log(\"✅ User ID: \" + jsonData.user.userId);",
+                  "    }",
+                  "    if (jsonData.user && jsonData.user.email) {",
+                  "        pm.environment.set(\"user_email\", jsonData.user.email);",
+                  "        console.log(\"📧 Email: \" + jsonData.user.email);",
+                  "    }",
+                  "    if (jsonData.user && jsonData.user.walletAddress) {",
+                  "        pm.environment.set(\"user_wallet\", jsonData.user.walletAddress);",
+                  "        console.log(\"💼 Wallet: \" + jsonData.user.walletAddress);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/auth/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Lấy thông tin user hiện tại từ JWT token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/auth/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Đăng xuất"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2️⃣ KYC",
+      "item": [
+        {
+          "name": "Submit KYC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"KYC submitted\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ KYC Status: \" + jsonData.kyc.status);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn A\",\n  \"idNumber\": \"123456789012\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/kyc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "kyc"]
+            },
+            "description": "Nộp KYC để xác minh danh tính\n\n**Lưu ý:**\n- userId và email lấy tự động từ JWT token\n- Không cần gửi walletAddress\n- KYC tự động verify ngay"
+          }
+        },
+        {
+          "name": "Get My KYC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/kyc/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "kyc", "me"]
+            },
+            "description": "Lấy thông tin KYC của tôi"
+          }
+        },
+        {
+          "name": "Check Verified Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/kyc/me/verified",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "kyc", "me", "verified"]
+            },
+            "description": "Kiểm tra đã verify chưa"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3️⃣ Wallet Linking (Optional)",
+      "item": [
+        {
+          "name": "Get Link Wallet Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Message generated\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"📝 Message to sign:\");",
+                  "    console.log(jsonData.message);",
+                  "    console.log(\"\");",
+                  "    console.log(\"⚠️ Dùng Node.js script để generate signature!\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/auth/link-wallet/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "link-wallet", "message"]
+            },
+            "description": "Lấy message để ký bằng private key\n\n**Wallet từ Ganache:**\n- Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\n- Private Key: 0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d\n\n**Sau khi có message, dùng file `generate-wallet-signature.js` để tạo signature**"
+          }
+        },
+        {
+          "name": "Link Wallet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Wallet linked\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    if (jsonData.user && jsonData.user.walletAddress) {",
+                  "        pm.environment.set(\"user_wallet\", jsonData.user.walletAddress);",
+                  "        console.log(\"✅ Wallet linked: \" + jsonData.user.walletAddress);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"signature\": \"0x...(paste signature từ Node.js script)\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/auth/link-wallet",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "link-wallet"]
+            },
+            "description": "Link wallet sau khi có signature\n\n**Cách generate signature:**\n\n1. Tạo file `generate-wallet-signature.js`\n2. Paste code từ README\n3. Chạy: node generate-wallet-signature.js\n4. Copy signature\n5. Paste vào body request này"
+          }
+        },
+        {
+          "name": "Unlink Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/auth/unlink-wallet",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "auth", "unlink-wallet"]
+            },
+            "description": "Gỡ wallet khỏi tài khoản"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ Property",
+      "item": [
+        {
+          "name": "Create Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Property created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data._id) {",
+                  "        pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "        console.log(\"✅ Property ID: \" + jsonData.data._id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Biệt Thự Cao Cấp Quận 2\",\n  \"description\": \"Biệt thự 3 phòng ngủ có hồ bơi và vườn\",\n  \"propertyType\": \"villa\",\n  \"address\": {\n    \"street\": \"123 Thảo Điền\",\n    \"ward\": \"Thảo Điền\",\n    \"district\": \"Quận 2\",\n    \"city\": \"TP. Hồ Chí Minh\",\n    \"country\": \"Việt Nam\"\n  },\n  \"area\": 250,\n  \"price\": 15000000000,\n  \"currency\": \"VND\",\n  \"bedrooms\": 3,\n  \"bathrooms\": 3,\n  \"features\": [\"Hồ Bơi\", \"Vườn\", \"Bãi Đậu Xe\", \"An Ninh 24/7\"],\n  \"owner\": \"{{user_id}}\",\n  \"legalStatus\": \"verified\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties"]
+            },
+            "description": "Tạo property mới\n\n**Lưu ý:** owner = user_id (không phải wallet)"
+          }
+        },
+        {
+          "name": "Get Property Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties/{{property_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties", "{{property_id}}"]
+            },
+            "description": "Xem chi tiết property"
+          }
+        },
+        {
+          "name": "Get All Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/admin/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "admin", "properties"]
+            },
+            "description": "Danh sách tất cả properties"
+          }
+        },
+        {
+          "name": "Search Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/query/properties?city=TP. Hồ Chí Minh&propertyType=villa",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "query", "properties"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "TP. Hồ Chí Minh"
+                },
+                {
+                  "key": "propertyType",
+                  "value": "villa"
+                }
+              ]
+            },
+            "description": "Tìm kiếm properties"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5️⃣ IPFS Upload",
+      "item": [
+        {
+          "name": "Upload Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Image uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.cid) {",
+                  "        pm.environment.set(\"image_cid\", jsonData.cid);",
+                  "        console.log(\"✅ Image CID: \" + jsonData.cid);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file ảnh ở đây"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/upload/image",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "upload", "image"]
+            },
+            "description": "Upload ảnh lên IPFS\n\n⚠️ Chọn file trong Body → form-data → file"
+          }
+        },
+        {
+          "name": "Upload Metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Metadata uploaded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.cid) {",
+                  "        pm.environment.set(\"metadata_cid\", jsonData.cid);",
+                  "        console.log(\"✅ Metadata CID: \" + jsonData.cid);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{property_id}}\",\n  \"imageCID\": \"{{image_cid}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/upload/metadata",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "upload", "metadata"]
+            },
+            "description": "Auto-generate metadata từ property data"
+          }
+        },
+        {
+          "name": "Get Metadata Content",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/ipfs/content/{{metadata_cid}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "ipfs", "content", "{{metadata_cid}}"]
+            },
+            "description": "Xem nội dung metadata JSON"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6️⃣ NFT Minting",
+      "item": [
+        {
+          "name": "Admin Mint NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"NFT minted\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.tokenId) {",
+                  "        pm.environment.set(\"token_id\", jsonData.tokenId);",
+                  "        console.log(\"✅ Token ID: \" + jsonData.tokenId);",
+                  "        console.log(\"📜 Tx Hash: \" + jsonData.transactionHash);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": \"{{user_wallet}}\",\n  \"tokenURI\": \"ipfs://{{metadata_cid}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/mint",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "mint"]
+            },
+            "description": "Admin mint NFT cho user\n\n**Yêu cầu:** User đã link wallet"
+          }
+        },
+        {
+          "name": "Verify NFT Ownership",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/nft/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "nft", "{{token_id}}"]
+            },
+            "description": "Kiểm tra owner của NFT"
+          }
+        },
+        {
+          "name": "Get User's NFTs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/nfts/{{user_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "nfts", "{{user_wallet}}"]
+            },
+            "description": "Danh sách NFT của user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7️⃣ Marketplace - Listings",
+      "item": [
+        {
+          "name": "Browse Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings?page=1&limit=20&sortBy=listedAt&sortOrder=desc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "propertyType",
+                  "value": "villa",
+                  "disabled": true
+                },
+                {
+                  "key": "city",
+                  "value": "TP. Hồ Chí Minh",
+                  "disabled": true
+                },
+                {
+                  "key": "minPrice",
+                  "value": "1000000000000000000",
+                  "disabled": true,
+                  "description": "Wei"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000000000000000000",
+                  "disabled": true,
+                  "description": "Wei"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "listedAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Xem tất cả listings đang active\n\nCó thể filter theo: propertyType, city, giá, sắp xếp"
+          }
+        },
+        {
+          "name": "Get Listing Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/{{listing_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings", "{{listing_id}}"]
+            },
+            "description": "Chi tiết 1 listing"
+          }
+        },
+        {
+          "name": "Get Listing by Token ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/token/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "token",
+                "{{token_id}}"
+              ]
+            },
+            "description": "Tìm listing theo NFT token ID"
+          }
+        },
+        {
+          "name": "Create Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Listing created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data._id) {",
+                  "        pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "        console.log(\"✅ Listing ID: \" + jsonData.data._id);",
+                  "        console.log(\"💰 Giá: \" + jsonData.data.price.amount + \" wei\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenId\": {{token_id}},\n  \"contractAddress\": \"0x5FbDB2315678afecb367f032d93F642f64180aa3\",\n  \"propertyId\": \"{{property_id}}\",\n  \"price\": \"1000000000000000000\",\n  \"description\": \"Biệt thự đẹp cần bán gấp\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings"]
+            },
+            "description": "Tạo listing để bán NFT\n\n**Yêu cầu:**\n- Phải có JWT token\n- Phải đã link wallet\n- Phải là owner của NFT\n\n**Giá:** Wei (1 ETH = 10^18 wei)"
+          }
+        },
+        {
+          "name": "Update Listing",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": \"1500000000000000000\",\n  \"description\": \"Giảm giá! Bán gấp!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/{{listing_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings", "{{listing_id}}"]
+            },
+            "description": "Cập nhật giá hoặc mô tả (chỉ seller)"
+          }
+        },
+        {
+          "name": "Cancel Listing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/{{listing_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings", "{{listing_id}}"]
+            },
+            "description": "Hủy listing (chỉ seller)"
+          }
+        },
+        {
+          "name": "Get My Listings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/my/listings?status=active",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "listings", "my", "listings"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            },
+            "description": "Danh sách listings của tôi"
+          }
+        },
+        {
+          "name": "Track View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/listings/{{listing_id}}/view",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "{{listing_id}}",
+                "view"
+              ]
+            },
+            "description": "Track lượt xem (analytics)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8️⃣ Marketplace - Offers",
+      "item": [
+        {
+          "name": "Create Offer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Offer created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data._id) {",
+                  "        pm.environment.set(\"offer_id\", jsonData.data._id);",
+                  "        console.log(\"✅ Offer ID: \" + jsonData.data._id);",
+                  "        console.log(\"💰 Giá offer: \" + jsonData.data.price.amount + \" wei\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listing_id}}\",\n  \"price\": \"900000000000000000\",\n  \"message\": \"Tôi muốn mua BĐS này với giá 0.9 ETH\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers"]
+            },
+            "description": "Tạo offer cho 1 listing\n\n**Yêu cầu:**\n- Phải đăng nhập\n- Phải link wallet\n- Không thể offer listing của chính mình\n- Listing phải đang active"
+          }
+        },
+        {
+          "name": "Get Offers by Listing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/listing/{{listing_id}}?status=pending",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": [
+                "api",
+                "marketplace",
+                "offers",
+                "listing",
+                "{{listing_id}}"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "Xem tất cả offers cho 1 listing"
+          }
+        },
+        {
+          "name": "Get My Offers (as Buyer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/my/offers?status=pending",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers", "my", "offers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "Danh sách offers tôi đã tạo (vai trò buyer)"
+          }
+        },
+        {
+          "name": "Get Offers Received (as Seller)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/my/received?status=pending",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers", "my", "received"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "Danh sách offers nhận được trên listings của tôi (vai trò seller)"
+          }
+        },
+        {
+          "name": "Accept Offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionHash\": \"0x1234567890abcdef...\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/{{offer_id}}/accept",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers", "{{offer_id}}", "accept"]
+            },
+            "description": "Chấp nhận offer (chỉ seller)\n\n**Hiệu ứng:**\n- Offer → accepted\n- Listing → sold\n- Tất cả offers khác → rejected\n\n**Lưu ý:** Trong production, phải thực hiện transaction blockchain trước, rồi gửi tx hash"
+          }
+        },
+        {
+          "name": "Reject Offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Xin lỗi, giá quá thấp\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/{{offer_id}}/reject",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers", "{{offer_id}}", "reject"]
+            },
+            "description": "Từ chối offer (chỉ seller)"
+          }
+        },
+        {
+          "name": "Cancel Offer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/offers/{{offer_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "offers", "{{offer_id}}"]
+            },
+            "description": "Hủy offer (chỉ buyer)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token từ Gmail OAuth (paste sau khi login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "User ID từ Auth Service"
+    },
+    {
+      "key": "user_email",
+      "value": "",
+      "type": "string",
+      "description": "Email từ Gmail"
+    },
+    {
+      "key": "user_wallet",
+      "value": "",
+      "type": "string",
+      "description": "Wallet address sau khi link (optional)"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string",
+      "description": "Property ID"
+    },
+    {
+      "key": "image_cid",
+      "value": "",
+      "type": "string",
+      "description": "IPFS CID của ảnh"
+    },
+    {
+      "key": "metadata_cid",
+      "value": "",
+      "type": "string",
+      "description": "IPFS CID của metadata"
+    },
+    {
+      "key": "token_id",
+      "value": "",
+      "type": "string",
+      "description": "NFT Token ID"
+    },
+    {
+      "key": "listing_id",
+      "value": "",
+      "type": "string",
+      "description": "Marketplace Listing ID"
+    },
+    {
+      "key": "offer_id",
+      "value": "",
+      "type": "string",
+      "description": "Offer ID"
+    }
+  ]
+}
