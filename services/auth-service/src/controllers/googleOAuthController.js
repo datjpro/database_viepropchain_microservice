@@ -64,7 +64,7 @@ class GoogleOAuthController {
 
       res.json({
         success: true,
-        user: {
+        data: {
           id: user._id,
           email: user.email,
           emailVerified: user.emailVerified,

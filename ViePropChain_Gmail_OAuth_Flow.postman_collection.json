@@ -14,13 +14,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4001/health",
+              "raw": "http://localhost:4010/health",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["health"]
             },
-            "description": "## 🚀 HƯỚNG DẪN TEST GMAIL OAUTH FLOW\n\n### **Bước 1: Start Services**\n```bash\n# Terminal 1: Auth Service\ncd services/auth-service\nnpm start\n\n# Terminal 2: KYC Service  \ncd services/kyc-service\nnpm start\n\n# Terminal 3: User Service\ncd services/user-service\nnpm start\n\n# Terminal 4: Admin Service\ncd services/admin-service\nnpm start\n\n# Terminal 5: Blockchain Service\ncd services/blockchain-service\nnpm start\n\n# Terminal 6: IPFS Service\ncd services/ipfs-service\nnpm start\n```\n\n### **Bước 2: Test Google OAuth (MANUAL - Dùng Browser)**\n\n⚠️ **QUAN TRỌNG**: Google OAuth KHÔNG THỂ test trong Postman!\n\nBạn phải dùng **Browser** để test:\n\n1. Mở browser, truy cập:\n   ```\n   http://localhost:4001/auth/google\n   ```\n\n2. Chọn tài khoản Gmail để đăng nhập\n\n3. Sau khi đăng nhập thành công, bạn sẽ được redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n\n4. **Copy JWT token** từ URL (phần sau `?token=`)\n\n5. Paste token vào Postman Environment variable:\n   - Variable name: `jwt_token`\n   - Value: `<paste token ở đây>`\n\n### **Bước 3: Test trong Postman**\n\nSau khi có JWT token, bạn có thể test các endpoints sau:\n- ✅ Get My Info (`/auth/me`)\n- ✅ Submit KYC (`POST /kyc`)\n- ✅ Get My KYC (`GET /kyc/me`)\n- ✅ Link Wallet (optional)\n- ✅ Admin mint NFT cho user\n\n### **Lưu ý:**\n- JWT token hết hạn sau 7 ngày (hoặc theo config)\n- Nếu token hết hạn, login lại bằng browser\n- User có thể dùng app mà KHÔNG cần link wallet!"
+            "description": "## 🚀 HƯỚNG DẪN TEST GMAIL OAUTH FLOW\n\n### **Bước 1: Start Services**\n```bash\n# Terminal 1: Auth Service\ncd services/auth-service\nnpm start\n\n# Terminal 2: KYC Service  \ncd services/kyc-service\nnpm start\n\n# Terminal 3: User Service\ncd services/user-service\nnpm start\n\n# Terminal 4: Admin Service\ncd services/admin-service\nnpm start\n\n# Terminal 5: Blockchain Service\ncd services/blockchain-service\nnpm start\n\n# Terminal 6: IPFS Service\ncd services/ipfs-service\nnpm start\n```\n\n### **Bước 2: Test Google OAuth (MANUAL - Dùng Browser)**\n\n⚠️ **QUAN TRỌNG**: Google OAuth KHÔNG THỂ test trong Postman!\n\nBạn phải dùng **Browser** để test:\n\n1. Mở browser, truy cập:\n   ```\n   http://localhost:4010/auth/google\n   ```\n\n2. Chọn tài khoản Gmail để đăng nhập\n\n3. Sau khi đăng nhập thành công, bạn sẽ được redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n\n4. **Copy JWT token** từ URL (phần sau `?token=`)\n\n5. Paste token vào Postman Environment variable:\n   - Variable name: `jwt_token`\n   - Value: `<paste token ở đây>`\n\n### **Bước 3: Test trong Postman**\n\nSau khi có JWT token, bạn có thể test các endpoints sau:\n- ✅ Get My Info (`/auth/me`)\n- ✅ Submit KYC (`POST /kyc`)\n- ✅ Get My KYC (`GET /kyc/me`)\n- ✅ Link Wallet (optional)\n- ✅ Admin mint NFT cho user\n\n### **Lưu ý:**\n- JWT token hết hạn sau 7 ngày (hoặc theo config)\n- Nếu token hết hạn, login lại bằng browser\n- User có thể dùng app mà KHÔNG cần link wallet!"
           }
         }
       ]
@@ -34,10 +34,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4001/health",
+              "raw": "http://localhost:4010/health",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["health"]
             }
           }
@@ -123,13 +123,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4001/auth/google",
+              "raw": "http://localhost:4010/auth/google",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "google"]
             },
-            "description": "⚠️ **KHÔNG THỂ CHẠY REQUEST NÀY TRONG POSTMAN!**\n\n**Làm thế nào:**\n1. Copy URL: `http://localhost:4001/auth/google`\n2. Mở **Browser** (Chrome/Edge/Firefox)\n3. Paste URL vào browser và Enter\n4. Chọn tài khoản Gmail để login\n5. Sau khi login thành công, browser sẽ redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n6. **Copy JWT token** từ URL (phần sau `?token=`)\n7. Paste vào Environment variable `jwt_token`\n8. Tiếp tục test các endpoint khác trong Postman\n\n**Tại sao phải dùng Browser?**\n- Google OAuth yêu cầu user interaction (chọn account, consent)\n- Postman không support OAuth popup/redirect flow\n- JWT token được trả về qua URL redirect"
+            "description": "⚠️ **KHÔNG THỂ CHẠY REQUEST NÀY TRONG POSTMAN!**\n\n**Làm thế nào:**\n1. Copy URL: `http://localhost:4010/auth/google`\n2. Mở **Browser** (Chrome/Edge/Firefox)\n3. Paste URL vào browser và Enter\n4. Chọn tài khoản Gmail để login\n5. Sau khi login thành công, browser sẽ redirect về:\n   ```\n   http://localhost:3000?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n   ```\n6. **Copy JWT token** từ URL (phần sau `?token=`)\n7. Paste vào Environment variable `jwt_token`\n8. Tiếp tục test các endpoint khác trong Postman\n\n**Tại sao phải dùng Browser?**\n- Google OAuth yêu cầu user interaction (chọn account, consent)\n- Postman không support OAuth popup/redirect flow\n- JWT token được trả về qua URL redirect"
           }
         },
         {
@@ -167,10 +167,10 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:4001/auth/me",
+              "raw": "http://localhost:4010/auth/me",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "me"]
             },
             "description": "**Sau khi login Gmail thành công:**\n\n1. Paste JWT token vào Environment variable `jwt_token`\n2. Chạy request này để verify token\n3. Response sẽ chứa:\n   - `userId`: ID của user trong database\n   - `email`: Email từ Gmail\n   - `emailVerified`: true/false\n   - `walletAddress`: null (nếu chưa link wallet)\n   - `authMethods`: [\"google\"] hoặc [\"google\", \"wallet\"]"
@@ -188,10 +188,10 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:4001/auth/logout",
+              "raw": "http://localhost:4010/auth/logout",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "logout"]
             },
             "description": "Logout - clear session và token"
@@ -332,10 +332,10 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4001/health",
+              "raw": "http://localhost:4010/health",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["health"]
             },
             "description": "## �🔗 GIẢI THÍCH: WALLET LINKING LÀ GÌ?\n\n### **TẠI SAO CẦN WALLET LINKING?**\n\n**Trước đây (Workflow cũ):**\n```\n❌ User PHẢI có MetaMask từ đầu\n❌ Sign message để login\n❌ Khó tiếp cận với người không biết crypto\n```\n\n**Bây giờ (Workflow mới):**\n```\n✅ User login bằng Gmail (dễ!)\n✅ Làm KYC (xác minh danh tính)\n✅ Có thể dùng app ngay\n\n🔗 [OPTIONAL] Link wallet sau nếu muốn:\n   - Mua/bán NFT\n   - Sở hữu NFT\n   - Nhận payment từ giao dịch\n```\n\n---\n\n### **WALLET LINKING HOẠT ĐỘNG NHƯ THẾ NÀO?**\n\n#### **Bước 1: User đã login Gmail**\n```\n👤 User: example@gmail.com\n✅ KYC: Đã verify\n❌ Wallet: CHƯA CÓ\n\n→ User có thể:\n   ✅ Xem NFT\n   ✅ Xem marketplace\n   ✅ Quản lý profile\n   \n→ User KHÔNG thể:\n   ❌ Mua/bán NFT (cần wallet)\n   ❌ Mint NFT (cần wallet)\n   ❌ Nhận tiền (cần wallet)\n```\n\n#### **Bước 2: User muốn link wallet**\n```\n1️⃣ User vào Settings → Click \"Connect Wallet\"\n\n2️⃣ Chọn địa chỉ ví từ Ganache:\n   Ví dụ: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\n   (Từ mnemonic: \"arm either chef prosper...\")\n\n3️⃣ Gửi request lên server:\n   POST /auth/link-wallet/message\n   Body: { walletAddress: \"0x742d35...\" }\n\n4️⃣ Server trả về message:\n   \"Link wallet 0x742d35... to account example@gmail.com\"\n\n5️⃣ User PHẢI ký message này bằng MetaMask\n   → Chứng minh user sở hữu wallet đó!\n   → Chỉ người có private key mới ký được\n\n6️⃣ Gửi signature lên server:\n   POST /auth/link-wallet\n   Body: {\n     walletAddress: \"0x742d35...\",\n     signature: \"0xabc123...\"\n   }\n\n7️⃣ Server verify signature:\n   ✅ Signature hợp lệ\n   ✅ Wallet chưa bị link bởi user khác\n   ✅ Lưu walletAddress vào account\n```\n\n#### **Bước 3: Sau khi link thành công**\n```\n👤 User: example@gmail.com\n✅ KYC: Đã verify\n✅ Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\n\n→ User giờ có thể:\n   ✅ Mua/bán NFT\n   ✅ Mint NFT (admin mint cho user)\n   ✅ Nhận payment\n   ✅ Login bằng Gmail HOẶC Wallet\n```\n\n---\n\n### **TEST TRONG POSTMAN NHƯ THẾ NÀO?**\n\n⚠️ **VẤN ĐỀ**: Postman KHÔNG CÓ MetaMask để sign message!\n\n#### **GIẢI PHÁP: Dùng Node.js script để generate signature**\n\n**Tạo file `generate-signature.js`:**\n```javascript\nconst { ethers } = require('ethers');\n\n// Private key từ Ganache (account đầu tiên)\nconst PRIVATE_KEY = '0x...(copy từ Ganache)';\nconst wallet = new ethers.Wallet(PRIVATE_KEY);\n\n// Message từ Step 1\nconst message = 'Link wallet 0x742d35... to account example@gmail.com';\n\n// Sign message\nwallet.signMessage(message).then(signature => {\n  console.log('Wallet Address:', wallet.address);\n  console.log('Message:', message);\n  console.log('Signature:', signature);\n  console.log('');\n  console.log('✅ Copy signature này vào Postman!');\n});\n```\n\n**Chạy script:**\n```bash\nnode generate-signature.js\n```\n\n**Output:**\n```\nWallet Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\nMessage: Link wallet 0x742d35... to account example@gmail.com\nSignature: 0xabc123def456...\n\n✅ Copy signature này vào Postman!\n```\n\n---\n\n### **LUỒNG TEST TRONG POSTMAN:**\n\n```\n1️⃣ Login Gmail (Browser) → Get JWT token\n\n2️⃣ Submit KYC (Postman)\n   POST /kyc\n   Body: { fullName: \"Nguyen Van A\", idNumber: \"123456789012\" }\n\n3️⃣ Get Link Message (Postman)\n   POST /auth/link-wallet/message\n   Body: { walletAddress: \"0x742d35...\" }\n   \n   Response: {\n     message: \"Link wallet 0x742d35... to account example@gmail.com\"\n   }\n\n4️⃣ Generate Signature (Node.js script)\n   node generate-signature.js\n   → Copy signature: 0xabc123...\n\n5️⃣ Link Wallet (Postman)\n   POST /auth/link-wallet\n   Body: {\n     walletAddress: \"0x742d35...\",\n     signature: \"0xabc123...\"\n   }\n   \n   Response: {\n     success: true,\n     user: {\n       email: \"example@gmail.com\",\n       walletAddress: \"0x742d35...\",\n       authMethods: [\"google\", \"wallet\"]\n     }\n   }\n\n6️⃣ Verify (Postman)\n   GET /auth/me\n   \n   Response: {\n     email: \"example@gmail.com\",\n     walletAddress: \"0x742d35...\",  ← ✅ Đã link!\n     kycVerified: true\n   }\n```\n\n---\n\n### **TẠI SAO CẦN SIGNATURE?**\n\n**Nếu KHÔNG có signature:**\n```javascript\n❌ Ai cũng có thể lấy địa chỉ wallet của người khác\n❌ Paste vào form và claim là của mình\n❌ Ví dụ: Copy wallet của Elon Musk và claim ownership!\n❌ → LỖI BẢO MẬT NGHIÊM TRỌNG!\n```\n\n**Với signature:**\n```javascript\n✅ User phải sign message bằng private key\n✅ Chỉ người có private key mới sign được\n✅ Backend verify được user thực sự sở hữu wallet\n✅ Message chứa email → Không thể reuse cho account khác\n✅ → AN TOÀN!\n```\n\n**Cơ chế verify:**\n```javascript\n// Backend làm:\n1. Nhận: walletAddress + signature\n2. Recover address từ signature:\n   recoveredAddress = ethers.verifyMessage(message, signature)\n3. So sánh:\n   if (recoveredAddress === walletAddress) {\n     ✅ Hợp lệ - User sở hữu wallet\n   } else {\n     ❌ Không hợp lệ - Signature giả mạo\n   }\n```\n\n---\n\n### **TÓM LẠI:**\n\n```\n📧 Login Gmail\n   ↓\n✅ Làm KYC\n   ↓\n🎯 Dùng app (xem NFT, marketplace)\n   ↓\n🔗 [OPTIONAL] Link wallet:\n   1. Get message từ server\n   2. Sign message (MetaMask hoặc Node.js script)\n   3. Gửi signature lên server\n   4. Server verify → Link thành công\n   ↓\n💎 Có thể mua/bán/sở hữu NFT!\n```\n\n**Wallet linking là OPTIONAL - User có thể dùng app mà không cần wallet!**\n\n---\n\n**Tiếp tục với các steps bên dưới để test! 👇**"
@@ -383,10 +383,10 @@
               "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4001/auth/link-wallet/message",
+              "raw": "http://localhost:4010/auth/link-wallet/message",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "link-wallet", "message"]
             },
             "description": "**🎯 MỤC ĐÍCH:**\nLấy message cần ký để link wallet với account Gmail.\n\n**📋 INPUT:**\n```json\n{\n  \"walletAddress\": \"0x742d35...\"\n}\n```\n→ Địa chỉ ví từ Ganache (account 0)\n→ Chạy Ganache với mnemonic:\n  \"arm either chef prosper fish lonely rigid antique dawn stumble wife camera\"\n\n**📤 OUTPUT:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Link wallet 0x742d35... to account example@gmail.com\"\n}\n```\n\n**⚠️ QUAN TRỌNG:**\n- Message này chứa CẢ wallet address VÀ email\n- Phải ký message này bằng private key của wallet\n- Signature chỉ hợp lệ cho account này\n\n**NEXT STEP:**\n1. Copy message từ response\n2. Dùng Node.js script để generate signature (xem README)\n3. Paste signature vào Step 2"
@@ -439,10 +439,10 @@
               "raw": "{\n  \"walletAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"signature\": \"0x...(paste signature từ Node.js script)...\"\n}"
             },
             "url": {
-              "raw": "http://localhost:4001/auth/link-wallet",
+              "raw": "http://localhost:4010/auth/link-wallet",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "link-wallet"]
             },
             "description": "**🎯 MỤC ĐÍCH:**\nLink wallet address với Gmail account (bằng cách verify signature).\n\n**📋 INPUT:**\n```json\n{\n  \"walletAddress\": \"0x742d35...\",\n  \"signature\": \"0xabc123...\"  ← Từ Node.js script\n}\n```\n\n**🔐 SERVER XỬ LÝ:**\n```javascript\n1. Verify signature:\n   recoveredAddress = ethers.verifyMessage(message, signature)\n   \n2. Kiểm tra:\n   ✅ recoveredAddress === walletAddress?\n   ✅ Wallet chưa bị link bởi user khác?\n   \n3. Nếu hợp lệ:\n   - Update User.walletAddress = \"0x742d35...\"\n   - Add authMethod: \"wallet\"\n   - Update KYC.walletAddress\n   - Update UserProfile.walletAddress\n```\n\n**📤 OUTPUT:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Wallet linked successfully\",\n  \"user\": {\n    \"email\": \"example@gmail.com\",\n    \"walletAddress\": \"0x742d35...\",\n    \"authMethods\": [\"google\", \"wallet\"],\n    \"walletLinkedAt\": \"2025-10-24T...\"\n  }\n}\n```\n\n**✅ SAU KHI LINK THÀNH CÔNG:**\n- User có 2 cách login: Gmail HOẶC Wallet\n- User có thể mua/bán/sở hữu NFT\n- KYC và UserProfile được update với wallet\n- Biến `{{user_wallet}}` được set tự động\n\n**🧪 VERIFY:**\nChạy request `GET /auth/me` để verify wallet đã được link!"
@@ -460,10 +460,10 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:4001/auth/unlink-wallet",
+              "raw": "http://localhost:4010/auth/unlink-wallet",
               "protocol": "http",
               "host": ["localhost"],
-              "port": "4001",
+              "port": "4010",
               "path": ["auth", "unlink-wallet"]
             },
             "description": "Unlink wallet khỏi account (rare use case)"
