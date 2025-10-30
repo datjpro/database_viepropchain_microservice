@@ -41,14 +41,14 @@ app.get("/health", (req, res) => {
 // ROUTING TO MICROSERVICES
 // ============================================================================
 
-// Auth Service (4001) - /api/auth/*
+// Auth Service (4010) - /api/auth/* - Gmail OAuth + Wallet Linking
 app.use(
   "/api/auth",
   createProxyMiddleware({
-    target: "http://localhost:4001",
+    target: "http://localhost:4010",
     changeOrigin: true,
     pathRewrite: {
-      "^/api/auth": "", // Remove /api/auth prefix
+      "^/api/auth": "/auth", // Rewrite to /auth on auth service
     },
     onError: (err, req, res) => {
       console.error("❌ Auth Service Error:", err.message);
@@ -137,6 +137,44 @@ app.use(
   })
 );
 
+// User Service (4006) - /api/user/*
+app.use(
+  "/api/user",
+  createProxyMiddleware({
+    target: "http://localhost:4006",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/user": "",
+    },
+    onError: (err, req, res) => {
+      console.error("❌ User Service Error:", err.message);
+      res.status(503).json({
+        success: false,
+        error: "User Service unavailable",
+      });
+    },
+  })
+);
+
+// KYC Service (4007) - /api/kyc/*
+app.use(
+  "/api/kyc",
+  createProxyMiddleware({
+    target: "http://localhost:4007",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/kyc": "/kyc",
+    },
+    onError: (err, req, res) => {
+      console.error("❌ KYC Service Error:", err.message);
+      res.status(503).json({
+        success: false,
+        error: "KYC Service unavailable",
+      });
+    },
+  })
+);
+
 // ============================================================================
 // ERROR HANDLER
 // ============================================================================
@@ -155,17 +193,19 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                      API GATEWAY(hẹ hẹ hẹ)                   ║
+║                      API GATEWAY                             ║
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                               ║
 ║  Frontend: http://localhost:3000                             ║
 ║                                                              ║
 ║  Routes:                                                     ║
-║  ├─ /api/auth/*       → Auth Service (4001)                  ║
+║  ├─ /api/auth/*       → Auth Service (4010) Gmail OAuth     ║
 ║  ├─ /api/ipfs/*       → IPFS Service (4002)                  ║
 ║  ├─ /api/admin/*      → Admin Service (4003)                 ║
 ║  ├─ /api/blockchain/* → Blockchain Service (4004)            ║
-║  └─ /api/query/*      → Query Service (4005)                 ║
+║  ├─ /api/query/*      → Query Service (4005)                 ║
+║  ├─ /api/user/*       → User Service (4006)                  ║
+║  └─ /api/kyc/*        → KYC Service (4007)                   ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
