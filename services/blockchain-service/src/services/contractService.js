@@ -102,7 +102,7 @@ class ContractService {
   }
 
   /**
-   * Get NFTs balance by owner
+   * Get NFTs by owner (sử dụng ERC721Enumerable)
    */
   async getNFTsByOwner(owner) {
     try {
@@ -111,10 +111,43 @@ class ContractService {
       }
 
       const balance = await this.contract.balanceOf(owner);
+      const balanceNum = Number(balance);
+
+      console.log(`🔍 Getting NFTs for ${owner}, balance: ${balanceNum}`);
+
+      if (balanceNum === 0) {
+        return {
+          owner,
+          balance: 0,
+          nfts: [],
+          contractAddress: CONTRACT_ADDRESS,
+        };
+      }
+
+      // Sử dụng ERC721Enumerable để lấy từng NFT của owner
+      const nfts = [];
+      for (let i = 0; i < balanceNum; i++) {
+        try {
+          const tokenId = await this.contract.tokenOfOwnerByIndex(owner, i);
+          const tokenURI = await this.contract.tokenURI(tokenId);
+
+          nfts.push({
+            tokenId: Number(tokenId),
+            owner,
+            tokenURI,
+            index: i,
+          });
+        } catch (error) {
+          console.warn(`Failed to get NFT at index ${i}:`, error.message);
+        }
+      }
+
+      console.log(`   ✅ Found ${nfts.length} NFTs`);
 
       return {
         owner,
-        balance: Number(balance),
+        balance: balanceNum,
+        nfts,
         contractAddress: CONTRACT_ADDRESS,
       };
     } catch (error) {
@@ -164,6 +197,94 @@ class ContractService {
       };
     } catch (error) {
       throw new Error(`Failed to get token counter: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get total supply (sử dụng ERC721Enumerable)
+   */
+  async getTotalSupply() {
+    try {
+      const totalSupply = await this.contract.totalSupply();
+
+      return {
+        totalSupply: Number(totalSupply),
+        totalMinted: Number(totalSupply),
+      };
+    } catch (error) {
+      throw new Error(`Failed to get total supply: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all NFTs (sử dụng ERC721Enumerable)
+   */
+  async getAllNFTs() {
+    try {
+      const totalSupply = await this.contract.totalSupply();
+      const totalSupplyNum = Number(totalSupply);
+
+      console.log(`🔍 Getting all NFTs, total supply: ${totalSupplyNum}`);
+
+      if (totalSupplyNum === 0) {
+        return {
+          totalSupply: 0,
+          nfts: [],
+          contractAddress: CONTRACT_ADDRESS,
+        };
+      }
+
+      const nfts = [];
+      for (let i = 0; i < totalSupplyNum; i++) {
+        try {
+          const tokenId = await this.contract.tokenByIndex(i);
+          const owner = await this.contract.ownerOf(tokenId);
+          const tokenURI = await this.contract.tokenURI(tokenId);
+
+          nfts.push({
+            tokenId: Number(tokenId),
+            owner,
+            tokenURI,
+            globalIndex: i,
+          });
+        } catch (error) {
+          console.warn(
+            `Failed to get NFT at global index ${i}:`,
+            error.message
+          );
+        }
+      }
+
+      console.log(`   ✅ Found ${nfts.length} total NFTs`);
+
+      return {
+        totalSupply: totalSupplyNum,
+        nfts,
+        contractAddress: CONTRACT_ADDRESS,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get all NFTs: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get NFT by global index (sử dụng ERC721Enumerable)
+   */
+  async getNFTByIndex(index) {
+    try {
+      const tokenId = await this.contract.tokenByIndex(index);
+      const owner = await this.contract.ownerOf(tokenId);
+      const tokenURI = await this.contract.tokenURI(tokenId);
+
+      return {
+        tokenId: Number(tokenId),
+        owner,
+        tokenURI,
+        globalIndex: Number(index),
+        contractAddress: CONTRACT_ADDRESS,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get NFT by index: ${error.message}`);
     }
   }
 }

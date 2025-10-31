@@ -665,13 +665,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4000/api/marketplace/nft-info/{{user_wallet}}",
+              "raw": "http://localhost:4000/api/marketplace/my-nfts/{{user_wallet}}",
               "protocol": "http",
               "host": ["localhost"],
               "port": "4000",
-              "path": ["api", "marketplace", "nft-info", "{{user_wallet}}"]
+              "path": ["api", "marketplace", "my-nfts", "{{user_wallet}}"]
             },
-            "description": "**🎯 Endpoint quan trọng trước khi list NFT!**\n\nLấy danh sách tất cả NFTs của bạn kèm thông tin property chi tiết.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"tokenId\": 1,\n      \"owner\": \"0x742d35...\",\n      \"tokenURI\": \"ipfs://Qm...\",\n      \"metadata\": {\n        \"name\": \"ViePropChain #1\",\n        \"description\": \"Property NFT\",\n        \"image\": \"ipfs://Qm...\",\n        \"propertyId\": \"507f1f77bcf86cd799439011\"\n      },\n      \"property\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"title\": \"Biệt Thự Cao Cấp Quận 2\",\n        \"propertyType\": \"villa\",\n        \"address\": {...},\n        \"area\": 250,\n        \"price\": 15000000000,\n        \"images\": [...]\n      },\n      \"readyToList\": true\n    }\n  ],\n  \"summary\": {\n    \"total\": 3,\n    \"readyToList\": 2\n  }\n}\n```\n\n**Dùng thông tin này để:**\n1. Biết tokenId của từng NFT\n2. Xem property nào tương ứng\n3. Copy tokenId + propertyId để tạo listing"
+            "description": "🔥 **NEW: ERC721Enumerable Feature**\n\n**🎯 Endpoint quan trọng trước khi list NFT!**\n\nLấy tất cả NFTs của user thông qua wallet address với thông tin chi tiết:\n- Metadata đầy đủ từ IPFS\n- Property information\n- Ready-to-list status\n- Summary statistics\n\n**Response Enhanced:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"owner\": \"0x742d35...\",\n    \"balance\": 3,\n    \"nfts\": [\n      {\n        \"tokenId\": 1,\n        \"owner\": \"0x742d35...\",\n        \"tokenURI\": \"ipfs://Qm...\",\n        \"index\": 0,\n        \"metadata\": {\n          \"name\": \"Villa Sunset\",\n          \"description\": \"Beautiful villa...\",\n          \"image\": \"ipfs://Qm...\",\n          \"propertyId\": \"507f1f77bcf86cd799439011\",\n          \"attributes\": [...]\n        },\n        \"property\": {\n          \"id\": \"507f1f77bcf86cd799439011\",\n          \"title\": \"Biệt Thự Cao Cấp Quận 2\",\n          \"propertyType\": \"villa\",\n          \"address\": {...},\n          \"area\": 250,\n          \"price\": 15000000000,\n          \"images\": [...]\n        },\n        \"readyToList\": true,\n        \"hasMetadata\": true\n      }\n    ],\n    \"summary\": {\n      \"total\": 3,\n      \"readyToList\": 3,\n      \"withMetadata\": 3,\n      \"withProperty\": 3\n    }\n  }\n}\n```\n\n**Yêu cầu:** user_wallet phải được set (sau khi link wallet)"
           }
         },
         {
@@ -680,19 +680,120 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:4000/api/marketplace/nft-info/token/{{token_id}}",
+              "raw": "http://localhost:4000/api/marketplace/nft-detail/{{token_id}}",
               "protocol": "http",
               "host": ["localhost"],
               "port": "4000",
-              "path": [
-                "api",
-                "marketplace",
-                "nft-info",
-                "token",
-                "{{token_id}}"
+              "path": ["api", "marketplace", "nft-detail", "{{token_id}}"]
+            },
+            "description": "🔥 **NEW: Enhanced NFT Detail**\n\nLấy thông tin chi tiết 1 NFT với:\n- Full metadata\n- Property details\n- Owner information\n- Listing readiness\n\n**Dùng để:**\n- Verify NFT trước khi tạo listing\n- Xem đầy đủ thông tin property\n- Check ownership"
+          }
+        },
+        {
+          "name": "Browse All NFTs (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/all-nfts?page=1&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "all-nfts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (default: 20)"
+                }
               ]
             },
-            "description": "Xem chi tiết 1 NFT cụ thể kèm thông tin property\n\n**Dùng để:**\n- Verify NFT trước khi tạo listing\n- Xem đầy đủ thông tin property\n- Check ownership"
+            "description": "🔥 **NEW: Browse All NFTs**\n\nBrowse tất cả NFTs đã mint với pagination:\n- Metadata preview\n- Owner information\n- Efficient pagination\n- Total count & pages\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"nfts\": [...],\n    \"pagination\": {\n      \"currentPage\": 1,\n      \"totalPages\": 5,\n      \"totalItems\": 50,\n      \"itemsPerPage\": 10,\n      \"hasNext\": true,\n      \"hasPrev\": false\n    }\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get NFTs by Owner (Legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/nft-info/{{user_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "nft-info", "{{user_wallet}}"]
+            },
+            "description": "⚠️ **LEGACY ENDPOINT** - Sử dụng /my-nfts/ thay thế\n\nEndpoint cũ, redirect tới /my-nfts/\nSử dụng endpoint mới để có performance tốt hơn"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6️⃣.2 ERC721Enumerable Direct (Blockchain Service)",
+      "item": [
+        {
+          "name": "Get Total Supply",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/total-supply",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "total-supply"]
+            },
+            "description": "🔥 **ERC721Enumerable: Total Supply**\n\nLấy tổng số NFTs đã mint thông qua ERC721Enumerable.totalSupply()\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"totalSupply\": 5,\n    \"totalMinted\": 5\n  }\n}\n```\n\n**Sử dụng để:**\n- Kiểm tra có bao nhiêu NFTs đã được mint\n- Validate pagination parameters\n- Statistics dashboard"
+          }
+        },
+        {
+          "name": "Get All NFTs (Raw)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/all-nfts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "all-nfts"]
+            },
+            "description": "🔥 **ERC721Enumerable: All NFTs**\n\nLấy tất cả NFTs thông qua tokenByIndex() loop\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"totalSupply\": 5,\n    \"nfts\": [\n      {\n        \"tokenId\": 1,\n        \"owner\": \"0x...\",\n        \"tokenURI\": \"ipfs://...\",\n        \"globalIndex\": 0\n      },\n      {\n        \"tokenId\": 2,\n        \"owner\": \"0x...\",\n        \"tokenURI\": \"ipfs://...\",\n        \"globalIndex\": 1\n      }\n    ],\n    \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\"\n  }\n}\n```\n\n**Lưu ý:**\n- Không có pagination (raw data)\n- Sử dụng marketplace endpoint để có pagination"
+          }
+        },
+        {
+          "name": "Get NFTs by Owner (Enhanced)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/nfts/{{user_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "nfts", "{{user_wallet}}"]
+            },
+            "description": "🔥 **ERC721Enumerable: NFTs by Owner**\n\nLấy NFTs của owner thông qua tokenOfOwnerByIndex() loop\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"owner\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"balance\": 3,\n    \"nfts\": [\n      {\n        \"tokenId\": 1,\n        \"owner\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n        \"tokenURI\": \"ipfs://QmabcD...\",\n        \"index\": 0\n      },\n      {\n        \"tokenId\": 3,\n        \"owner\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n        \"tokenURI\": \"ipfs://QmxyzZ...\",\n        \"index\": 1\n      }\n    ],\n    \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\"\n  }\n}\n```\n\n**So với trước:**\n- Trước: Chỉ trả về balance\n- Bây giờ: Trả về danh sách NFTs chi tiết"
+          }
+        },
+        {
+          "name": "Get NFT by Global Index",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/blockchain/nft-by-index/0",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "blockchain", "nft-by-index", "0"]
+            },
+            "description": "🔥 **ERC721Enumerable: NFT by Index**\n\nLấy NFT theo global index thông qua tokenByIndex()\n\n**Thay đổi số 0 thành index khác để test**\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"owner\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"tokenURI\": \"ipfs://QmabcD...\",\n    \"globalIndex\": 0,\n    \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\"\n  }\n}\n```\n\n**Sử dụng để:**\n- Browse NFTs theo index\n- Implement pagination manually\n- Random NFT selection"
           }
         }
       ]
