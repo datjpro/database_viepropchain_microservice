@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+// DO NOT use express.json() here - let each service parse its own body
 
 // ============================================================================
 // HEALTH CHECK
@@ -163,14 +163,32 @@ app.use(
     target: "http://localhost:4007",
     changeOrigin: true,
     pathRewrite: {
-      "^/api/kyc": "/kyc",
+      "^/api/kyc": "",
+    },
+    logLevel: "debug",
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(
+        "🔄 [API Gateway] Forwarding to KYC Service:",
+        req.method,
+        req.originalUrl
+      );
+    },
+    onProxyRes: (proxyRes, req, res) => {
+      console.log(
+        "✅ [API Gateway] Response from KYC Service:",
+        proxyRes.statusCode
+      );
     },
     onError: (err, req, res) => {
       console.error("❌ KYC Service Error:", err.message);
-      res.status(503).json({
-        success: false,
-        error: "KYC Service unavailable",
-      });
+      console.error("❌ Stack:", err.stack);
+      if (!res.headersSent) {
+        res.status(503).json({
+          success: false,
+          error: "KYC Service unavailable",
+          message: err.message,
+        });
+      }
     },
   })
 );

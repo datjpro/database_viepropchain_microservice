@@ -7,10 +7,10 @@
 const { Listing, Offer } = require("../models");
 const axios = require("axios");
 
-const QUERY_SERVICE_URL =
-  process.env.QUERY_SERVICE_URL || "http://localhost:4005";
-const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL || "http://localhost:4006";
+const ADMIN_SERVICE_URL =
+  process.env.ADMIN_SERVICE_URL || "http://localhost:4003";
+const BLOCKCHAIN_SERVICE_URL =
+  process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:4004";
 
 /**
  * Create new listing
@@ -36,17 +36,41 @@ exports.createListing = async (req, res) => {
       });
     }
 
-    // Get property details from Query Service
+    // Verify NFT ownership from Blockchain Service
+    let nftOwner;
+    try {
+      const nftResponse = await axios.get(
+        `${BLOCKCHAIN_SERVICE_URL}/nft/${tokenId}`
+      );
+      nftOwner = nftResponse.data.owner;
+
+      if (nftOwner.toLowerCase() !== walletAddress.toLowerCase()) {
+        return res.status(403).json({
+          success: false,
+          error: "Not NFT owner",
+          message: "You don't own this NFT",
+        });
+      }
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: "NFT not found",
+        message: "Cannot verify NFT ownership",
+      });
+    }
+
+    // Get property details from Admin Service
     let propertyData;
     try {
       const propertyResponse = await axios.get(
-        `${QUERY_SERVICE_URL}/properties/${propertyId}`
+        `${ADMIN_SERVICE_URL}/properties/${propertyId}`
       );
-      propertyData = propertyResponse.data.data;
+      propertyData = propertyResponse.data.data || propertyResponse.data;
     } catch (error) {
       return res.status(404).json({
         success: false,
         error: "Property not found",
+        message: "Property information not available",
       });
     }
 
@@ -69,20 +93,20 @@ exports.createListing = async (req, res) => {
       tokenId,
       contractAddress,
       propertyId,
-      propertyName: propertyData.name,
+      propertyName: propertyData.title || propertyData.name,
       propertyType: propertyData.propertyType,
       propertyAddress: {
-        city: propertyData.location?.city,
-        district: propertyData.location?.district,
-        ward: propertyData.location?.ward,
+        city: propertyData.address?.city,
+        district: propertyData.address?.district,
+        ward: propertyData.address?.ward,
       },
-      propertyArea: propertyData.details?.area?.value,
-      propertyImages: propertyData.media?.images?.map((img) => img.url) || [],
+      propertyArea: propertyData.area,
+      propertyImages: propertyData.images || [],
       seller: {
         userId,
         walletAddress,
         email: req.user.email,
-        name: req.user.name,
+        name: req.user.name || req.user.fullName,
       },
       price: {
         amount: price.toString(),

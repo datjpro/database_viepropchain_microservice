@@ -657,6 +657,47 @@
       ]
     },
     {
+      "name": "6️⃣.1 NFT Info Helper",
+      "item": [
+        {
+          "name": "Get My NFTs with Property Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/nft-info/{{user_wallet}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "marketplace", "nft-info", "{{user_wallet}}"]
+            },
+            "description": "**🎯 Endpoint quan trọng trước khi list NFT!**\n\nLấy danh sách tất cả NFTs của bạn kèm thông tin property chi tiết.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"tokenId\": 1,\n      \"owner\": \"0x742d35...\",\n      \"tokenURI\": \"ipfs://Qm...\",\n      \"metadata\": {\n        \"name\": \"ViePropChain #1\",\n        \"description\": \"Property NFT\",\n        \"image\": \"ipfs://Qm...\",\n        \"propertyId\": \"507f1f77bcf86cd799439011\"\n      },\n      \"property\": {\n        \"id\": \"507f1f77bcf86cd799439011\",\n        \"title\": \"Biệt Thự Cao Cấp Quận 2\",\n        \"propertyType\": \"villa\",\n        \"address\": {...},\n        \"area\": 250,\n        \"price\": 15000000000,\n        \"images\": [...]\n      },\n      \"readyToList\": true\n    }\n  ],\n  \"summary\": {\n    \"total\": 3,\n    \"readyToList\": 2\n  }\n}\n```\n\n**Dùng thông tin này để:**\n1. Biết tokenId của từng NFT\n2. Xem property nào tương ứng\n3. Copy tokenId + propertyId để tạo listing"
+          }
+        },
+        {
+          "name": "Get NFT Detail by Token ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4000/api/marketplace/nft-info/token/{{token_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": [
+                "api",
+                "marketplace",
+                "nft-info",
+                "token",
+                "{{token_id}}"
+              ]
+            },
+            "description": "Xem chi tiết 1 NFT cụ thể kèm thông tin property\n\n**Dùng để:**\n- Verify NFT trước khi tạo listing\n- Xem đầy đủ thông tin property\n- Check ownership"
+          }
+        }
+      ]
+    },
+    {
       "name": "7️⃣ Marketplace - Listings",
       "item": [
         {
