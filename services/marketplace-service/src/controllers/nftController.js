@@ -45,7 +45,7 @@ class NFTController {
         owner,
         balance,
         nftsCount: nfts.length,
-        nftsArray: nfts
+        nftsArray: nfts,
       });
 
       if (balance === 0 || !nfts || nfts.length === 0) {

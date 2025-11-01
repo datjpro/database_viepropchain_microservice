@@ -23,7 +23,8 @@ const { NFT, Property, Transaction } = require("../../shared/models");
 // ============================================================================
 const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
 const NFT_CONTRACT_ADDRESS = "0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48";
-const MARKETPLACE_CONTRACT_ADDRESS = "0xcA41659cCfcD6a385381f22A2CE53c2b451e3c38";
+const MARKETPLACE_CONTRACT_ADDRESS =
+  "0xcA41659cCfcD6a385381f22A2CE53c2b451e3c38";
 const POLL_INTERVAL = Number(process.env.POLL_INTERVAL) || 5000; // 5 seconds
 
 // Contract ABIs
@@ -32,51 +33,57 @@ const MARKETPLACE_ABI = [
   "event ItemListed(uint256 indexed listingId, address indexed seller, uint256 indexed tokenId, uint256 price)",
   "event ItemSold(uint256 indexed listingId, address indexed buyer, uint256 tokenId)",
   "event ListingCancelled(uint256 indexed listingId)",
-  "function getListing(uint256 _listingId) external view returns (tuple(uint256 listingId, address seller, uint256 tokenId, uint256 price, uint8 status))"
+  "function getListing(uint256 _listingId) external view returns (tuple(uint256 listingId, address seller, uint256 tokenId, uint256 price, uint8 status))",
 ];
 
 // Listing Model (tạm thời inline, sau này sẽ move vào shared/models)
-const ListingSchema = new mongoose.Schema({
-  listingId: { type: Number, required: true, unique: true },
-  tokenId: { type: Number, required: true },
-  contractAddress: { type: String, required: true },
-  propertyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
-  propertyName: String,
-  propertyType: String,
-  propertyAddress: {
-    city: String,
-    district: String,
-    ward: String
+const ListingSchema = new mongoose.Schema(
+  {
+    listingId: { type: Number, required: true, unique: true },
+    tokenId: { type: Number, required: true },
+    contractAddress: { type: String, required: true },
+    propertyId: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
+    propertyName: String,
+    propertyType: String,
+    propertyAddress: {
+      city: String,
+      district: String,
+      ward: String,
+    },
+    propertyArea: Number,
+    propertyImages: [String],
+    seller: {
+      walletAddress: { type: String, required: true },
+      email: String,
+    },
+    price: {
+      amount: { type: String, required: true }, // Wei string
+      currency: { type: String, default: "ETH" },
+    },
+    status: {
+      type: String,
+      enum: ["active", "sold", "cancelled"],
+      default: "active",
+    },
+    description: String,
+    expiresAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    }, // 90 days
+    views: { type: Number, default: 0 },
+    favorites: { type: Number, default: 0 },
+    offers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Offer" }],
+    listedAt: { type: Date, default: Date.now },
+    soldAt: Date,
+    transactionHash: String,
+    blockNumber: Number,
   },
-  propertyArea: Number,
-  propertyImages: [String],
-  seller: {
-    walletAddress: { type: String, required: true },
-    email: String
-  },
-  price: {
-    amount: { type: String, required: true }, // Wei string
-    currency: { type: String, default: 'ETH' }
-  },
-  status: { 
-    type: String, 
-    enum: ['active', 'sold', 'cancelled'], 
-    default: 'active' 
-  },
-  description: String,
-  expiresAt: { type: Date, default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, // 90 days
-  views: { type: Number, default: 0 },
-  favorites: { type: Number, default: 0 },
-  offers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Offer' }],
-  listedAt: { type: Date, default: Date.now },
-  soldAt: Date,
-  transactionHash: String,
-  blockNumber: Number
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  }
+);
 
-const Listing = mongoose.model('Listing', ListingSchema);
+const Listing = mongoose.model("Listing", ListingSchema);
 
 // ============================================================================
 // MONGODB CONNECTION
@@ -96,8 +103,16 @@ mongoose
 // BLOCKCHAIN CONNECTION
 // ============================================================================
 const provider = new ethers.JsonRpcProvider(GANACHE_URL);
-const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
-const marketplaceContract = new ethers.Contract(MARKETPLACE_CONTRACT_ADDRESS, MARKETPLACE_ABI, provider);
+const nftContract = new ethers.Contract(
+  NFT_CONTRACT_ADDRESS,
+  NFT_ABI,
+  provider
+);
+const marketplaceContract = new ethers.Contract(
+  MARKETPLACE_CONTRACT_ADDRESS,
+  MARKETPLACE_ABI,
+  provider
+);
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -150,14 +165,17 @@ async function initializeLastBlock() {
 // Fetch metadata from IPFS
 async function fetchMetadataFromIPFS(tokenURI) {
   try {
-    if (tokenURI.startsWith('ipfs://')) {
-      tokenURI = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    if (tokenURI.startsWith("ipfs://")) {
+      tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
     }
-    
+
     const response = await axios.get(tokenURI, { timeout: 10000 });
     return response.data;
   } catch (error) {
-    console.error(`❌ Error fetching metadata from ${tokenURI}:`, error.message);
+    console.error(
+      `❌ Error fetching metadata from ${tokenURI}:`,
+      error.message
+    );
     return null;
   }
 }
@@ -168,7 +186,10 @@ async function getPropertyByTokenId(tokenId) {
     const property = await Property.findOne({ "nft.tokenId": tokenId });
     return property;
   } catch (error) {
-    console.error(`❌ Error finding property for tokenId ${tokenId}:`, error.message);
+    console.error(
+      `❌ Error finding property for tokenId ${tokenId}:`,
+      error.message
+    );
     return null;
   }
 }
@@ -177,10 +198,15 @@ async function getPropertyByTokenId(tokenId) {
 async function getUserByWallet(walletAddress) {
   try {
     // Call user service để lấy thông tin user
-    const response = await axios.get(`http://localhost:4006/api/users/wallet/${walletAddress}`);
+    const response = await axios.get(
+      `http://localhost:4006/api/users/wallet/${walletAddress}`
+    );
     return response.data.data;
   } catch (error) {
-    console.error(`❌ Error getting user data for ${walletAddress}:`, error.message);
+    console.error(
+      `❌ Error getting user data for ${walletAddress}:`,
+      error.message
+    );
     return { walletAddress: walletAddress.toLowerCase() };
   }
 }
@@ -195,24 +221,31 @@ async function processItemListedEvent(event) {
     const tokenIdNumber = Number(tokenId);
     const priceString = price.toString();
 
-    console.log(`   � Processing ItemListed: Listing ${listingIdNumber}, Token ${tokenIdNumber}, Price ${ethers.formatEther(price)} ETH`);
+    console.log(
+      `   � Processing ItemListed: Listing ${listingIdNumber}, Token ${tokenIdNumber}, Price ${ethers.formatEther(
+        price
+      )} ETH`
+    );
 
     // Get transaction details
     const tx = await event.getTransaction();
-    
+
     // Get property data
     const property = await getPropertyByTokenId(tokenIdNumber);
-    
+
     // Get seller data
     const sellerData = await getUserByWallet(seller);
-    
+
     // Get metadata from NFT contract
     let metadata = null;
     try {
       const tokenURI = await nftContract.tokenURI(tokenIdNumber);
       metadata = await fetchMetadataFromIPFS(tokenURI);
     } catch (error) {
-      console.error(`   ⚠️  Could not fetch metadata for token ${tokenIdNumber}:`, error.message);
+      console.error(
+        `   ⚠️  Could not fetch metadata for token ${tokenIdNumber}:`,
+        error.message
+      );
     }
 
     // Create listing in MongoDB
@@ -221,24 +254,36 @@ async function processItemListedEvent(event) {
       tokenId: tokenIdNumber,
       contractAddress: NFT_CONTRACT_ADDRESS,
       propertyId: property ? property._id : null,
-      propertyName: property ? property.title : (metadata ? metadata.name : `Token #${tokenIdNumber}`),
-      propertyType: property ? property.propertyType : 'unknown',
+      propertyName: property
+        ? property.title
+        : metadata
+        ? metadata.name
+        : `Token #${tokenIdNumber}`,
+      propertyType: property ? property.propertyType : "unknown",
       propertyAddress: property ? property.address : {},
       propertyArea: property ? property.area : 0,
-      propertyImages: property ? property.images : (metadata ? [metadata.image] : []),
+      propertyImages: property
+        ? property.images
+        : metadata
+        ? [metadata.image]
+        : [],
       seller: {
         walletAddress: seller.toLowerCase(),
-        email: sellerData.email || null
+        email: sellerData.email || null,
       },
       price: {
         amount: priceString,
-        currency: 'ETH'
+        currency: "ETH",
       },
-      status: 'active',
-      description: property ? property.description : (metadata ? metadata.description : ''),
+      status: "active",
+      description: property
+        ? property.description
+        : metadata
+        ? metadata.description
+        : "",
       transactionHash: tx.hash,
       blockNumber: event.blockNumber,
-      listedAt: new Date()
+      listedAt: new Date(),
     });
 
     await listing.save();
@@ -246,12 +291,11 @@ async function processItemListedEvent(event) {
 
     // Update property status if exists
     if (property) {
-      property.marketplaceStatus = 'listed';
+      property.marketplaceStatus = "listed";
       property.currentListingId = listingIdNumber;
       await property.save();
       console.log(`   ✅ Property status updated: Listed`);
     }
-
   } catch (error) {
     console.error("   ❌ Error processing ItemListed event:", error);
   }
@@ -266,7 +310,9 @@ async function processItemSoldEvent(event) {
     const listingIdNumber = Number(listingId);
     const tokenIdNumber = Number(tokenId);
 
-    console.log(`   💰 Processing ItemSold: Listing ${listingIdNumber}, Token ${tokenIdNumber}, Buyer ${buyer}`);
+    console.log(
+      `   💰 Processing ItemSold: Listing ${listingIdNumber}, Token ${tokenIdNumber}, Buyer ${buyer}`
+    );
 
     // Get transaction details
     const tx = await event.getTransaction();
@@ -274,10 +320,10 @@ async function processItemSoldEvent(event) {
     // Update listing status
     const listing = await Listing.findOne({ listingId: listingIdNumber });
     if (listing) {
-      listing.status = 'sold';
+      listing.status = "sold";
       listing.soldAt = new Date();
       listing.buyer = {
-        walletAddress: buyer.toLowerCase()
+        walletAddress: buyer.toLowerCase(),
       };
       await listing.save();
       console.log(`   ✅ Listing status updated: Sold`);
@@ -286,7 +332,7 @@ async function processItemSoldEvent(event) {
     // Update property status
     const property = await getPropertyByTokenId(tokenIdNumber);
     if (property) {
-      property.marketplaceStatus = 'sold';
+      property.marketplaceStatus = "sold";
       property.owner = buyer.toLowerCase();
       property.currentListingId = null;
       await property.save();
@@ -300,7 +346,6 @@ async function processItemSoldEvent(event) {
       await nft.save();
       console.log(`   ✅ NFT ownership updated`);
     }
-
   } catch (error) {
     console.error("   ❌ Error processing ItemSold event:", error);
   }
@@ -314,25 +359,26 @@ async function processListingCancelledEvent(event) {
     const { listingId } = event.args;
     const listingIdNumber = Number(listingId);
 
-    console.log(`   ❌ Processing ListingCancelled: Listing ${listingIdNumber}`);
+    console.log(
+      `   ❌ Processing ListingCancelled: Listing ${listingIdNumber}`
+    );
 
     // Update listing status
     const listing = await Listing.findOne({ listingId: listingIdNumber });
     if (listing) {
-      listing.status = 'cancelled';
+      listing.status = "cancelled";
       await listing.save();
       console.log(`   ✅ Listing status updated: Cancelled`);
 
       // Update property status
       const property = await getPropertyByTokenId(listing.tokenId);
       if (property) {
-        property.marketplaceStatus = 'unlisted';
+        property.marketplaceStatus = "unlisted";
         property.currentListingId = null;
         await property.save();
         console.log(`   ✅ Property status updated: Unlisted`);
       }
     }
-
   } catch (error) {
     console.error("   ❌ Error processing ListingCancelled event:", error);
   }
@@ -364,16 +410,30 @@ async function pollEvents() {
     // Query Marketplace events
     const itemListedFilter = marketplaceContract.filters.ItemListed();
     const itemSoldFilter = marketplaceContract.filters.ItemSold();
-    const listingCancelledFilter = marketplaceContract.filters.ListingCancelled();
+    const listingCancelledFilter =
+      marketplaceContract.filters.ListingCancelled();
 
     // Get all marketplace events
     const [listedEvents, soldEvents, cancelledEvents] = await Promise.all([
-      marketplaceContract.queryFilter(itemListedFilter, lastProcessedBlock + 1, currentBlock),
-      marketplaceContract.queryFilter(itemSoldFilter, lastProcessedBlock + 1, currentBlock),
-      marketplaceContract.queryFilter(listingCancelledFilter, lastProcessedBlock + 1, currentBlock)
+      marketplaceContract.queryFilter(
+        itemListedFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
+      marketplaceContract.queryFilter(
+        itemSoldFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
+      marketplaceContract.queryFilter(
+        listingCancelledFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
     ]);
 
-    const totalEvents = listedEvents.length + soldEvents.length + cancelledEvents.length;
+    const totalEvents =
+      listedEvents.length + soldEvents.length + cancelledEvents.length;
 
     if (totalEvents > 0) {
       console.log(`📦 Found ${totalEvents} Marketplace event(s):`);
@@ -383,20 +443,20 @@ async function pollEvents() {
 
       // Process events in chronological order
       const allEvents = [
-        ...listedEvents.map(e => ({ ...e, type: 'ItemListed' })),
-        ...soldEvents.map(e => ({ ...e, type: 'ItemSold' })),
-        ...cancelledEvents.map(e => ({ ...e, type: 'ListingCancelled' }))
+        ...listedEvents.map((e) => ({ ...e, type: "ItemListed" })),
+        ...soldEvents.map((e) => ({ ...e, type: "ItemSold" })),
+        ...cancelledEvents.map((e) => ({ ...e, type: "ListingCancelled" })),
       ].sort((a, b) => a.blockNumber - b.blockNumber);
 
       for (const event of allEvents) {
         switch (event.type) {
-          case 'ItemListed':
+          case "ItemListed":
             await processItemListedEvent(event);
             break;
-          case 'ItemSold':
+          case "ItemSold":
             await processItemSoldEvent(event);
             break;
-          case 'ListingCancelled':
+          case "ListingCancelled":
             await processListingCancelledEvent(event);
             break;
         }

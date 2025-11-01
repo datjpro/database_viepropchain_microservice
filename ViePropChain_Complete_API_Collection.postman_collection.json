@@ -695,7 +695,12 @@
               "protocol": "http",
               "host": ["localhost"],
               "port": "4000",
-              "path": ["api", "marketplace", "my-nfts", "0xc6890b26a32d9d92aefbc8635c4588247529cdfe"]
+              "path": [
+                "api",
+                "marketplace",
+                "my-nfts",
+                "0xc6890b26a32d9d92aefbc8635c4588247529cdfe"
+              ]
             },
             "description": "🧪 **TEST: NFT Query with Fixed Wallet**\n\n**Wallet được test:** `0xc6890b26a32d9d92aefbc8635c4588247529cdfe`\n\n**Expected Result:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"owner\": \"0xc6890b26a32d9d92aefbc8635c4588247529cdfe\",\n    \"balance\": 1,\n    \"nfts\": [\n      {\n        \"tokenId\": 1,\n        \"owner\": \"0xc6890b26a32d9d92aefbc8635c4588247529cdfe\",\n        \"tokenURI\": \"ipfs://QmRctQ4FLBgstfGyLDUVdNsai8vTzM3xjykQ42xUi18Nfa\",\n        \"index\": 0,\n        \"metadata\": null,\n        \"property\": null,\n        \"readyToList\": false,\n        \"hasMetadata\": false\n      }\n    ],\n    \"summary\": {\n      \"total\": 1,\n      \"readyToList\": 0,\n      \"withMetadata\": 0,\n      \"withProperty\": 0\n    }\n  }\n}\n```\n\n**✅ Fixed Issues:**\n- ERC721Enumerable functions working\n- Contract ABI updated with tokenOfOwnerByIndex\n- Blockchain service returns NFT array\n- Marketplace service enhances data properly\n\n**Ready for marketplace listing!**"
           }

@@ -127,7 +127,7 @@ class ContractService {
       }
 
       console.log(`🔍 Step 1: Getting balance for ${owner}`);
-      
+
       // 🏁 Step 1: Lấy balance (số lượng NFT)
       const balanceBN = await this.contract.balanceOf(owner);
       const balance = balanceBN.toString(); // Giữ nguyên string để tránh lỗi BigNumber
@@ -151,16 +151,16 @@ class ContractService {
       for (let i = 0; i < balanceNum; i++) {
         try {
           console.log(`   🔍 Getting NFT at index ${i}...`);
-          
+
           // Lấy tokenId của NFT ở vị trí index i
           const tokenIdBN = await this.contract.tokenOfOwnerByIndex(owner, i);
           const tokenId = Number(tokenIdBN.toString());
-          
+
           console.log(`   📋 Token ID: ${tokenId}`);
 
           // ℹ️ Step 3: Lấy tokenURI (metadata)
           const tokenURI = await this.contract.tokenURI(tokenId);
-          
+
           console.log(`   🔗 Token URI: ${tokenURI}`);
 
           nfts.push({
@@ -169,7 +169,7 @@ class ContractService {
             tokenURI,
             index: i,
           });
-          
+
           console.log(`   ✅ Successfully added NFT ${tokenId} to results`);
         } catch (error) {
           console.error(`❌ Failed to get NFT at index ${i}:`, error.message);
@@ -178,7 +178,9 @@ class ContractService {
         }
       }
 
-      console.log(`   ✅ Successfully retrieved ${nfts.length}/${balanceNum} NFTs`);
+      console.log(
+        `   ✅ Successfully retrieved ${nfts.length}/${balanceNum} NFTs`
+      );
 
       return {
         owner,

@@ -67,12 +67,15 @@ class NFTController {
   async getNFTsByOwner(req, res) {
     try {
       const { owner } = req.params;
-      
+
       console.log(`🎯 Controller: getNFTsByOwner called with owner: ${owner}`);
 
       const result = await contractService.getNFTsByOwner(owner);
-      
-      console.log(`📤 Controller: Sending response:`, JSON.stringify(result, null, 2));
+
+      console.log(
+        `📤 Controller: Sending response:`,
+        JSON.stringify(result, null, 2)
+      );
 
       res.json({
         success: true,
