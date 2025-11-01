@@ -27,6 +27,11 @@ class ContractService {
    */
   async mintNFT(recipient, tokenURI) {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       if (!ethers.isAddress(recipient)) {
         throw new Error("Invalid recipient address");
       }
@@ -87,6 +92,11 @@ class ContractService {
    */
   async getNFTInfo(tokenId) {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       const owner = await this.contract.ownerOf(tokenId);
       const tokenURI = await this.contract.tokenURI(tokenId);
 
@@ -103,46 +113,72 @@ class ContractService {
 
   /**
    * Get NFTs by owner (sử dụng ERC721Enumerable)
+   * Follow workflow: balanceOf -> tokenOfOwnerByIndex -> tokenURI
    */
   async getNFTsByOwner(owner) {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       if (!ethers.isAddress(owner)) {
         throw new Error("Invalid owner address");
       }
 
-      const balance = await this.contract.balanceOf(owner);
+      console.log(`🔍 Step 1: Getting balance for ${owner}`);
+      
+      // 🏁 Step 1: Lấy balance (số lượng NFT)
+      const balanceBN = await this.contract.balanceOf(owner);
+      const balance = balanceBN.toString(); // Giữ nguyên string để tránh lỗi BigNumber
       const balanceNum = Number(balance);
 
-      console.log(`🔍 Getting NFTs for ${owner}, balance: ${balanceNum}`);
+      console.log(`   ✅ Balance: ${balanceNum} NFTs`);
 
       if (balanceNum === 0) {
         return {
           owner,
-          balance: 0,
+          balance: balanceNum,
           nfts: [],
           contractAddress: CONTRACT_ADDRESS,
         };
       }
 
-      // Sử dụng ERC721Enumerable để lấy từng NFT của owner
+      console.log(`🔍 Step 2: Getting NFT details for ${balanceNum} NFTs`);
+
+      // 🆔 Step 2: Lấy từng NFT qua tokenOfOwnerByIndex
       const nfts = [];
       for (let i = 0; i < balanceNum; i++) {
         try {
-          const tokenId = await this.contract.tokenOfOwnerByIndex(owner, i);
+          console.log(`   🔍 Getting NFT at index ${i}...`);
+          
+          // Lấy tokenId của NFT ở vị trí index i
+          const tokenIdBN = await this.contract.tokenOfOwnerByIndex(owner, i);
+          const tokenId = Number(tokenIdBN.toString());
+          
+          console.log(`   📋 Token ID: ${tokenId}`);
+
+          // ℹ️ Step 3: Lấy tokenURI (metadata)
           const tokenURI = await this.contract.tokenURI(tokenId);
+          
+          console.log(`   🔗 Token URI: ${tokenURI}`);
 
           nfts.push({
-            tokenId: Number(tokenId),
+            tokenId,
             owner,
             tokenURI,
             index: i,
           });
+          
+          console.log(`   ✅ Successfully added NFT ${tokenId} to results`);
         } catch (error) {
-          console.warn(`Failed to get NFT at index ${i}:`, error.message);
+          console.error(`❌ Failed to get NFT at index ${i}:`, error.message);
+          console.error(`❌ Full error:`, error);
+          // Continue với NFT tiếp theo thay vì dừng
         }
       }
 
-      console.log(`   ✅ Found ${nfts.length} NFTs`);
+      console.log(`   ✅ Successfully retrieved ${nfts.length}/${balanceNum} NFTs`);
 
       return {
         owner,
@@ -151,6 +187,7 @@ class ContractService {
         contractAddress: CONTRACT_ADDRESS,
       };
     } catch (error) {
+      console.error(`❌ getNFTsByOwner error:`, error);
       throw new Error(`Failed to get NFTs: ${error.message}`);
     }
   }
@@ -205,6 +242,11 @@ class ContractService {
    */
   async getTotalSupply() {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       const totalSupply = await this.contract.totalSupply();
 
       return {
@@ -221,6 +263,11 @@ class ContractService {
    */
   async getAllNFTs() {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       const totalSupply = await this.contract.totalSupply();
       const totalSupplyNum = Number(totalSupply);
 
@@ -272,6 +319,11 @@ class ContractService {
    */
   async getNFTByIndex(index) {
     try {
+      // Đảm bảo contract được khởi tạo
+      if (!this.contract) {
+        this.initContract();
+      }
+
       const tokenId = await this.contract.tokenByIndex(index);
       const owner = await this.contract.ownerOf(tokenId);
       const tokenURI = await this.contract.tokenURI(tokenId);

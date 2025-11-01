@@ -38,9 +38,17 @@ class NFTController {
         });
       }
 
-      const { owner, balance, nfts } = data.data;
+      const { owner, balance, nfts = [] } = data.data; // Default empty array
 
-      if (balance === 0) {
+      // Debug log
+      console.log(`   📊 Response from blockchain service:`, {
+        owner,
+        balance,
+        nftsCount: nfts.length,
+        nftsArray: nfts
+      });
+
+      if (balance === 0 || !nfts || nfts.length === 0) {
         return res.json({
           success: true,
           message: "No NFTs found for this wallet",
@@ -48,6 +56,12 @@ class NFTController {
             owner,
             balance: 0,
             nfts: [],
+            summary: {
+              total: 0,
+              readyToList: 0,
+              withMetadata: 0,
+              withProperty: 0,
+            },
           },
         });
       }

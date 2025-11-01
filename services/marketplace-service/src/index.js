@@ -18,6 +18,7 @@ const connectDB = require("./config/database");
 const listingRoutes = require("./routes/listingRoutes");
 const offerRoutes = require("./routes/offerRoutes");
 const nftInfoRoutes = require("./routes/nftInfoRoutes");
+const frontendRoutes = require("./routes/frontendRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4008;
@@ -55,6 +56,7 @@ app.get("/health", (req, res) => {
 // ============================================================================
 // ROUTES
 // ============================================================================
+app.use("/api", frontendRoutes); // Fast read APIs for frontend
 app.use("/listings", listingRoutes);
 app.use("/offers", offerRoutes);
 app.use("/", nftInfoRoutes); // NFT info helper routes

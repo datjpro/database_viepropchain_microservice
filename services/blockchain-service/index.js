@@ -255,7 +255,7 @@ app.get("/nft/:tokenId", async (req, res) => {
 });
 
 // ============================================================================
-// GET NFTs BY OWNER
+// GET NFTs BY OWNER (ERC721Enumerable implementation)
 // ============================================================================
 app.get("/nfts/:owner", async (req, res) => {
   try {
@@ -268,13 +268,67 @@ app.get("/nfts/:owner", async (req, res) => {
       });
     }
 
-    const balance = await contract.balanceOf(owner);
+    console.log(`🎯 Getting NFTs for owner: ${owner}`);
+
+    // Step 1: Get balance
+    const balanceBN = await contract.balanceOf(owner);
+    const balance = Number(balanceBN.toString());
+    
+    console.log(`📊 Balance: ${balance} NFTs`);
+
+    if (balance === 0) {
+      return res.json({
+        success: true,
+        data: {
+          owner,
+          balance: 0,
+          nfts: [],
+          contractAddress: CONTRACT_ADDRESS,
+        },
+      });
+    }
+
+    // Step 2: Get each NFT via tokenOfOwnerByIndex (ERC721Enumerable)
+    const nfts = [];
+    console.log(`🔍 Getting details for ${balance} NFTs...`);
+
+    for (let i = 0; i < balance; i++) {
+      try {
+        console.log(`   🔍 Getting NFT at index ${i}...`);
+        
+        // Get tokenId at index i
+        const tokenIdBN = await contract.tokenOfOwnerByIndex(owner, i);
+        const tokenId = Number(tokenIdBN.toString());
+        
+        console.log(`   📋 Token ID: ${tokenId}`);
+        
+        // Get tokenURI
+        const tokenURI = await contract.tokenURI(tokenId);
+        
+        console.log(`   🔗 Token URI: ${tokenURI}`);
+
+        nfts.push({
+          tokenId,
+          owner,
+          tokenURI,
+          index: i,
+        });
+        
+        console.log(`   ✅ Added NFT ${tokenId} to results`);
+      } catch (error) {
+        console.error(`❌ Failed to get NFT at index ${i}:`, error.message);
+        // Continue with next NFT instead of failing
+      }
+    }
+
+    console.log(`✅ Successfully retrieved ${nfts.length}/${balance} NFTs`);
 
     res.json({
       success: true,
       data: {
         owner,
-        balance: Number(balance),
+        balance,
+        nfts,
         contractAddress: CONTRACT_ADDRESS,
       },
     });

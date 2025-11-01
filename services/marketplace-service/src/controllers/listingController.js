@@ -39,10 +39,18 @@ exports.createListing = async (req, res) => {
     // Verify NFT ownership from Blockchain Service
     let nftOwner;
     try {
+      console.log(`🔍 Verifying NFT ownership - TokenId: ${tokenId}`);
+      console.log(`🔗 Blockchain URL: ${BLOCKCHAIN_SERVICE_URL}/nft/${tokenId}`);
+      
       const nftResponse = await axios.get(
         `${BLOCKCHAIN_SERVICE_URL}/nft/${tokenId}`
       );
-      nftOwner = nftResponse.data.owner;
+      
+      console.log(`📋 NFT Response:`, nftResponse.data);
+      nftOwner = nftResponse.data.data.owner; // Fix: Add .data
+      
+      console.log(`👤 NFT Owner: ${nftOwner}`);
+      console.log(`💼 User Wallet: ${walletAddress}`);
 
       if (nftOwner.toLowerCase() !== walletAddress.toLowerCase()) {
         return res.status(403).json({

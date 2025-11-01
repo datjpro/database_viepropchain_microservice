@@ -100,9 +100,27 @@ class WalletLinkingController {
 
       console.log(`✅ Wallet linked successfully`);
 
+      // 🔥 GENERATE NEW JWT TOKEN with wallet info
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || "viepropchain-secret-key-2025";
+      
+      const newToken = jwt.sign(
+        {
+          userId: user._id,
+          email: user.email,
+          walletAddress: user.walletAddress,
+          role: user.role || "user",
+          emailVerified: user.emailVerified,
+          authMethods: user.authMethods.map(m => m.type),
+        },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
       res.json({
         success: true,
         message: "Wallet linked successfully",
+        token: newToken, // 🔥 NEW TOKEN WITH WALLET
         user: {
           id: user._id,
           email: user.email,
