@@ -44,8 +44,10 @@ class ContractService {
       const tokenURIExists = await this.contract.tokenURIExists(tokenURI);
       if (tokenURIExists) {
         const existingTokenId = await this.contract.getTokenIdByURI(tokenURI);
-        console.log(`   ⚠️ NFT with this metadata already exists with tokenId: ${existingTokenId}`);
-        
+        console.log(
+          `   ⚠️ NFT with this metadata already exists with tokenId: ${existingTokenId}`
+        );
+
         // Return existing NFT info instead of minting new one
         return {
           tokenId: Number(existingTokenId),
@@ -53,7 +55,7 @@ class ContractService {
           tokenURI,
           contractAddress: CONTRACT_ADDRESS,
           isDuplicate: true,
-          message: "NFT with this metadata already exists"
+          message: "NFT with this metadata already exists",
         };
       }
 
@@ -101,7 +103,7 @@ class ContractService {
         gasUsed: receipt.gasUsed.toString(),
         mintedBy: getSigner().address,
         isDuplicate: false,
-        message: "NFT successfully minted"
+        message: "NFT successfully minted",
       };
     } catch (error) {
       throw new Error(`Mint failed: ${error.message}`);

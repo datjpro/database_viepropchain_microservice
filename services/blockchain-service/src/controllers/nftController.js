@@ -44,7 +44,7 @@ class NFTController {
       });
     } catch (error) {
       console.error("❌ Mint error:", error.message);
-      
+
       // Handle specific error types
       if (error.message.includes("already exists")) {
         return res.status(409).json({
