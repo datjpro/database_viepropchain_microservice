@@ -36,9 +36,28 @@ class ContractService {
         throw new Error("Invalid recipient address");
       }
 
-      console.log(`🔄 Minting NFT...`);
+      console.log(`🔄 Checking for duplicate NFT...`);
       console.log(`   Recipient: ${recipient}`);
       console.log(`   TokenURI: ${tokenURI}`);
+
+      // Check if tokenURI already exists
+      const tokenURIExists = await this.contract.tokenURIExists(tokenURI);
+      if (tokenURIExists) {
+        const existingTokenId = await this.contract.getTokenIdByURI(tokenURI);
+        console.log(`   ⚠️ NFT with this metadata already exists with tokenId: ${existingTokenId}`);
+        
+        // Return existing NFT info instead of minting new one
+        return {
+          tokenId: Number(existingTokenId),
+          recipient,
+          tokenURI,
+          contractAddress: CONTRACT_ADDRESS,
+          isDuplicate: true,
+          message: "NFT with this metadata already exists"
+        };
+      }
+
+      console.log(`🔄 Minting new NFT...`);
 
       // Call smart contract mint function
       const tx = await this.contract.mint(recipient, tokenURI);
@@ -81,6 +100,8 @@ class ContractService {
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
         mintedBy: getSigner().address,
+        isDuplicate: false,
+        message: "NFT successfully minted"
       };
     } catch (error) {
       throw new Error(`Mint failed: ${error.message}`);

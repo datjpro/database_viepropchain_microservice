@@ -23,13 +23,37 @@ class NFTController {
 
       const result = await contractService.mintNFT(recipient, tokenURI);
 
+      // Check if it's a duplicate
+      if (result.isDuplicate) {
+        return res.status(409).json({
+          success: false,
+          error: "NFT already exists",
+          message: result.message,
+          data: {
+            existingTokenId: result.tokenId,
+            tokenURI: result.tokenURI,
+            contractAddress: result.contractAddress,
+          },
+        });
+      }
+
       res.json({
         success: true,
-        message: "NFT minted successfully",
+        message: result.message || "NFT minted successfully",
         data: result,
       });
     } catch (error) {
       console.error("❌ Mint error:", error.message);
+      
+      // Handle specific error types
+      if (error.message.includes("already exists")) {
+        return res.status(409).json({
+          success: false,
+          error: "NFT with this metadata already exists",
+          message: error.message,
+        });
+      }
+
       res.status(500).json({
         success: false,
         error: "Failed to mint NFT",
