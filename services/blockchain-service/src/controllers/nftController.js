@@ -23,13 +23,37 @@ class NFTController {
 
       const result = await contractService.mintNFT(recipient, tokenURI);
 
+      // Check if it's a duplicate
+      if (result.isDuplicate) {
+        return res.status(409).json({
+          success: false,
+          error: "NFT already exists",
+          message: result.message,
+          data: {
+            existingTokenId: result.tokenId,
+            tokenURI: result.tokenURI,
+            contractAddress: result.contractAddress,
+          },
+        });
+      }
+
       res.json({
         success: true,
-        message: "NFT minted successfully",
+        message: result.message || "NFT minted successfully",
         data: result,
       });
     } catch (error) {
       console.error("❌ Mint error:", error.message);
+
+      // Handle specific error types
+      if (error.message.includes("already exists")) {
+        return res.status(409).json({
+          success: false,
+          error: "NFT with this metadata already exists",
+          message: error.message,
+        });
+      }
+
       res.status(500).json({
         success: false,
         error: "Failed to mint NFT",
@@ -68,7 +92,14 @@ class NFTController {
     try {
       const { owner } = req.params;
 
+      console.log(`🎯 Controller: getNFTsByOwner called with owner: ${owner}`);
+
       const result = await contractService.getNFTsByOwner(owner);
+
+      console.log(
+        `📤 Controller: Sending response:`,
+        JSON.stringify(result, null, 2)
+      );
 
       res.json({
         success: true,
@@ -131,6 +162,71 @@ class NFTController {
       res.status(500).json({
         success: false,
         error: "Failed to get token counter",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get total supply (ERC721Enumerable)
+   */
+  async getTotalSupply(req, res) {
+    try {
+      const result = await contractService.getTotalSupply();
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error("❌ Get total supply error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get total supply",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all NFTs (ERC721Enumerable)
+   */
+  async getAllNFTs(req, res) {
+    try {
+      const result = await contractService.getAllNFTs();
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error("❌ Get all NFTs error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get all NFTs",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get NFT by global index (ERC721Enumerable)
+   */
+  async getNFTByIndex(req, res) {
+    try {
+      const { index } = req.params;
+
+      const result = await contractService.getNFTByIndex(index);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error("❌ Get NFT by index error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get NFT by index",
         message: error.message,
       });
     }

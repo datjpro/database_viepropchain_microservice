@@ -15,11 +15,18 @@ const JWT_SECRET = process.env.JWT_SECRET || "viepropchain-jwt-secret-2025";
  * Expects token in Authorization header: "Bearer <token>"
  */
 const verifyToken = (req, res, next) => {
+  console.log("🔍 [verifyToken] Middleware called");
+  console.log(
+    "🔍 [verifyToken] Authorization header:",
+    req.headers.authorization?.substring(0, 50) + "..."
+  );
+
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("❌ [verifyToken] No token provided");
       return res.status(401).json({
         success: false,
         message: "No token provided. Authorization header required.",
@@ -31,6 +38,7 @@ const verifyToken = (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log("✅ [verifyToken] Token verified for user:", decoded.email);
 
     // Attach user info to request
     req.user = {
@@ -42,9 +50,11 @@ const verifyToken = (req, res, next) => {
       authMethods: decoded.authMethods || [],
     };
 
+    console.log("✅ [verifyToken] User attached to request:", req.user.email);
     next();
   } catch (error) {
     if (error.name === "TokenExpiredError") {
+      console.log("❌ [verifyToken] Token expired");
       return res.status(401).json({
         success: false,
         message: "Token expired. Please login again.",
@@ -52,13 +62,14 @@ const verifyToken = (req, res, next) => {
     }
 
     if (error.name === "JsonWebTokenError") {
+      console.log("❌ [verifyToken] Invalid token");
       return res.status(401).json({
         success: false,
         message: "Invalid token.",
       });
     }
 
-    console.error("Token verification error:", error);
+    console.error("❌ [verifyToken] Token verification error:", error);
     return res.status(500).json({
       success: false,
       message: "Token verification failed.",

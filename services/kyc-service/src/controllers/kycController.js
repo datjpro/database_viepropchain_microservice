@@ -11,6 +11,10 @@ class KYCController {
    * Submit KYC - Auto verify (with Gmail login)
    */
   async submitKYC(req, res) {
+    console.log("🔍 [submitKYC] Controller called");
+    console.log("🔍 [submitKYC] req.user:", req.user);
+    console.log("🔍 [submitKYC] req.body:", req.body);
+
     try {
       const { fullName, idNumber } = req.body;
 
@@ -19,7 +23,15 @@ class KYCController {
       const email = req.user?.email;
       const walletAddress = req.user?.walletAddress || null;
 
+      console.log(
+        "🔍 [submitKYC] Extracted - userId:",
+        userId,
+        "email:",
+        email
+      );
+
       if (!userId || !email) {
+        console.log("❌ [submitKYC] Missing userId or email");
         return res.status(401).json({
           success: false,
           error: "Unauthorized - Please login with Google first",
@@ -27,12 +39,14 @@ class KYCController {
       }
 
       if (!fullName || !idNumber) {
+        console.log("❌ [submitKYC] Missing fullName or idNumber");
         return res.status(400).json({
           success: false,
           error: "fullName and idNumber are required",
         });
       }
 
+      console.log("✅ [submitKYC] Calling kycService.submitKYC...");
       const kyc = await kycService.submitKYC({
         userId,
         email,
@@ -41,13 +55,14 @@ class KYCController {
         idNumber,
       });
 
+      console.log("✅ [submitKYC] KYC submitted successfully");
       res.json({
         success: true,
         message: "KYC verified successfully",
         data: kyc,
       });
     } catch (error) {
-      console.error("❌ Submit KYC error:", error.message);
+      console.error("❌ [submitKYC] Submit KYC error:", error.message);
       const status = error.message.includes("already verified") ? 400 : 500;
       res.status(status).json({
         success: false,

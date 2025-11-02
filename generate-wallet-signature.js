@@ -38,11 +38,11 @@ const { ethers } = require("ethers");
 // Wallet: 0xC6890b26A32d9d92aefbc8635C4588247529CdfE
 // Copy private key từ Ganache cho wallet này!
 const PRIVATE_KEY =
-  "0x843501ecc602247126b5c52ff65d3b0050a9039f23480f005535465ac2734fae"; // ← Paste private key của 0xC6890... từ Ganache
+  "0x00e2d203b35ea4707782945850e8227f609af98cc0fa17f0a7ccf9ec9c678ac7"; // ← Paste private key của 0xC6890... từ Ganache
 
 // 👇 PASTE MESSAGE TỪ POSTMAN TẠI ĐÂY (từ response ở trên)
 const MESSAGE =
-  "Link wallet 0xc6890b26a32d9d92aefbc8635c4588247529cdfe to ViePropChain account todat2207@gmail.com";
+  "Link wallet 0x28125abecb7b1e1af3dde4f7397911f934e5a5b9 to ViePropChain account datto2207@gmail.com";
 
 // ========================================================================
 // GENERATE SIGNATURE

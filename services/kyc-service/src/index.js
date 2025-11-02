@@ -60,12 +60,16 @@ app.listen(PORT, () => {
 ║                                                              ║
 ║  Chức năng: User nhập Họ tên + CCCD → Auto verified         ║
 ║                                                              ║
-║  API Endpoints:                                              ║
-║  ├─ POST /kyc                           - Submit & verify    ║
-║  ├─ GET  /kyc/:walletAddress            - Get KYC info      ║
-║  ├─ GET  /kyc/:walletAddress/verified   - Check verified    ║
-║  ├─ GET  /verified/all                  - All verified      ║
-║  └─ GET  /statistics                    - Statistics        ║
+║  API Endpoints (qua API Gateway: /api/kyc/*):                ║
+║  ├─ POST /api/kyc                       - Submit & verify (*) ║
+║  ├─ GET  /api/kyc/me                    - My KYC (*)         ║
+║  ├─ GET  /api/kyc/me/verified           - My verified (*)    ║
+║  ├─ GET  /api/kyc/wallet/:address       - By wallet          ║
+║  ├─ GET  /api/kyc/wallet/:address/verified - Check verified  ║
+║  ├─ GET  /api/kyc/verified/all          - All verified       ║
+║  └─ GET  /api/kyc/statistics            - Statistics         ║
+║                                                              ║
+║  (*) = Requires JWT Authentication                          ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });

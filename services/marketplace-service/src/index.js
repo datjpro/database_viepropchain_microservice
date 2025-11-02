@@ -17,6 +17,8 @@ require("dotenv").config();
 const connectDB = require("./config/database");
 const listingRoutes = require("./routes/listingRoutes");
 const offerRoutes = require("./routes/offerRoutes");
+const nftInfoRoutes = require("./routes/nftInfoRoutes");
+const frontendRoutes = require("./routes/frontendRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4008;
@@ -54,8 +56,10 @@ app.get("/health", (req, res) => {
 // ============================================================================
 // ROUTES
 // ============================================================================
+app.use("/api", frontendRoutes); // Fast read APIs for frontend
 app.use("/listings", listingRoutes);
 app.use("/offers", offerRoutes);
+app.use("/", nftInfoRoutes); // NFT info helper routes
 
 // ============================================================================
 // ERROR HANDLER
@@ -101,6 +105,10 @@ app.listen(PORT, () => {
 ║  ├─ POST   /offers/:id/accept       - Accept offer (*)      ║
 ║  ├─ POST   /offers/:id/reject       - Reject offer (*)      ║
 ║  └─ DELETE /offers/:id              - Cancel offer (*)      ║
+║                                                              ║
+║  🔍 NFT Info Helper:                                         ║
+║  ├─ GET    /nft-info/:wallet        - My NFTs with property ║
+║  └─ GET    /nft-info/token/:tokenId - NFT detail            ║
 ║                                                              ║
 ║  (*) = Requires JWT Authentication                          ║
 ╚══════════════════════════════════════════════════════════════╝

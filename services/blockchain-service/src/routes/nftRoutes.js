@@ -24,4 +24,9 @@ router.post("/transfer", nftController.transfer);
 // Get token counter
 router.get("/token-counter", nftController.getTokenCounter);
 
+// ERC721Enumerable endpoints
+router.get("/total-supply", nftController.getTotalSupply);
+router.get("/all-nfts", nftController.getAllNFTs);
+router.get("/nft-by-index/:index", nftController.getNFTByIndex);
+
 module.exports = router;

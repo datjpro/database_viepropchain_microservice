@@ -47,12 +47,15 @@ class KYCService {
 
       await kyc.save();
 
-      // Notify User Service
-      await this.notifyUserService(userId, email, walletAddress, {
+      // Notify User Service (non-blocking)
+      this.notifyUserService(userId, email, walletAddress, {
         isVerified: true,
         verificationLevel: "basic",
         kycId: kyc._id,
         fullName,
+      }).catch((error) => {
+        console.warn(`⚠️ Failed to notify User Service: ${error.message}`);
+        console.warn(`   (KYC still saved successfully)`);
       });
 
       console.log(`✅ KYC auto-verified for user: ${email}`);
@@ -213,11 +216,14 @@ class KYCService {
    */
   async notifyUserService(userId, email, walletAddress, kycData) {
     try {
-      // Notify by userId (primary)
+      // Use walletAddress if available, otherwise use userId as fallback
+      const addressOrUserId = walletAddress || userId;
+
       await axios.put(
-        `${USER_SERVICE_URL}/profiles/user/${userId}/kyc-status`,
+        `${USER_SERVICE_URL}/profiles/${addressOrUserId}/kyc-status`,
         {
           ...kycData,
+          userId,
           email,
           walletAddress,
         }
