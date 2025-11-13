@@ -18,7 +18,11 @@ class ContractService {
    */
   initContract() {
     const signer = getSigner();
-    this.contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    this.contract = new ethers.Contract(
+      NFT_CONTRACT_ADDRESS,
+      CONTRACT_ABI,
+      signer
+    );
     return this.contract;
   }
 
@@ -393,15 +397,17 @@ class ContractService {
       let expiresTimestamp = expires;
       if (expires instanceof Date) {
         expiresTimestamp = Math.floor(expires.getTime() / 1000);
-      } else if (typeof expires === 'string') {
+      } else if (typeof expires === "string") {
         expiresTimestamp = Math.floor(new Date(expires).getTime() / 1000);
       }
 
       const tx = await this.contract.setUser(tokenId, user, expiresTimestamp);
       console.log(`   📝 Transaction hash: ${tx.hash}`);
-      
+
       const receipt = await tx.wait();
-      console.log(`   ✅ User set successfully at block ${receipt.blockNumber}`);
+      console.log(
+        `   ✅ User set successfully at block ${receipt.blockNumber}`
+      );
 
       return {
         tokenId: Number(tokenId),
@@ -430,15 +436,18 @@ class ContractService {
 
       const [user, expires] = await Promise.all([
         this.contract.userOf(tokenId),
-        this.contract.userExpires(tokenId)
+        this.contract.userExpires(tokenId),
       ]);
 
       const now = Math.floor(Date.now() / 1000);
       const isRented = user !== ethers.ZeroAddress && Number(expires) > now;
-      const timeLeft = Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
 
       console.log(`   👤 User: ${user}`);
-      console.log(`   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`);
+      console.log(
+        `   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`
+      );
       console.log(`   🎯 Is Rented: ${isRented}`);
 
       return {
@@ -446,7 +455,7 @@ class ContractService {
         expires: Number(expires),
         expiresAt: new Date(Number(expires) * 1000),
         isRented,
-        timeLeft
+        timeLeft,
       };
     } catch (error) {
       throw new Error(`Failed to get user: ${error.message}`);
@@ -467,16 +476,19 @@ class ContractService {
       const expires = await this.contract.userExpires(tokenId);
       const now = Math.floor(Date.now() / 1000);
       const isActive = Number(expires) > now;
-      const timeLeft = Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
 
-      console.log(`   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`);
+      console.log(
+        `   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`
+      );
       console.log(`   🎯 Is Active: ${isActive}`);
 
       return {
         expires: Number(expires),
         expiresAt: new Date(Number(expires) * 1000),
         isActive,
-        timeLeft
+        timeLeft,
       };
     } catch (error) {
       throw new Error(`Failed to get user expires: ${error.message}`);
@@ -496,12 +508,13 @@ class ContractService {
 
       const [user, expires] = await Promise.all([
         this.contract.userOf(tokenId),
-        this.contract.userExpires(tokenId)
+        this.contract.userExpires(tokenId),
       ]);
 
       const now = Math.floor(Date.now() / 1000);
       const isRented = user !== ethers.ZeroAddress && Number(expires) > now;
-      const timeLeft = Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
 
       console.log(`   👤 Current User: ${user}`);
       console.log(`   ⏰ Expires: ${expires}`);
@@ -512,7 +525,7 @@ class ContractService {
         currentUser: user === ethers.ZeroAddress ? null : user,
         expires: Number(expires),
         expiresAt: new Date(Number(expires) * 1000),
-        timeLeft
+        timeLeft,
       };
     } catch (error) {
       throw new Error(`Failed to check rental status: ${error.message}`);

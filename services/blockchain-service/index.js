@@ -70,8 +70,8 @@ app.use(express.json());
 // ROUTES
 // ============================================================================
 // Use NFT routes
-const nftRoutes = require('./src/routes/nftRoutes');
-app.use('/api/nft', nftRoutes);
+const nftRoutes = require("./src/routes/nftRoutes");
+app.use("/api/nft", nftRoutes);
 
 // ============================================================================
 // HEALTH CHECK
