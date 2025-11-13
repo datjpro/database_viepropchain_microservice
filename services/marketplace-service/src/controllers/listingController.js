@@ -13,7 +13,7 @@ const BLOCKCHAIN_SERVICE_URL =
   process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:4004";
 
 /**
- * Create new listing
+ * Create new listing (sale or rent)
  */
 exports.createListing = async (req, res) => {
   try {
@@ -24,6 +24,9 @@ exports.createListing = async (req, res) => {
       price,
       description,
       expiresAt,
+      listingType = "sale", // "sale" or "rent"
+      pricePerDay, // for rental
+      maxDurationDays, // for rental
     } = req.body;
     const userId = req.user.userId;
     const walletAddress = req.user.walletAddress;
@@ -34,6 +37,24 @@ exports.createListing = async (req, res) => {
         error: "Wallet not linked",
         message: "Please link your wallet first to create a listing",
       });
+    }
+
+    // Validate rental fields
+    if (listingType === "rent") {
+      if (!pricePerDay || !maxDurationDays) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing rental parameters",
+          message: "pricePerDay and maxDurationDays are required for rental listings",
+        });
+      }
+      if (maxDurationDays < 1 || maxDurationDays > 365) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid rental duration",
+          message: "maxDurationDays must be between 1 and 365",
+        });
+      }
     }
 
     // Verify NFT ownership from Blockchain Service
@@ -98,8 +119,8 @@ exports.createListing = async (req, res) => {
       });
     }
 
-    // Create listing
-    const listing = new Listing({
+    // Create listing with rental support
+    const listingData = {
       tokenId,
       contractAddress,
       propertyId,
@@ -118,21 +139,40 @@ exports.createListing = async (req, res) => {
         email: req.user.email,
         name: req.user.name || req.user.fullName,
       },
-      price: {
-        amount: price.toString(),
-        currency: "ETH",
-      },
+      listingType,
       description,
       expiresAt: expiresAt || undefined,
-    });
+    };
+
+    // Set pricing based on listing type
+    if (listingType === "sale") {
+      listingData.price = {
+        amount: price.toString(),
+        currency: "ETH",
+      };
+    } else if (listingType === "rent") {
+      listingData.rental = {
+        pricePerDay: pricePerDay.toString(),
+        maxDurationDays: parseInt(maxDurationDays),
+      };
+      // For rental listings, price is optional (can be calculated)
+      if (price) {
+        listingData.price = {
+          amount: price.toString(),
+          currency: "ETH",
+        };
+      }
+    }
+
+    const listing = new Listing(listingData);
 
     await listing.save();
 
-    console.log(`✅ Listing created: Token #${tokenId}`);
+    console.log(`✅ ${listingType} listing created: Token #${tokenId}`);
 
     res.status(201).json({
       success: true,
-      message: "Listing created successfully",
+      message: `${listingType === "sale" ? "Sale" : "Rental"} listing created successfully`,
       data: listing,
     });
   } catch (error) {
@@ -157,6 +197,7 @@ exports.getListings = async (req, res) => {
       city,
       minPrice,
       maxPrice,
+      listingType, // "sale", "rent", or undefined for all
       sortBy = "listedAt",
       sortOrder = "desc",
     } = req.query;
@@ -165,6 +206,7 @@ exports.getListings = async (req, res) => {
 
     if (propertyType) query.propertyType = propertyType;
     if (city) query["propertyAddress.city"] = city;
+    if (listingType) query.listingType = listingType;
 
     if (minPrice || maxPrice) {
       query["price.amount"] = {};
@@ -405,6 +447,335 @@ exports.trackView = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to track view",
+    });
+  }
+};
+
+/**
+ * ========================================================================
+ * RENTAL SPECIFIC FUNCTIONS
+ * ========================================================================
+ */
+
+/**
+ * Create rental listing
+ */
+exports.createRentalListing = async (req, res) => {
+  try {
+    const {
+      tokenId,
+      contractAddress,
+      propertyId,
+      pricePerDay,
+      maxDurationDays,
+      description,
+      expiresAt,
+    } = req.body;
+
+    // Set listingType to rent and call main create function
+    req.body.listingType = "rent";
+    req.body.pricePerDay = pricePerDay;
+    req.body.maxDurationDays = maxDurationDays;
+
+    return exports.createListing(req, res);
+  } catch (error) {
+    console.error("❌ Create rental listing error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create rental listing",
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Rent an NFT
+ */
+exports.rentNFT = async (req, res) => {
+  try {
+    const { rentalDays } = req.body;
+    const listingId = req.params.id;
+    const userId = req.user.userId;
+    const walletAddress = req.user.walletAddress;
+
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: "Wallet not linked",
+        message: "Please link your wallet first to rent NFT",
+      });
+    }
+
+    if (!rentalDays || rentalDays < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid rental duration",
+        message: "rentalDays must be at least 1",
+      });
+    }
+
+    const listing = await Listing.findById(listingId);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        error: "Listing not found",
+      });
+    }
+
+    // Validate rental listing
+    if (listing.listingType !== "rent") {
+      return res.status(400).json({
+        success: false,
+        error: "Not a rental listing",
+        message: "This NFT is not available for rent",
+      });
+    }
+
+    if (listing.status !== "active") {
+      return res.status(400).json({
+        success: false,
+        error: "Listing not active",
+        message: "This rental listing is no longer active",
+      });
+    }
+
+    // Check if already rented and still active
+    if (listing.isRentalActive) {
+      return res.status(400).json({
+        success: false,
+        error: "Already rented",
+        message: "This NFT is currently being rented by someone else",
+      });
+    }
+
+    // Check rental duration
+    if (rentalDays > listing.rental.maxDurationDays) {
+      return res.status(400).json({
+        success: false,
+        error: "Rental duration too long",
+        message: `Maximum rental duration is ${listing.rental.maxDurationDays} days`,
+      });
+    }
+
+    // Calculate total cost
+    const totalCost = BigInt(listing.rental.pricePerDay) * BigInt(rentalDays);
+    const expiresAt = new Date(Date.now() + rentalDays * 24 * 60 * 60 * 1000);
+
+    // TODO: Call blockchain service to execute rental transaction
+    // This would interact with the smart contract's rentItem function
+
+    // Update listing with rental info
+    listing.rental.currentRenter = {
+      userId,
+      walletAddress,
+      email: req.user.email,
+      name: req.user.name || req.user.fullName,
+      rentedAt: new Date(),
+      expiresAt: expiresAt,
+      rentalDays: rentalDays,
+      // transactionHash: txHash, // TODO: Add when blockchain call is implemented
+    };
+
+    listing.status = "rented";
+    await listing.save();
+
+    console.log(`✅ NFT rented: Token #${listing.tokenId} for ${rentalDays} days`);
+
+    res.json({
+      success: true,
+      message: "NFT rented successfully",
+      data: {
+        listingId: listing._id,
+        tokenId: listing.tokenId,
+        rentalDays,
+        totalCost: totalCost.toString(),
+        expiresAt,
+        renter: listing.rental.currentRenter,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Rent NFT error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to rent NFT",
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Get rental listings
+ */
+exports.getRentalListings = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      propertyType,
+      city,
+      minPricePerDay,
+      maxPricePerDay,
+      maxDuration,
+      availability = "all", // "all", "available", "rented"
+      sortBy = "listedAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    const query = { 
+      listingType: "rent",
+      status: { $in: ["active", "rented"] }
+    };
+
+    if (propertyType) query.propertyType = propertyType;
+    if (city) query["propertyAddress.city"] = city;
+
+    if (minPricePerDay || maxPricePerDay) {
+      query["rental.pricePerDay"] = {};
+      if (minPricePerDay) query["rental.pricePerDay"].$gte = minPricePerDay.toString();
+      if (maxPricePerDay) query["rental.pricePerDay"].$lte = maxPricePerDay.toString();
+    }
+
+    if (maxDuration) {
+      query["rental.maxDurationDays"] = { $gte: parseInt(maxDuration) };
+    }
+
+    // Filter by availability
+    if (availability === "available") {
+      query.$or = [
+        { status: "active" },
+        { 
+          status: "rented",
+          "rental.currentRenter.expiresAt": { $lt: new Date() }
+        }
+      ];
+    } else if (availability === "rented") {
+      query.status = "rented";
+      query["rental.currentRenter.expiresAt"] = { $gte: new Date() };
+    }
+
+    const skip = (page - 1) * limit;
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    const [listings, total] = await Promise.all([
+      Listing.find(query).sort(sort).skip(skip).limit(Number(limit)).lean(),
+      Listing.countDocuments(query),
+    ]);
+
+    // Add rental status to each listing
+    const enrichedListings = listings.map(listing => ({
+      ...listing,
+      isCurrentlyRented: listing.rental?.currentRenter && 
+        new Date() < new Date(listing.rental.currentRenter.expiresAt),
+      rentalTimeLeft: listing.rental?.currentRenter ? 
+        Math.max(0, new Date(listing.rental.currentRenter.expiresAt) - new Date()) : 0
+    }));
+
+    res.json({
+      success: true,
+      data: enrichedListings,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Get rental listings error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get rental listings",
+    });
+  }
+};
+
+/**
+ * Get my rental history (as renter)
+ */
+exports.getMyRentals = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { status = "all" } = req.query;
+
+    const query = {
+      "rental.currentRenter.userId": userId,
+      listingType: "rent"
+    };
+
+    // Filter by rental status
+    if (status === "active") {
+      query["rental.currentRenter.expiresAt"] = { $gte: new Date() };
+    } else if (status === "expired") {
+      query["rental.currentRenter.expiresAt"] = { $lt: new Date() };
+    }
+
+    const rentals = await Listing.find(query)
+      .sort({ "rental.currentRenter.rentedAt": -1 })
+      .lean();
+
+    // Enrich with rental status
+    const enrichedRentals = rentals.map(rental => ({
+      ...rental,
+      isActive: new Date() < new Date(rental.rental.currentRenter.expiresAt),
+      timeLeft: Math.max(0, new Date(rental.rental.currentRenter.expiresAt) - new Date()),
+    }));
+
+    res.json({
+      success: true,
+      data: enrichedRentals,
+    });
+  } catch (error) {
+    console.error("❌ Get my rentals error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get rental history",
+    });
+  }
+};
+
+/**
+ * Check NFT rental status
+ */
+exports.getNFTRentalStatus = async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+
+    const listing = await Listing.findOne({
+      tokenId,
+      listingType: "rent",
+      status: { $in: ["active", "rented"] }
+    }).lean();
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        error: "Rental listing not found",
+      });
+    }
+
+    const isCurrentlyRented = listing.rental?.currentRenter && 
+      new Date() < new Date(listing.rental.currentRenter.expiresAt);
+
+    res.json({
+      success: true,
+      data: {
+        tokenId: listing.tokenId,
+        listingId: listing._id,
+        isAvailable: !isCurrentlyRented,
+        isCurrentlyRented,
+        pricePerDay: listing.rental.pricePerDay,
+        maxDurationDays: listing.rental.maxDurationDays,
+        currentRenter: isCurrentlyRented ? listing.rental.currentRenter : null,
+        timeLeft: isCurrentlyRented ? 
+          Math.max(0, new Date(listing.rental.currentRenter.expiresAt) - new Date()) : 0,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Get rental status error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get rental status",
     });
   }
 };
