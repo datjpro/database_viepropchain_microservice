@@ -106,6 +106,12 @@ app.listen(PORT, () => {
 ║  ├─ POST   /offers/:id/reject       - Reject offer (*)      ║
 ║  └─ DELETE /offers/:id              - Cancel offer (*)      ║
 ║                                                              ║
+║  🏠 Rental Endpoints:                                        ║
+║  ├─ POST   /listings/rental         - Create rental (*)     ║
+║  ├─ POST   /listings/:id/rent       - Rent NFT (*)          ║
+║  ├─ GET    /listings/rental         - Browse rentals        ║
+║  └─ GET    /my/rentals              - My rentals (*)        ║
+║                                                              ║
 ║  🔍 NFT Info Helper:                                         ║
 ║  ├─ GET    /nft-info/:wallet        - My NFTs with property ║
 ║  └─ GET    /nft-info/token/:tokenId - NFT detail            ║

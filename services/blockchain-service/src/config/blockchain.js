@@ -5,12 +5,16 @@
  */
 
 const { ethers } = require("ethers");
-const { NFT_CONTRACT_ADDRESS, MARKETPLACE_CONTRACT_ADDRESS } = require('./contract');
+const {
+  NFT_CONTRACT_ADDRESS,
+  MARKETPLACE_CONTRACT_ADDRESS,
+} = require("./contract");
 
 const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const NFT_CONTRACT = process.env.NFT_CONTRACT_ADDRESS || NFT_CONTRACT_ADDRESS;
-const MARKETPLACE_CONTRACT = process.env.MARKETPLACE_CONTRACT_ADDRESS || MARKETPLACE_CONTRACT_ADDRESS;
+const MARKETPLACE_CONTRACT =
+  process.env.MARKETPLACE_CONTRACT_ADDRESS || MARKETPLACE_CONTRACT_ADDRESS;
 
 let provider;
 let signer;
@@ -35,12 +39,6 @@ function initBlockchain() {
     }
 
     signer = new ethers.Wallet(ADMIN_PRIVATE_KEY, provider);
-
-    console.log("✅ Blockchain initialized");
-    console.log("   Provider:", GANACHE_URL);
-    console.log("   NFT Contract:", NFT_CONTRACT);
-    console.log("   Marketplace Contract:", MARKETPLACE_CONTRACT);
-    console.log("   Admin:", signer.address);
 
     console.log("✅ Blockchain initialized");
     console.log("   Provider:", GANACHE_URL);

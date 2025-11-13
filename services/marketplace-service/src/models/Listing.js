@@ -58,18 +58,22 @@ const listingSchema = new mongoose.Schema(
       default: "sale",
       index: true,
     },
-    
+
     // Rental specific fields
     rental: {
       pricePerDay: {
         type: String, // Wei format for daily rental price
-        required: function() { return this.listingType === "rent"; }
+        required: function () {
+          return this.listingType === "rent";
+        },
       },
       maxDurationDays: {
         type: Number,
-        required: function() { return this.listingType === "rent"; },
+        required: function () {
+          return this.listingType === "rent";
+        },
         min: 1,
-        max: 365
+        max: 365,
       },
       currentRenter: {
         userId: mongoose.Schema.Types.ObjectId,
@@ -82,8 +86,8 @@ const listingSchema = new mongoose.Schema(
         rentedAt: Date,
         expiresAt: Date,
         rentalDays: Number,
-        transactionHash: String
-      }
+        transactionHash: String,
+      },
     },
 
     // Pricing

@@ -45,7 +45,8 @@ exports.createListing = async (req, res) => {
         return res.status(400).json({
           success: false,
           error: "Missing rental parameters",
-          message: "pricePerDay and maxDurationDays are required for rental listings",
+          message:
+            "pricePerDay and maxDurationDays are required for rental listings",
         });
       }
       if (maxDurationDays < 1 || maxDurationDays > 365) {
@@ -172,7 +173,9 @@ exports.createListing = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `${listingType === "sale" ? "Sale" : "Rental"} listing created successfully`,
+      message: `${
+        listingType === "sale" ? "Sale" : "Rental"
+      } listing created successfully`,
       data: listing,
     });
   } catch (error) {
@@ -580,7 +583,9 @@ exports.rentNFT = async (req, res) => {
     listing.status = "rented";
     await listing.save();
 
-    console.log(`✅ NFT rented: Token #${listing.tokenId} for ${rentalDays} days`);
+    console.log(
+      `✅ NFT rented: Token #${listing.tokenId} for ${rentalDays} days`
+    );
 
     res.json({
       success: true,
@@ -622,9 +627,9 @@ exports.getRentalListings = async (req, res) => {
       sortOrder = "desc",
     } = req.query;
 
-    const query = { 
+    const query = {
       listingType: "rent",
-      status: { $in: ["active", "rented"] }
+      status: { $in: ["active", "rented"] },
     };
 
     if (propertyType) query.propertyType = propertyType;
@@ -632,8 +637,10 @@ exports.getRentalListings = async (req, res) => {
 
     if (minPricePerDay || maxPricePerDay) {
       query["rental.pricePerDay"] = {};
-      if (minPricePerDay) query["rental.pricePerDay"].$gte = minPricePerDay.toString();
-      if (maxPricePerDay) query["rental.pricePerDay"].$lte = maxPricePerDay.toString();
+      if (minPricePerDay)
+        query["rental.pricePerDay"].$gte = minPricePerDay.toString();
+      if (maxPricePerDay)
+        query["rental.pricePerDay"].$lte = maxPricePerDay.toString();
     }
 
     if (maxDuration) {
@@ -644,10 +651,10 @@ exports.getRentalListings = async (req, res) => {
     if (availability === "available") {
       query.$or = [
         { status: "active" },
-        { 
+        {
           status: "rented",
-          "rental.currentRenter.expiresAt": { $lt: new Date() }
-        }
+          "rental.currentRenter.expiresAt": { $lt: new Date() },
+        },
       ];
     } else if (availability === "rented") {
       query.status = "rented";
@@ -663,12 +670,17 @@ exports.getRentalListings = async (req, res) => {
     ]);
 
     // Add rental status to each listing
-    const enrichedListings = listings.map(listing => ({
+    const enrichedListings = listings.map((listing) => ({
       ...listing,
-      isCurrentlyRented: listing.rental?.currentRenter && 
+      isCurrentlyRented:
+        listing.rental?.currentRenter &&
         new Date() < new Date(listing.rental.currentRenter.expiresAt),
-      rentalTimeLeft: listing.rental?.currentRenter ? 
-        Math.max(0, new Date(listing.rental.currentRenter.expiresAt) - new Date()) : 0
+      rentalTimeLeft: listing.rental?.currentRenter
+        ? Math.max(
+            0,
+            new Date(listing.rental.currentRenter.expiresAt) - new Date()
+          )
+        : 0,
     }));
 
     res.json({
@@ -700,7 +712,7 @@ exports.getMyRentals = async (req, res) => {
 
     const query = {
       "rental.currentRenter.userId": userId,
-      listingType: "rent"
+      listingType: "rent",
     };
 
     // Filter by rental status
@@ -715,10 +727,13 @@ exports.getMyRentals = async (req, res) => {
       .lean();
 
     // Enrich with rental status
-    const enrichedRentals = rentals.map(rental => ({
+    const enrichedRentals = rentals.map((rental) => ({
       ...rental,
       isActive: new Date() < new Date(rental.rental.currentRenter.expiresAt),
-      timeLeft: Math.max(0, new Date(rental.rental.currentRenter.expiresAt) - new Date()),
+      timeLeft: Math.max(
+        0,
+        new Date(rental.rental.currentRenter.expiresAt) - new Date()
+      ),
     }));
 
     res.json({
@@ -744,7 +759,7 @@ exports.getNFTRentalStatus = async (req, res) => {
     const listing = await Listing.findOne({
       tokenId,
       listingType: "rent",
-      status: { $in: ["active", "rented"] }
+      status: { $in: ["active", "rented"] },
     }).lean();
 
     if (!listing) {
@@ -754,7 +769,8 @@ exports.getNFTRentalStatus = async (req, res) => {
       });
     }
 
-    const isCurrentlyRented = listing.rental?.currentRenter && 
+    const isCurrentlyRented =
+      listing.rental?.currentRenter &&
       new Date() < new Date(listing.rental.currentRenter.expiresAt);
 
     res.json({
@@ -767,8 +783,12 @@ exports.getNFTRentalStatus = async (req, res) => {
         pricePerDay: listing.rental.pricePerDay,
         maxDurationDays: listing.rental.maxDurationDays,
         currentRenter: isCurrentlyRented ? listing.rental.currentRenter : null,
-        timeLeft: isCurrentlyRented ? 
-          Math.max(0, new Date(listing.rental.currentRenter.expiresAt) - new Date()) : 0,
+        timeLeft: isCurrentlyRented
+          ? Math.max(
+              0,
+              new Date(listing.rental.currentRenter.expiresAt) - new Date()
+            )
+          : 0,
       },
     });
   } catch (error) {
