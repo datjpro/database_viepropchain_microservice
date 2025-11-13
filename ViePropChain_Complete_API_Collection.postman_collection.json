@@ -1605,7 +1605,13 @@
                 "url": {
                   "raw": "{{base_url}}/blockchain/api/nft/user-expires/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "api", "nft", "user-expires", "{{token_id}}"]
+                  "path": [
+                    "blockchain",
+                    "api",
+                    "nft",
+                    "user-expires",
+                    "{{token_id}}"
+                  ]
                 },
                 "description": "⏰ **Get Rental Expiration Time**\n\n**Returns:** Unix timestamp when rental expires\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"expires\": 1735689600,\n    \"expiresDate\": \"2025-01-01T00:00:00.000Z\",\n    \"timeLeft\": 86400000,\n    \"hasExpired\": false\n  }\n}\n```"
               }
@@ -1618,7 +1624,13 @@
                 "url": {
                   "raw": "{{base_url}}/blockchain/api/nft/is-rented/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "api", "nft", "is-rented", "{{token_id}}"]
+                  "path": [
+                    "blockchain",
+                    "api",
+                    "nft",
+                    "is-rented",
+                    "{{token_id}}"
+                  ]
                 },
                 "description": "🏠 **Check NFT Rental Status**\n\n**Returns:** Complete rental status information\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"isRented\": true,\n    \"currentUser\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"expires\": 1735689600,\n    \"timeLeft\": 86400000\n  }\n}\n```"
               }
@@ -1631,7 +1643,13 @@
                 "url": {
                   "raw": "{{base_url}}/blockchain/api/nft/metadata/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "api", "nft", "metadata", "{{token_id}}"]
+                  "path": [
+                    "blockchain",
+                    "api",
+                    "nft",
+                    "metadata",
+                    "{{token_id}}"
+                  ]
                 },
                 "description": "📄 **Get NFT Metadata (NEW)**\n\n**Returns:** Complete NFT metadata including image\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"tokenURI\": \"ipfs://QmRctQ4FLBgstfGyLDUVdNsai8vTzM3xjykQ42xUi18Nfa\",\n    \"metadata\": {\n      \"name\": \"Phòng 1124 E4\",\n      \"description\": \"Beautiful property...\",\n      \"image\": \"ipfs://QmYourImageHash\",\n      \"attributes\": [...],\n      \"propertyId\": \"...\"\n    }\n  }\n}\n```\n\n**Use Case:** Display NFT images and metadata in marketplace"
               }
@@ -1872,7 +1890,7 @@
       "description": "🔗 Updated NFT Contract Address (ERC721 + ERC4907)"
     },
     {
-      "key": "marketplace_contract_address", 
+      "key": "marketplace_contract_address",
       "value": "0x67bC8255530323abd8ae3f4215Dd531ba6425ee3",
       "type": "string",
       "description": "🛒 Updated Marketplace Contract Address"
