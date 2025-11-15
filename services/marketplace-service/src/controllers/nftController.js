@@ -83,9 +83,11 @@ class NFTController {
                   // Use IPFS service to fetch content
                   const ipfsHash = nft.tokenURI.replace("ipfs://", "");
                   const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
-                  
-                  console.log(`   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`);
-                  
+
+                  console.log(
+                    `   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`
+                  );
+
                   const metadataResponse = await axios.get(ipfsServiceUrl);
                   if (metadataResponse.data.success) {
                     metadata = metadataResponse.data.data.content;
@@ -223,9 +225,11 @@ class NFTController {
             // Use IPFS service to fetch content
             const ipfsHash = nftData.tokenURI.replace("ipfs://", "");
             const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
-            
-            console.log(`   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`);
-            
+
+            console.log(
+              `   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`
+            );
+
             const metadataResponse = await axios.get(ipfsServiceUrl);
             if (metadataResponse.data.success) {
               metadata = metadataResponse.data.data.content;
@@ -337,7 +341,7 @@ class NFTController {
                 // Use IPFS service to fetch content
                 const ipfsHash = nft.tokenURI.replace("ipfs://", "");
                 const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
-                
+
                 const metadataResponse = await axios.get(ipfsServiceUrl);
                 if (metadataResponse.data.success) {
                   metadata = metadataResponse.data.data.content;

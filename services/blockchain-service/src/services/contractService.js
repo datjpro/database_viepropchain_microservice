@@ -5,7 +5,11 @@
  */
 
 const { ethers } = require("ethers");
-const { getSigner, getProvider, NFT_CONTRACT_ADDRESS } = require("../config/blockchain");
+const {
+  getSigner,
+  getProvider,
+  NFT_CONTRACT_ADDRESS,
+} = require("../config/blockchain");
 const { CONTRACT_ABI } = require("../config/contract");
 
 class ContractService {
@@ -20,22 +24,24 @@ class ContractService {
     try {
       const signer = getSigner();
       const provider = getProvider();
-      
+
       if (!signer || !provider) {
-        throw new Error("Blockchain not initialized. Call initBlockchain() first.");
+        throw new Error(
+          "Blockchain not initialized. Call initBlockchain() first."
+        );
       }
-      
+
       if (!NFT_CONTRACT_ADDRESS) {
         throw new Error("NFT_CONTRACT_ADDRESS not found");
       }
-      
+
       // Create contract instance with signer
       this.contract = new ethers.Contract(
         NFT_CONTRACT_ADDRESS,
         CONTRACT_ABI,
         signer
       );
-      
+
       console.log(`✅ Contract initialized at ${NFT_CONTRACT_ADDRESS}`);
       return this.contract;
     } catch (error) {
