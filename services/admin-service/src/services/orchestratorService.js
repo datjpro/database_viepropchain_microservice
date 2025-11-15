@@ -27,7 +27,9 @@ class OrchestratorService {
       minted_at: new Date().toISOString(),
       minted_timestamp: Date.now(),
       property_id: property._id.toString(),
-      unique_hash: `${property._id}_${Date.now()}_${Math.random().toString(36)}`,
+      unique_hash: `${property._id}_${Date.now()}_${Math.random().toString(
+        36
+      )}`,
       attributes: [
         { trait_type: "Property Type", value: property.propertyType },
         { trait_type: "City", value: property.address?.city || "N/A" },

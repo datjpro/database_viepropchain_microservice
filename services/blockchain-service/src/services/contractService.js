@@ -5,7 +5,7 @@
  */
 
 const { ethers } = require("ethers");
-const { getSigner, NFT_CONTRACT_ADDRESS } = require("../config/blockchain");
+const { getSigner, getProvider, NFT_CONTRACT_ADDRESS } = require("../config/blockchain");
 const { CONTRACT_ABI } = require("../config/contract");
 
 class ContractService {
@@ -17,13 +17,31 @@ class ContractService {
    * Initialize contract instance
    */
   initContract() {
-    const signer = getSigner();
-    this.contract = new ethers.Contract(
-      NFT_CONTRACT_ADDRESS,
-      CONTRACT_ABI,
-      signer
-    );
-    return this.contract;
+    try {
+      const signer = getSigner();
+      const provider = getProvider();
+      
+      if (!signer || !provider) {
+        throw new Error("Blockchain not initialized. Call initBlockchain() first.");
+      }
+      
+      if (!NFT_CONTRACT_ADDRESS) {
+        throw new Error("NFT_CONTRACT_ADDRESS not found");
+      }
+      
+      // Create contract instance with signer
+      this.contract = new ethers.Contract(
+        NFT_CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        signer
+      );
+      
+      console.log(`✅ Contract initialized at ${NFT_CONTRACT_ADDRESS}`);
+      return this.contract;
+    } catch (error) {
+      console.error("❌ Contract init error:", error.message);
+      throw error;
+    }
   }
 
   /**
@@ -57,7 +75,7 @@ class ContractService {
           tokenId: Number(existingTokenId),
           recipient,
           tokenURI,
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
           isDuplicate: true,
           message: "NFT with this metadata already exists",
         };
@@ -101,7 +119,7 @@ class ContractService {
         tokenId,
         recipient,
         tokenURI,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
@@ -131,7 +149,7 @@ class ContractService {
         tokenId: Number(tokenId),
         owner,
         tokenURI,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get NFT info: ${error.message}`);
@@ -167,7 +185,7 @@ class ContractService {
           owner,
           balance: balanceNum,
           nfts: [],
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
         };
       }
 
@@ -213,7 +231,7 @@ class ContractService {
         owner,
         balance: balanceNum,
         nfts,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       console.error(`❌ getNFTsByOwner error:`, error);
@@ -306,7 +324,7 @@ class ContractService {
         return {
           totalSupply: 0,
           nfts: [],
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
         };
       }
 
@@ -336,7 +354,7 @@ class ContractService {
       return {
         totalSupply: totalSupplyNum,
         nfts,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get all NFTs: ${error.message}`);
@@ -362,7 +380,7 @@ class ContractService {
         owner,
         tokenURI,
         globalIndex: Number(index),
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get NFT by index: ${error.message}`);
@@ -416,7 +434,7 @@ class ContractService {
         expiresAt: new Date(Number(expiresTimestamp) * 1000),
         transactionHash: tx.hash,
         blockNumber: receipt.blockNumber,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to set user: ${error.message}`);

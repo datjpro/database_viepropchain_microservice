@@ -71,7 +71,7 @@ app.use(express.json());
 // ============================================================================
 // Use NFT routes (without /api prefix since API Gateway routes /blockchain to this service)
 const nftRoutes = require("./src/routes/nftRoutes");
-app.use("/nft", nftRoutes);
+app.use("/", nftRoutes);
 
 // ============================================================================
 // HEALTH CHECK
@@ -116,16 +116,16 @@ app.listen(PORT, () => {
 ║  Admin: ${signer.address}     ║
 ║                                                              ║
 ║  Service Endpoints (via API Gateway):                       ║
-║  ├─ POST /blockchain/nft/mint         - Mint NFT            ║
-║  ├─ GET  /blockchain/nft/nft/:id      - Get NFT info        ║
-║  ├─ GET  /blockchain/nft/nfts/:owner  - Get NFTs by owner   ║
-║  ├─ POST /blockchain/nft/transfer     - Transfer NFT        ║
-║  ├─ GET  /blockchain/nft/token-counter - Get total minted   ║
-║  ├─ POST /blockchain/nft/set-user     - Set rental user     ║
-║  ├─ GET  /blockchain/nft/user/:id     - Get rental user     ║
-║  ├─ GET  /blockchain/nft/user-expires/:id - Get expires     ║
-║  ├─ GET  /blockchain/nft/is-rented/:id - Check rented       ║
-║  └─ GET  /blockchain/nft/metadata/:id  - Get NFT metadata   ║
+║  ├─ POST /blockchain/mint         - Mint NFT                 ║
+║  ├─ GET  /blockchain/nft/:id      - Get NFT info             ║
+║  ├─ GET  /blockchain/nfts/:owner  - Get NFTs by owner        ║
+║  ├─ POST /blockchain/transfer     - Transfer NFT             ║
+║  ├─ GET  /blockchain/token-counter - Get total minted        ║
+║  ├─ POST /blockchain/set-user     - Set rental user          ║
+║  ├─ GET  /blockchain/user/:id     - Get rental user          ║
+║  ├─ GET  /blockchain/user-expires/:id - Get expires          ║
+║  ├─ GET  /blockchain/is-rented/:id - Check rented            ║
+║  └─ GET  /blockchain/metadata/:id  - Get NFT metadata        ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
