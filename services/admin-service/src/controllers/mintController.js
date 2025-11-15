@@ -25,15 +25,13 @@ class MintController {
         });
       }
 
-      if (!metadataUri) {
-        return res.status(400).json({
-          success: false,
-          error: "Missing metadataUri",
-        });
-      }
-
+      // metadataUri is optional - if not provided, metadata will be auto-generated
       console.log(`🔄 Minting property ${propertyId} for ${recipientAddress}`);
-      console.log(`📎 Metadata URI: ${metadataUri}`);
+      if (metadataUri) {
+        console.log(`📎 Metadata URI: ${metadataUri}`);
+      } else {
+        console.log(`📎 Auto-generating metadata from property data`);
+      }
 
       const result = await orchestratorService.mintPropertyToNFT(
         propertyId,

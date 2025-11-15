@@ -69,9 +69,9 @@ app.use(express.json());
 // ============================================================================
 // ROUTES
 // ============================================================================
-// Use NFT routes
+// Use NFT routes (without /api prefix since API Gateway routes /blockchain to this service)
 const nftRoutes = require("./src/routes/nftRoutes");
-app.use("/api/nft", nftRoutes);
+app.use("/nft", nftRoutes);
 
 // ============================================================================
 // HEALTH CHECK
@@ -115,16 +115,17 @@ app.listen(PORT, () => {
 ║  Contract: ${CONTRACT_ADDRESS}  ║
 ║  Admin: ${signer.address}     ║
 ║                                                              ║
-║  API Endpoints:                                              ║
-║  ├─ POST /api/nft/mint         - Mint NFT                    ║
-║  ├─ GET  /api/nft/nft/:id      - Get NFT info                ║
-║  ├─ GET  /api/nft/nfts/:owner  - Get NFTs by owner           ║
-║  ├─ POST /api/nft/transfer     - Transfer NFT                ║
-║  ├─ GET  /api/nft/token-counter - Get total minted           ║
-║  ├─ POST /api/nft/set-user     - Set rental user (ERC4907)   ║
-║  ├─ GET  /api/nft/user/:id     - Get rental user (ERC4907)   ║
-║  ├─ GET  /api/nft/user-expires/:id - Get expires (ERC4907)   ║
-║  └─ GET  /api/nft/is-rented/:id - Check rented (ERC4907)     ║
+║  Service Endpoints (via API Gateway):                       ║
+║  ├─ POST /blockchain/nft/mint         - Mint NFT            ║
+║  ├─ GET  /blockchain/nft/nft/:id      - Get NFT info        ║
+║  ├─ GET  /blockchain/nft/nfts/:owner  - Get NFTs by owner   ║
+║  ├─ POST /blockchain/nft/transfer     - Transfer NFT        ║
+║  ├─ GET  /blockchain/nft/token-counter - Get total minted   ║
+║  ├─ POST /blockchain/nft/set-user     - Set rental user     ║
+║  ├─ GET  /blockchain/nft/user/:id     - Get rental user     ║
+║  ├─ GET  /blockchain/nft/user-expires/:id - Get expires     ║
+║  ├─ GET  /blockchain/nft/is-rented/:id - Check rented       ║
+║  └─ GET  /blockchain/nft/metadata/:id  - Get NFT metadata   ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
