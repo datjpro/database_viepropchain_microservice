@@ -254,6 +254,30 @@ class NFTController {
 
       const result = await contractService.setUser(tokenId, user, expires);
 
+      // Notify marketplace service to update listing status
+      try {
+        const axios = require("axios");
+        const MARKETPLACE_SERVICE_URL =
+          process.env.MARKETPLACE_SERVICE_URL || "http://localhost:4008";
+
+        await axios.post(`${MARKETPLACE_SERVICE_URL}/listings/mark-rented`, {
+          tokenId: tokenId,
+          renterAddress: user,
+          expiresTimestamp: expires,
+          transactionHash: result.transactionHash,
+        });
+
+        console.log(
+          `✅ Marketplace listing updated: Token #${tokenId} marked as rented`
+        );
+      } catch (marketplaceError) {
+        console.error(
+          "⚠️ Failed to update marketplace listing:",
+          marketplaceError.message
+        );
+        // Don't fail the main request if marketplace update fails
+      }
+
       res.json({
         success: true,
         message: "User set successfully for rental",

@@ -34,4 +34,7 @@ router.delete("/:id", verifyToken, listingController.cancelListing);
 router.get("/my/listings", verifyToken, listingController.getMyListings);
 router.get("/my/rentals", verifyToken, listingController.getMyRentals);
 
+// Blockchain service callback routes (internal - no auth required)
+router.post("/mark-rented", listingController.markAsRented);
+
 module.exports = router;

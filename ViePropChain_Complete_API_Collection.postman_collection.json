@@ -1574,12 +1574,12 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"tokenId\": {{token_id}},\n  \"userAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"expires\": 1735689600\n}"
+                  "raw": "{\n  \"tokenId\": {{token_id}},\n  \"user\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"expires\": 1735689600\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/blockchain/nft/set-user",
+                  "raw": "{{base_url}}/blockchain/set-user",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "nft", "set-user"]
+                  "path": ["blockchain", "set-user"]
                 },
                 "description": "🎯 **ERC4907: Set User for Rental**\n\n**Purpose:** Assign a user to rent an NFT for a specific duration.\n\n**Body Parameters:**\n- `tokenId`: NFT token ID to rent\n- `userAddress`: Address of the renter\n- `expires`: Unix timestamp when rental expires\n\n**Requirements:**\n- Must be NFT owner\n- Must have wallet linked\n- Valid expires timestamp\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"userAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"expires\": 1735689600,\n    \"transactionHash\": \"0x...\"\n  }\n}\n```"
               }
@@ -1590,9 +1590,9 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/blockchain/nft/user/{{token_id}}",
+                  "raw": "{{base_url}}/blockchain/user/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "nft", "user", "{{token_id}}"]
+                  "path": ["blockchain", "user", "{{token_id}}"]
                 },
                 "description": "🔍 **Get Current Renter of NFT**\n\n**Returns:** Current user address who has rental rights\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"user\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"isZeroAddress\": false\n  }\n}\n```\n\n**Note:** Returns zero address if no current renter"
               }
@@ -1603,9 +1603,9 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/blockchain/nft/user-expires/{{token_id}}",
+                  "raw": "{{base_url}}/blockchain/user-expires/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "nft", "user-expires", "{{token_id}}"]
+                  "path": ["blockchain", "user-expires", "{{token_id}}"]
                 },
                 "description": "⏰ **Get Rental Expiration Time**\n\n**Returns:** Unix timestamp when rental expires\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"expires\": 1735689600,\n    \"expiresDate\": \"2025-01-01T00:00:00.000Z\",\n    \"timeLeft\": 86400000,\n    \"hasExpired\": false\n  }\n}\n```"
               }
@@ -1616,9 +1616,9 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/blockchain/nft/is-rented/{{token_id}}",
+                  "raw": "{{base_url}}/blockchain/is-rented/{{token_id}}",
                   "host": ["{{base_url}}"],
-                  "path": ["blockchain", "nft", "is-rented", "{{token_id}}"]
+                  "path": ["blockchain", "is-rented", "{{token_id}}"]
                 },
                 "description": "🏠 **Check NFT Rental Status**\n\n**Returns:** Complete rental status information\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"isRented\": true,\n    \"currentUser\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"expires\": 1735689600,\n    \"timeLeft\": 86400000\n  }\n}\n```"
               }
@@ -1717,6 +1717,25 @@
                   ]
                 },
                 "description": "🏠 **Browse Rental Listings (NEW)**\n\n**Purpose:** Browse NFTs available for rent with enhanced filtering\n\n**Query Parameters:**\n- `availability`: \"available\", \"rented\", or \"all\"\n- `propertyType`: Filter by property type\n- `city`: Filter by city\n- `minPricePerDay`: Minimum daily price\n- `maxPricePerDay`: Maximum daily price\n- `maxDuration`: Maximum rental duration needed\n\n**Response with NFT Images:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"listing_id\",\n      \"tokenId\": 1,\n      \"listingType\": \"rent\",\n      \"rental\": {\n        \"pricePerDay\": \"1000000000000000000\",\n        \"maxDurationDays\": 30,\n        \"currentRenter\": null\n      },\n      \"nftMetadata\": {\n        \"name\": \"Property Name\",\n        \"image\": \"ipfs://QmImageHash\",\n        \"description\": \"...\"\n      },\n      \"image\": \"ipfs://QmImageHash\",\n      \"isCurrentlyRented\": false,\n      \"rentalTimeLeft\": 0\n    }\n  ]\n}\n```"
+              }
+            },
+            {
+              "name": "Get NFT Rental Status (Marketplace)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/marketplace/listings/token/{{token_id}}/rental-status",
+                  "host": ["{{base_url}}"],
+                  "path": [
+                    "marketplace",
+                    "listings",
+                    "token",
+                    "{{token_id}}",
+                    "rental-status"
+                  ]
+                },
+                "description": "🔍 **Get NFT Rental Status from Marketplace**\n\n**Purpose:** Get rental listing status including renter info from database\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"listingId\": \"listing_id\",\n    \"isAvailable\": false,\n    \"isCurrentlyRented\": true,\n    \"pricePerDay\": \"1000000000000000000\",\n    \"maxDurationDays\": 30,\n    \"currentRenter\": {\n      \"userId\": \"user_id\",\n      \"walletAddress\": \"0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13\",\n      \"email\": \"renter@example.com\",\n      \"name\": \"John Doe\",\n      \"rentedAt\": \"2024-12-25T00:00:00.000Z\",\n      \"expiresAt\": \"2025-01-01T00:00:00.000Z\",\n      \"rentalDays\": 7,\n      \"transactionHash\": \"0x...\"\n    },\n    \"timeLeft\": 604800000\n  }\n}\n```"
               }
             },
             {

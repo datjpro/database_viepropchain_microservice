@@ -110,18 +110,17 @@ exports.createListing = async (req, res) => {
     // UPSERT LOGIC: Update or Insert Listing
     // ========================================================================
 
-    // Find any existing listing for this tokenId
+    // Find ANY existing listing for this tokenId (regardless of status)
     const existingListing = await Listing.findOne({
       tokenId,
-      status: { $in: ["active", "rented"] }, // Check active or currently rented listings
-    });
+    }).sort({ listedAt: -1 }); // Get most recent listing
 
     let listing;
     let isUpdate = false;
 
     if (existingListing) {
       // ===== UPDATE SCENARIO =====
-      // Listing already exists → Update it
+      // Listing exists (any status) → Update and reactivate it
 
       console.log(`🔄 Updating existing listing for Token #${tokenId}`);
       console.log(`   Previous status: ${existingListing.status}`);
@@ -138,9 +137,7 @@ exports.createListing = async (req, res) => {
           message:
             "This NFT is listed by a different owner. Please cancel the old listing first.",
         });
-      }
-
-      // Update listing information
+      } // Update listing information
       existingListing.propertyId = propertyId;
       existingListing.propertyName = propertyData.title || propertyData.name;
       existingListing.propertyType = propertyData.propertyType;
@@ -875,6 +872,102 @@ exports.getNFTRentalStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to get rental status",
+    });
+  }
+};
+
+/**
+ * Update listing status to rented (called by blockchain service after setUser)
+ */
+exports.markAsRented = async (req, res) => {
+  try {
+    const {
+      tokenId,
+      renterAddress,
+      expiresTimestamp,
+      transactionHash,
+      rentalDays,
+    } = req.body;
+
+    if (!tokenId || !renterAddress || !expiresTimestamp) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+        message: "tokenId, renterAddress, and expiresTimestamp are required",
+      });
+    }
+
+    // Find rental listing
+    const listing = await Listing.findOne({
+      tokenId: parseInt(tokenId),
+      listingType: "rent",
+      status: "active",
+    }).sort({ listedAt: -1 });
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        error: "Active rental listing not found",
+      });
+    }
+
+    // Get renter info from user service via wallet address
+    let renterInfo = {};
+    try {
+      const userResponse = await axios.get(
+        `${
+          process.env.USER_SERVICE_URL || "http://localhost:4001"
+        }/users/wallet/${renterAddress}`
+      );
+      if (userResponse.data.success) {
+        renterInfo = {
+          userId: userResponse.data.data._id,
+          email: userResponse.data.data.email,
+          name: userResponse.data.data.fullName || userResponse.data.data.email,
+        };
+      }
+    } catch (err) {
+      console.log("⚠️ Could not fetch renter info:", err.message);
+    }
+
+    // Calculate rental days if not provided
+    const calculatedRentalDays =
+      rentalDays ||
+      Math.ceil((expiresTimestamp * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
+
+    // Update listing with renter info
+    listing.rental.currentRenter = {
+      ...renterInfo,
+      walletAddress: renterAddress.toLowerCase(),
+      rentedAt: new Date(),
+      expiresAt: new Date(expiresTimestamp * 1000),
+      rentalDays: calculatedRentalDays,
+      transactionHash: transactionHash || null,
+    };
+
+    listing.status = "rented";
+    await listing.save();
+
+    console.log(
+      `✅ Listing marked as rented: Token #${tokenId} to ${renterAddress}`
+    );
+
+    res.json({
+      success: true,
+      message: "Listing updated to rented status",
+      data: {
+        listingId: listing._id,
+        tokenId: listing.tokenId,
+        status: listing.status,
+        currentRenter: listing.rental.currentRenter,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Mark as rented error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update listing status",
+      message: error.message,
     });
   }
 };
