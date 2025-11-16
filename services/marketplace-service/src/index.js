@@ -91,8 +91,8 @@ app.listen(PORT, () => {
 ║  ├─ GET    /listings                - Browse listings       ║
 ║  ├─ GET    /listings/:id            - Get listing detail    ║
 ║  ├─ GET    /listings/token/:tokenId - Get by token ID       ║
-║  ├─ POST   /listings                - Create listing (*)    ║
-║  ├─ PUT    /listings/:id            - Update listing (*)    ║
+║  ├─ POST   /listings                - Create/Update (*)     ║
+║  ├─ PUT    /listings/:id            - Update price (*)      ║
 ║  ├─ DELETE /listings/:id            - Cancel listing (*)    ║
 ║  ├─ GET    /listings/my/listings    - My listings (*)       ║
 ║  └─ POST   /listings/:id/view       - Track view            ║

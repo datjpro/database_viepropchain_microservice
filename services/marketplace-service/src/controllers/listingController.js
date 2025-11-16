@@ -106,77 +106,156 @@ exports.createListing = async (req, res) => {
       });
     }
 
-    // Check if listing already exists for this tokenId
+    // ========================================================================
+    // UPSERT LOGIC: Update or Insert Listing
+    // ========================================================================
+
+    // Find any existing listing for this tokenId
     const existingListing = await Listing.findOne({
       tokenId,
-      status: "active",
+      status: { $in: ["active", "rented"] }, // Check active or currently rented listings
     });
 
-    if (existingListing) {
-      return res.status(400).json({
-        success: false,
-        error: "NFT already listed",
-        message: "This NFT is already listed in the marketplace",
-      });
-    }
+    let listing;
+    let isUpdate = false;
 
-    // Create listing with rental support
-    const listingData = {
-      tokenId,
-      contractAddress,
-      propertyId,
-      propertyName: propertyData.title || propertyData.name,
-      propertyType: propertyData.propertyType,
-      propertyAddress: {
+    if (existingListing) {
+      // ===== UPDATE SCENARIO =====
+      // Listing already exists → Update it
+
+      console.log(`🔄 Updating existing listing for Token #${tokenId}`);
+      console.log(`   Previous status: ${existingListing.status}`);
+      console.log(`   Previous type: ${existingListing.listingType}`);
+
+      // Check if owner is the same
+      if (
+        existingListing.seller.walletAddress.toLowerCase() !==
+        walletAddress.toLowerCase()
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "NFT ownership changed",
+          message:
+            "This NFT is listed by a different owner. Please cancel the old listing first.",
+        });
+      }
+
+      // Update listing information
+      existingListing.propertyId = propertyId;
+      existingListing.propertyName = propertyData.title || propertyData.name;
+      existingListing.propertyType = propertyData.propertyType;
+      existingListing.propertyAddress = {
         city: propertyData.address?.city,
         district: propertyData.address?.district,
         ward: propertyData.address?.ward,
-      },
-      propertyArea: propertyData.area,
-      propertyImages: propertyData.images || [],
-      seller: {
-        userId,
-        walletAddress,
-        email: req.user.email,
-        name: req.user.name || req.user.fullName,
-      },
-      listingType,
-      description,
-      expiresAt: expiresAt || undefined,
-    };
+      };
+      existingListing.propertyArea = propertyData.area;
+      existingListing.propertyImages = propertyData.images || [];
+      existingListing.listingType = listingType;
+      existingListing.description = description;
+      existingListing.status = "active"; // Reset to active
+      existingListing.listedAt = new Date(); // Update listing time
 
-    // Set pricing based on listing type
-    if (listingType === "sale") {
-      listingData.price = {
-        amount: price.toString(),
-        currency: "ETH",
+      if (expiresAt) {
+        existingListing.expiresAt = expiresAt;
+      }
+
+      // Update pricing based on listing type
+      if (listingType === "sale") {
+        existingListing.price = {
+          amount: price.toString(),
+          currency: "ETH",
+        };
+        // Clear rental info if switching from rent to sale
+        existingListing.rental = undefined;
+      } else if (listingType === "rent") {
+        existingListing.rental = {
+          pricePerDay: pricePerDay.toString(),
+          maxDurationDays: parseInt(maxDurationDays),
+          currentRenter: null, // Clear current renter on re-listing
+        };
+        // For rental listings, price is optional
+        if (price) {
+          existingListing.price = {
+            amount: price.toString(),
+            currency: "ETH",
+          };
+        }
+      }
+
+      await existingListing.save();
+      listing = existingListing;
+      isUpdate = true;
+
+      console.log(`✅ Listing updated: Token #${tokenId}`);
+      console.log(`   New status: ${listing.status}`);
+      console.log(`   New type: ${listing.listingType}`);
+    } else {
+      // ===== INSERT SCENARIO =====
+      // No active listing exists → Create new one
+
+      console.log(`📝 Creating new listing for Token #${tokenId}`);
+
+      // Create listing with rental support
+      const listingData = {
+        tokenId,
+        contractAddress,
+        propertyId,
+        propertyName: propertyData.title || propertyData.name,
+        propertyType: propertyData.propertyType,
+        propertyAddress: {
+          city: propertyData.address?.city,
+          district: propertyData.address?.district,
+          ward: propertyData.address?.ward,
+        },
+        propertyArea: propertyData.area,
+        propertyImages: propertyData.images || [],
+        seller: {
+          userId,
+          walletAddress,
+          email: req.user.email,
+          name: req.user.name || req.user.fullName,
+        },
+        listingType,
+        description,
+        expiresAt: expiresAt || undefined,
       };
-    } else if (listingType === "rent") {
-      listingData.rental = {
-        pricePerDay: pricePerDay.toString(),
-        maxDurationDays: parseInt(maxDurationDays),
-      };
-      // For rental listings, price is optional (can be calculated)
-      if (price) {
+
+      // Set pricing based on listing type
+      if (listingType === "sale") {
         listingData.price = {
           amount: price.toString(),
           currency: "ETH",
         };
+      } else if (listingType === "rent") {
+        listingData.rental = {
+          pricePerDay: pricePerDay.toString(),
+          maxDurationDays: parseInt(maxDurationDays),
+        };
+        // For rental listings, price is optional (can be calculated)
+        if (price) {
+          listingData.price = {
+            amount: price.toString(),
+            currency: "ETH",
+          };
+        }
       }
+
+      listing = new Listing(listingData);
+      await listing.save();
+
+      console.log(`✅ New listing created: Token #${tokenId}`);
     }
 
-    const listing = new Listing(listingData);
-
-    await listing.save();
-
-    console.log(`✅ ${listingType} listing created: Token #${tokenId}`);
-
-    res.status(201).json({
+    res.status(isUpdate ? 200 : 201).json({
       success: true,
-      message: `${
-        listingType === "sale" ? "Sale" : "Rental"
-      } listing created successfully`,
+      message: isUpdate
+        ? `Listing updated successfully`
+        : `${
+            listingType === "sale" ? "Sale" : "Rental"
+          } listing created successfully`,
       data: listing,
+      isUpdate,
     });
   } catch (error) {
     console.error("❌ Create listing error:", error);
