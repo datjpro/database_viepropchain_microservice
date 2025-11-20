@@ -443,7 +443,176 @@
       ]
     },
     {
-      "name": "3️⃣ Wallet Linking (Optional)",
+      "name": "3️⃣ User Dashboard",
+      "item": [
+        {
+          "name": "Get User Properties",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user properties successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total Properties: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"📍 First Property: \" + jsonData.data[0].address);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "properties"]
+            },
+            "description": "Lấy danh sách tất cả bất động sản của user"
+          }
+        },
+        {
+          "name": "Get User NFTs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user NFTs successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total NFTs: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"🎨 First NFT ID: \" + jsonData.data[0].tokenId);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/nfts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "nfts"]
+            },
+            "description": "Lấy danh sách NFTs của user từ blockchain"
+          }
+        },
+        {
+          "name": "Get User Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user transactions successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total Transactions: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"💳 First Transaction Type: \" + jsonData.data[0].type);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/transactions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "transactions"]
+            },
+            "description": "Lấy lịch sử giao dịch của user"
+          }
+        },
+        {
+          "name": "Get User Dashboard (Aggregated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user dashboard successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    ",
+                  "    // Check stats",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalProperties');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalNFTs');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalTransactions');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalValue');",
+                  "    ",
+                  "    console.log(\"📊 Dashboard Stats:\");",
+                  "    console.log(\"   Properties: \" + jsonData.data.stats.totalProperties);",
+                  "    console.log(\"   NFTs: \" + jsonData.data.stats.totalNFTs);",
+                  "    console.log(\"   Transactions: \" + jsonData.data.stats.totalTransactions);",
+                  "    console.log(\"   Total Value: \" + jsonData.data.stats.totalValue + \" ETH\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/dashboard",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "dashboard"]
+            },
+            "description": "Lấy toàn bộ dữ liệu dashboard của user (profile, stats, properties, NFTs, transactions) trong 1 request\n\n**Response includes:**\n- profile: Thông tin user\n- stats: Tổng số properties, NFTs, transactions, tổng giá trị (ETH)\n- properties: Danh sách bất động sản\n- nfts: Danh sách NFTs từ blockchain\n- transactions: Lịch sử giao dịch"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ Wallet Linking (Optional)",
       "item": [
         {
           "name": "Get Link Wallet Message",
@@ -563,7 +732,7 @@
       ]
     },
     {
-      "name": "4️⃣ Property",
+      "name": "5️⃣ Property",
       "item": [
         {
           "name": "Create Property",
@@ -664,7 +833,7 @@
       ]
     },
     {
-      "name": "5️⃣ IPFS Upload",
+      "name": "6️⃣ IPFS Upload",
       "item": [
         {
           "name": "Upload Image",
@@ -768,7 +937,7 @@
       ]
     },
     {
-      "name": "6️⃣ NFT Minting",
+      "name": "7️⃣ NFT Minting",
       "item": [
         {
           "name": "Admin Mint NFT",
@@ -845,7 +1014,7 @@
       ]
     },
     {
-      "name": "6️⃣.1 NFT Info Helper",
+      "name": "7️⃣.1 NFT Info Helper",
       "item": [
         {
           "name": "🔥 Test NFT Query by Wallet",
@@ -968,7 +1137,7 @@
       ]
     },
     {
-      "name": "6️⃣.2 ERC721Enumerable Direct (Blockchain Service)",
+      "name": "7️⃣.2 ERC721Enumerable Direct (Blockchain Service)",
       "item": [
         {
           "name": "Get Total Supply",
@@ -1033,7 +1202,7 @@
       ]
     },
     {
-      "name": "7️⃣ Marketplace - Listings (Enhanced)",
+      "name": "8️⃣ Marketplace - Listings (Enhanced)",
       "item": [
         {
           "name": "🔥 Create Listing (Test với NFT có sẵn)",
@@ -1278,7 +1447,7 @@
       ]
     },
     {
-      "name": "8️⃣ Marketplace - Offers (Complete Workflow)",
+      "name": "9️⃣ Marketplace - Offers (Complete Workflow)",
       "item": [
         {
           "name": "🔥 Create Offer (Enhanced)",

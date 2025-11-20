@@ -36,18 +36,26 @@ class UserProfileController {
    */
   async getOrCreateProfile(req, res) {
     try {
-      const { walletAddress } = req.body;
+      const { walletAddress, userId, email } = req.body;
 
-      if (!walletAddress) {
+      // Support both wallet-based and userId-based profile creation
+      let profile;
+
+      if (userId && email) {
+        // Gmail OAuth user - create by userId
+        profile = await userProfileService.getOrCreateProfileByUserId(
+          userId,
+          email
+        );
+      } else if (walletAddress) {
+        // Wallet-only user (backward compatibility)
+        profile = await userProfileService.getOrCreateProfile(walletAddress);
+      } else {
         return res.status(400).json({
           success: false,
-          error: "Wallet address is required",
+          error: "Either userId+email or walletAddress is required",
         });
       }
-
-      const profile = await userProfileService.getOrCreateProfile(
-        walletAddress
-      );
 
       res.json({
         success: true,

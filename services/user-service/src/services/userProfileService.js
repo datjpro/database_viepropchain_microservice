@@ -5,6 +5,7 @@
  */
 
 const UserProfile = require("../models/User");
+const AuthUser = require("../models/AuthUser"); // User from Auth Service
 
 class UserProfileService {
   /**
@@ -493,23 +494,71 @@ class UserProfileService {
    */
   async getUserProperties(userId) {
     try {
-      // Get user profile to find email
-      const profile = await UserProfile.findOne({ userId });
-      if (!profile || !profile.email) {
+      console.log(`🔍 getUserProperties - userId: ${userId}`);
+
+      // Get user from Auth Service database
+      const user = await AuthUser.findById(userId);
+      console.log(
+        `   User found:`,
+        user
+          ? {
+              email: user.email,
+              walletAddress: user.walletAddress,
+            }
+          : null
+      );
+
+      if (!user) {
+        console.log(`   ⚠️ No user found for userId: ${userId}`);
         return [];
       }
 
       // Connect to Property model (from admin service)
       const Property = require("../models/Property");
 
-      // Find properties by owner (email)
-      const properties = await Property.find({
-        owner: profile.email.toLowerCase(),
+      // Try both string and ObjectId
+      const mongoose = require("mongoose");
+      const userIdString = userId.toString();
+      const userIdObj = new mongoose.Types.ObjectId(userId);
+
+      // Find properties by owner (try both string and ObjectId)
+      const propertiesByString = await Property.find({
+        owner: userIdString,
       }).sort({ createdAt: -1 });
+
+      const propertiesByObjectId = await Property.find({
+        owner: userIdObj,
+      }).sort({ createdAt: -1 });
+
+      console.log(`   🔍 Search results:`);
+      console.log(
+        `      By string "${userIdString}": ${propertiesByString.length} properties`
+      );
+      console.log(
+        `      By ObjectId: ${propertiesByObjectId.length} properties`
+      );
+
+      const properties =
+        propertiesByString.length > 0
+          ? propertiesByString
+          : propertiesByObjectId;
+
+      console.log(`   ✅ Returning ${properties.length} properties`);
+      if (properties.length > 0) {
+        console.log(
+          `   📋 Properties:`,
+          properties.map((p) => ({
+            id: p._id,
+            title: p.title,
+            owner: p.owner,
+            ownerType: typeof p.owner,
+          }))
+        );
+      }
 
       return properties;
     } catch (error) {
-      console.error("Error getting user properties:", error);
+      console.error("❌ Error getting user properties:", error);
       return [];
     }
   }
@@ -519,25 +568,54 @@ class UserProfileService {
    */
   async getUserNFTs(userId) {
     try {
-      // Get user profile to find wallet address
-      const profile = await UserProfile.findOne({ userId });
-      if (!profile || !profile.walletAddress) {
+      console.log(`🔍 getUserNFTs - userId: ${userId}`);
+
+      // Get user from Auth Service database
+      const user = await AuthUser.findById(userId);
+      console.log(
+        `   User found:`,
+        user
+          ? {
+              email: user.email,
+              walletAddress: user.walletAddress,
+            }
+          : null
+      );
+
+      if (!user || !user.walletAddress) {
+        console.log(
+          `   ⚠️ No user or walletAddress found for userId: ${userId}`
+        );
         return { nfts: [], balance: 0, summary: { total: 0 } };
       }
 
       // Call marketplace service to get NFTs
       const axios = require("axios");
-      const response = await axios.get(
-        `http://localhost:4008/api/marketplace/my-nfts/${profile.walletAddress}`
-      );
+      const walletAddress = user.walletAddress.toLowerCase();
+      const marketplaceUrl = `http://localhost:4008/api/marketplace/my-nfts/${walletAddress}`;
+      console.log(`   📡 Calling marketplace API: ${marketplaceUrl}`);
+
+      const response = await axios.get(marketplaceUrl);
+      console.log(`   📦 Marketplace response:`, {
+        success: response.data.success,
+        nftsCount: response.data.data?.nfts?.length || 0,
+        balance: response.data.data?.balance,
+        owner: response.data.data?.owner,
+      });
 
       if (response.data.success) {
+        console.log(
+          `   ✅ Returning ${response.data.data.nfts?.length || 0} NFTs`
+        );
         return response.data.data;
       }
 
       return { nfts: [], balance: 0, summary: { total: 0 } };
     } catch (error) {
-      console.error("Error getting user NFTs:", error);
+      console.error("❌ Error getting user NFTs:", error.message);
+      if (error.response) {
+        console.error("   Response error:", error.response.data);
+      }
       return { nfts: [], balance: 0, summary: { total: 0 } };
     }
   }
@@ -547,16 +625,23 @@ class UserProfileService {
    */
   async getUserTransactions(userId) {
     try {
-      // Get user profile to find wallet address
-      const profile = await UserProfile.findOne({ userId });
-      if (!profile || !profile.walletAddress) {
+      console.log(`🔍 getUserTransactions - userId: ${userId}`);
+
+      // Get user from Auth Service database
+      const user = await AuthUser.findById(userId);
+      if (!user || !user.walletAddress) {
+        console.log(`   ⚠️ No user or walletAddress for transactions`);
         return [];
       }
 
       // Call marketplace service to get transactions
       const axios = require("axios");
       const response = await axios.get(
-        `http://localhost:4008/api/marketplace/transactions/${profile.walletAddress}`
+        `http://localhost:4008/api/marketplace/transactions/${user.walletAddress}`
+      );
+
+      console.log(
+        `   ✅ Found ${response.data.data?.length || 0} transactions`
       );
 
       if (response.data.success) {
@@ -565,7 +650,7 @@ class UserProfileService {
 
       return [];
     } catch (error) {
-      console.error("Error getting user transactions:", error);
+      console.error("❌ Error getting user transactions:", error.message);
       return [];
     }
   }
@@ -575,8 +660,46 @@ class UserProfileService {
    */
   async getUserDashboard(userId) {
     try {
-      const [profile, properties, nfts, transactions] = await Promise.all([
-        UserProfile.findOne({ userId }),
+      console.log(`🔍 getUserDashboard - userId: ${userId}`);
+      console.log(`   userId type: ${typeof userId}`);
+
+      // Try to find user with detailed logging
+      console.log(`   🔍 Searching for user in 'users' collection...`);
+      let user = await AuthUser.findById(userId);
+      console.log(
+        `   User found by ID:`,
+        user ? `✅ ${user.email}` : "❌ NULL"
+      );
+
+      if (!user) {
+        // Try to find with different approaches
+        console.log(`   🔍 Trying alternative search methods...`);
+
+        // Try as ObjectId string
+        const mongoose = require("mongoose");
+        try {
+          const objectId = new mongoose.Types.ObjectId(userId);
+          user = await AuthUser.findOne({ _id: objectId });
+          console.log(`   By ObjectId:`, user ? `✅ ${user.email}` : "❌ NULL");
+        } catch (err) {
+          console.log(`   ⚠️ Invalid ObjectId format:`, err.message);
+        }
+
+        // List all users to debug
+        const allUsers = await AuthUser.find()
+          .limit(5)
+          .select("email walletAddress");
+        console.log(
+          `   📋 Sample users in collection (${allUsers.length}):`,
+          allUsers.map((u) => ({ id: u._id.toString(), email: u.email }))
+        );
+
+        if (!user) {
+          throw new Error(`User not found with ID: ${userId}`);
+        }
+      }
+
+      const [properties, nfts, transactions] = await Promise.all([
         this.getUserProperties(userId),
         this.getUserNFTs(userId),
         this.getUserTransactions(userId),
@@ -588,8 +711,21 @@ class UserProfileService {
         return sum + (parseFloat(nft.price) || 0);
       }, 0);
 
+      console.log(`📊 Dashboard summary for ${user.email}:`, {
+        properties: properties.length,
+        nfts: nftsList.length,
+        transactions: transactions.length,
+        totalValue: (totalValue / 1e18).toFixed(4),
+      });
+
       return {
-        profile,
+        profile: {
+          email: user.email,
+          walletAddress: user.walletAddress,
+          displayName: user.profile?.displayName,
+          avatar: user.profile?.avatar,
+          createdAt: user.createdAt,
+        },
         stats: {
           totalProperties: properties.length,
           totalNFTs: nftsList.length,
