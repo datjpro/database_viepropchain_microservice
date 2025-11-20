@@ -487,6 +487,123 @@ class UserProfileService {
       throw new Error(`Failed to get statistics: ${error.message}`);
     }
   }
+
+  /**
+   * Get user's properties from Property database
+   */
+  async getUserProperties(userId) {
+    try {
+      // Get user profile to find email
+      const profile = await UserProfile.findOne({ userId });
+      if (!profile || !profile.email) {
+        return [];
+      }
+
+      // Connect to Property model (from admin service)
+      const Property = require("../models/Property");
+
+      // Find properties by owner (email)
+      const properties = await Property.find({
+        owner: profile.email.toLowerCase(),
+      }).sort({ createdAt: -1 });
+
+      return properties;
+    } catch (error) {
+      console.error("Error getting user properties:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's NFTs from blockchain
+   */
+  async getUserNFTs(userId) {
+    try {
+      // Get user profile to find wallet address
+      const profile = await UserProfile.findOne({ userId });
+      if (!profile || !profile.walletAddress) {
+        return { nfts: [], balance: 0, summary: { total: 0 } };
+      }
+
+      // Call marketplace service to get NFTs
+      const axios = require("axios");
+      const response = await axios.get(
+        `http://localhost:4008/api/marketplace/my-nfts/${profile.walletAddress}`
+      );
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+
+      return { nfts: [], balance: 0, summary: { total: 0 } };
+    } catch (error) {
+      console.error("Error getting user NFTs:", error);
+      return { nfts: [], balance: 0, summary: { total: 0 } };
+    }
+  }
+
+  /**
+   * Get user's transaction history
+   */
+  async getUserTransactions(userId) {
+    try {
+      // Get user profile to find wallet address
+      const profile = await UserProfile.findOne({ userId });
+      if (!profile || !profile.walletAddress) {
+        return [];
+      }
+
+      // Call marketplace service to get transactions
+      const axios = require("axios");
+      const response = await axios.get(
+        `http://localhost:4008/api/marketplace/transactions/${profile.walletAddress}`
+      );
+
+      if (response.data.success) {
+        return response.data.data || [];
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error getting user transactions:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get complete user dashboard data (properties + NFTs + transactions)
+   */
+  async getUserDashboard(userId) {
+    try {
+      const [profile, properties, nfts, transactions] = await Promise.all([
+        UserProfile.findOne({ userId }),
+        this.getUserProperties(userId),
+        this.getUserNFTs(userId),
+        this.getUserTransactions(userId),
+      ]);
+
+      // Calculate stats
+      const nftsList = nfts.nfts || [];
+      const totalValue = nftsList.reduce((sum, nft) => {
+        return sum + (parseFloat(nft.price) || 0);
+      }, 0);
+
+      return {
+        profile,
+        stats: {
+          totalProperties: properties.length,
+          totalNFTs: nftsList.length,
+          totalTransactions: transactions.length,
+          totalValue: totalValue / 1e18, // Convert to ETH
+        },
+        properties,
+        nfts: nftsList,
+        transactions,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user dashboard: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new UserProfileService();

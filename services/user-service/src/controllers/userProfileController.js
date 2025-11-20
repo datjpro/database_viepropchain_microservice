@@ -314,6 +314,110 @@ class UserProfileController {
       });
     }
   }
+
+  /**
+   * Get user's properties
+   */
+  async getUserProperties(req, res) {
+    try {
+      const { userId } = req.params;
+      console.log(`🏠 Getting properties for user: ${userId}`);
+
+      const properties = await userProfileService.getUserProperties(userId);
+
+      console.log(`   ✅ Found ${properties.length} properties`);
+
+      res.json({
+        success: true,
+        data: properties,
+        count: properties.length,
+      });
+    } catch (error) {
+      console.error("❌ Get user properties error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user properties",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get user's NFTs
+   */
+  async getUserNFTs(req, res) {
+    try {
+      const { userId } = req.params;
+      console.log(`🎨 Getting NFTs for user: ${userId}`);
+
+      const nfts = await userProfileService.getUserNFTs(userId);
+
+      console.log(`   ✅ Found ${nfts.nfts?.length || 0} NFTs`);
+
+      res.json({
+        success: true,
+        data: nfts,
+      });
+    } catch (error) {
+      console.error("❌ Get user NFTs error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user NFTs",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get user's transaction history
+   */
+  async getUserTransactions(req, res) {
+    try {
+      const { userId } = req.params;
+      console.log(`📊 Getting transactions for user: ${userId}`);
+
+      const transactions = await userProfileService.getUserTransactions(userId);
+
+      console.log(`   ✅ Found ${transactions.length} transactions`);
+
+      res.json({
+        success: true,
+        data: transactions,
+        count: transactions.length,
+      });
+    } catch (error) {
+      console.error("❌ Get user transactions error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user transactions",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get complete user dashboard data
+   */
+  async getUserDashboard(req, res) {
+    try {
+      const { userId } = req.params;
+      console.log(`📈 Getting dashboard data for user: ${userId}`);
+
+      const dashboard = await userProfileService.getUserDashboard(userId);
+
+      res.json({
+        success: true,
+        data: dashboard,
+      });
+    } catch (error) {
+      console.error("❌ Get user dashboard error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user dashboard",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new UserProfileController();

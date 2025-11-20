@@ -74,6 +74,33 @@ class PropertyController {
   }
 
   /**
+   * Get properties by owner (user email or ID)
+   */
+  async getPropertiesByOwner(req, res) {
+    try {
+      const owner = req.params.owner.toLowerCase();
+      console.log(`🔍 Getting properties for owner: ${owner}`);
+
+      const properties = await propertyService.getPropertiesByOwner(owner);
+
+      console.log(`   ✅ Found ${properties.length} properties`);
+
+      res.json({
+        success: true,
+        data: properties,
+        count: properties.length,
+      });
+    } catch (error) {
+      console.error("❌ Get properties by owner error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get properties",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
    * Get property by ID
    */
   async getPropertyById(req, res) {

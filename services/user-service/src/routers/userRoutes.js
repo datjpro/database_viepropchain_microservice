@@ -71,4 +71,26 @@ router.get("/users/search", userProfileController.searchUsers);
 // Get statistics
 router.get("/users/statistics", userProfileController.getStatistics);
 
+// ========================================================================
+// USER DATA AGGREGATION (Properties, NFTs, Transactions)
+// ========================================================================
+
+// Get user's properties by email/userId
+router.get(
+  "/users/:userId/properties",
+  userProfileController.getUserProperties
+);
+
+// Get user's NFTs by wallet
+router.get("/users/:userId/nfts", userProfileController.getUserNFTs);
+
+// Get user's transaction history
+router.get(
+  "/users/:userId/transactions",
+  userProfileController.getUserTransactions
+);
+
+// Get user's complete dashboard data
+router.get("/users/:userId/dashboard", userProfileController.getUserDashboard);
+
 module.exports = router;

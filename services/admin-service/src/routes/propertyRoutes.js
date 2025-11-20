@@ -13,6 +13,7 @@ const router = express.Router();
 // CRUD operations
 router.post("/", propertyController.createProperty);
 router.get("/", propertyController.getProperties);
+router.get("/my-properties/:owner", propertyController.getPropertiesByOwner);
 router.get("/stats/overview", propertyController.getStatistics);
 router.get("/:id", propertyController.getPropertyById);
 router.put("/:id", propertyController.updateProperty);
