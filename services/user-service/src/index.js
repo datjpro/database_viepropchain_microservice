@@ -11,6 +11,7 @@ require("dotenv").config();
 
 const connectDB = require("./config/database");
 const userRoutes = require("./routers/userRoutes");
+const adminRoutes = require("./routers/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4006;
@@ -43,6 +44,7 @@ app.get("/health", (req, res) => {
 // ROUTES
 // ============================================================================
 app.use("/", userRoutes);
+app.use("/admin", adminRoutes);
 
 // ============================================================================
 // START SERVER

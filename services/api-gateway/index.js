@@ -156,6 +156,25 @@ app.use(
   })
 );
 
+// User Management Service (4006) - /api/user-management/* (Admin only)
+app.use(
+  "/api/user-management",
+  createProxyMiddleware({
+    target: "http://localhost:4006",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/user-management": "/admin",
+    },
+    onError: (err, req, res) => {
+      console.error("❌ User Management Service Error:", err.message);
+      res.status(503).json({
+        success: false,
+        error: "User Management Service unavailable",
+      });
+    },
+  })
+);
+
 // KYC Service (4007) - /api/kyc/*
 app.use(
   "/api/kyc",
