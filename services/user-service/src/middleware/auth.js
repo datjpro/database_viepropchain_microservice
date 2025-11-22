@@ -5,7 +5,7 @@
  */
 
 const jwt = require("jsonwebtoken");
-const User = require("../../shared/models/User");
+const User = require("../models/User");
 
 /**
  * Verify JWT token

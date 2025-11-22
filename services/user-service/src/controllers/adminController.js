@@ -4,7 +4,7 @@
  * ========================================================================
  */
 
-const User = require("../../shared/models/User");
+const User = require("../models/User");
 
 class AdminController {
   /**
