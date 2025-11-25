@@ -4,7 +4,33 @@
  * ========================================================================
  */
 
-const User = require("../models/User");
+const mongoose = require("mongoose");
+
+// Define Auth User Schema (same as auth-service)
+const authUserSchema = new mongoose.Schema(
+  {
+    googleId: String,
+    email: { type: String, required: true },
+    emailVerified: Boolean,
+    walletAddress: String,
+    walletLinkedAt: Date,
+    nonce: String,
+    authMethods: Array,
+    sessionToken: String,
+    tokenExpiry: Date,
+    role: { type: String, enum: ["user", "admin", "agent"], default: "user" },
+    profile: Object,
+    favorites: Array,
+    lastLoginAt: Date,
+  },
+  {
+    timestamps: true,
+    collection: "users", // Same collection as Auth Service
+  }
+);
+
+// Use existing model if already compiled, otherwise create new one
+const User = mongoose.models.User || mongoose.model("User", authUserSchema);
 
 class AdminController {
   /**
@@ -12,6 +38,8 @@ class AdminController {
    */
   async getAllUsers(req, res) {
     try {
+      console.log("📋 Getting all users - Query:", req.query);
+
       const {
         page = 1,
         limit = 20,
@@ -40,6 +68,8 @@ class AdminController {
       const skip = (parseInt(page) - 1) * parseInt(limit);
       const sortOrder = order === "asc" ? 1 : -1;
 
+      console.log("🔍 Query filter:", query);
+
       const [users, total] = await Promise.all([
         User.find(query)
           .select("-sessionToken -nonce")
@@ -49,6 +79,8 @@ class AdminController {
           .lean(),
         User.countDocuments(query),
       ]);
+
+      console.log(`✅ Found ${users.length} users (Total: ${total})`);
 
       res.json({
         success: true,
