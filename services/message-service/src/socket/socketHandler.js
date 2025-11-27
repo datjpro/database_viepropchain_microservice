@@ -214,7 +214,9 @@ class SocketHandler {
 
   // Check if user is online
   isUserOnline(userId) {
-    return this.userSockets.has(userId) && this.userSockets.get(userId).size > 0;
+    return (
+      this.userSockets.has(userId) && this.userSockets.get(userId).size > 0
+    );
   }
 
   // Get online users count

@@ -10,6 +10,7 @@ npm install
 ## 🔧 Configuration
 
 File `.env` đã được tạo sẵn với cấu hình:
+
 ```env
 PORT=4008
 MONGODB_URI=mongodb+srv://db_dacn:123456%40ABC@dacn.swowsqw.mongodb.net/viepropchain
@@ -19,18 +20,22 @@ JWT_SECRET=viepropchain-secret-key-2025-secure-production
 ## 🚀 Running the Service
 
 ### Option 1: Standalone
+
 ```bash
 cd database_viepropchain_microservice/services/message-service
 npm start
 ```
 
 ### Option 2: Development with auto-reload
+
 ```bash
 npm run dev
 ```
 
 ### Option 3: With all services
+
 Sử dụng `run.js` ở root:
+
 ```bash
 node run.js
 ```
@@ -38,11 +43,13 @@ node run.js
 ## ✅ Testing
 
 ### 1. Check Service Health
+
 ```bash
 curl http://localhost:4008/health
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -56,42 +63,45 @@ Expected response:
 
 ```javascript
 // Connect to WebSocket
-const token = localStorage.getItem('viepropchain_token');
-const socket = io('http://localhost:4008', {
-  auth: { token }
+const token = localStorage.getItem("viepropchain_token");
+const socket = io("http://localhost:4008", {
+  auth: { token },
 });
 
-socket.on('connect', () => {
-  console.log('✅ Connected!');
+socket.on("connect", () => {
+  console.log("✅ Connected!");
 });
 
 // Send a message
-socket.emit('send_message', {
-  receiver_id: '674abc123...',  // Replace with real user ID
-  message: 'Hello from test!'
+socket.emit("send_message", {
+  receiver_id: "674abc123...", // Replace with real user ID
+  message: "Hello from test!",
 });
 
 // Listen for new messages
-socket.on('new_message', (data) => {
-  console.log('📩 New message:', data);
+socket.on("new_message", (data) => {
+  console.log("📩 New message:", data);
 });
 ```
 
 ### 3. Test REST API
 
 **Get all chats:**
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
      http://localhost:4008/api/messages/chats
 ```
 
 **Get chat history:**
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
      "http://localhost:4008/api/messages/chats/USER_ID/messages?limit=20"
 ```
 
 **Get unread count:**
+
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
      http://localhost:4008/api/messages/unread-count
@@ -100,25 +110,29 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ## 🔗 API Gateway Integration
 
 API Gateway đã được cập nhật với routes:
+
 - `GET /api/messages/*` → Message Service (HTTP)
 - `ws://localhost:4000/socket.io` → Message Service (WebSocket)
 
 **Frontend kết nối qua Gateway:**
+
 ```javascript
-const socket = io('http://localhost:4000', {
-  auth: { token }
+const socket = io("http://localhost:4000", {
+  auth: { token },
 });
 ```
 
 ## 📱 Frontend Integration
 
 ### Install Socket.IO Client
+
 ```bash
 cd viepropchain
 npm install socket.io-client
 ```
 
 ### Copy Example Component
+
 ```bash
 # Copy Chat.js and Chat.css từ folder example-frontend
 cp database_viepropchain_microservice/services/message-service/example-frontend/Chat.js viepropchain/src/components/Chat/
@@ -126,19 +140,17 @@ cp database_viepropchain_microservice/services/message-service/example-frontend/
 ```
 
 ### Usage in React
+
 ```javascript
-import Chat from './components/Chat/Chat';
+import Chat from "./components/Chat/Chat";
 
 function PropertyDetail({ property }) {
   return (
     <div>
       <h1>{property.name}</h1>
-      
+
       {/* Chat with property owner */}
-      <Chat 
-        receiverId={property.owner_id} 
-        receiverName={property.owner_name}
-      />
+      <Chat receiverId={property.owner_id} receiverName={property.owner_name} />
     </div>
   );
 }
@@ -147,34 +159,34 @@ function PropertyDetail({ property }) {
 ## 🎯 Use Cases
 
 ### 1. Marketplace - Buyer contacts Seller
+
 ```javascript
 // On property detail page
-<Chat 
+<Chat
   receiverId={property.seller_id}
   receiverName={property.seller_name}
   metadata={{
     property_id: property._id,
-    transaction_type: 'sale'
+    transaction_type: "sale",
   }}
 />
 ```
 
 ### 2. Support Chat
+
 ```javascript
-<Chat 
-  receiverId={ADMIN_USER_ID}
-  receiverName="Customer Support"
-/>
+<Chat receiverId={ADMIN_USER_ID} receiverName="Customer Support" />
 ```
 
 ### 3. Rental Inquiry
+
 ```javascript
-<Chat 
+<Chat
   receiverId={property.landlord_id}
   receiverName={property.landlord_name}
   metadata={{
     property_id: property._id,
-    transaction_type: 'rental'
+    transaction_type: "rental",
   }}
 />
 ```
@@ -184,6 +196,7 @@ function PropertyDetail({ property }) {
 Service tự động tạo 2 collections:
 
 ### `messages`
+
 ```javascript
 {
   chat_id: "chat_userId1_userId2",
@@ -197,6 +210,7 @@ Service tự động tạo 2 collections:
 ```
 
 ### `chats`
+
 ```javascript
 {
   chat_id: "chat_userId1_userId2",
@@ -214,32 +228,40 @@ Service tự động tạo 2 collections:
 ## 🐛 Troubleshooting
 
 ### WebSocket không kết nối được
+
 **Lỗi:** `Authentication error: No token provided`
 
 **Solution:**
+
 ```javascript
 // Đảm bảo token được gửi đúng format
-const token = localStorage.getItem('viepropchain_token');
-const socket = io('http://localhost:4008', {
-  auth: { token }  // ✅ Correct
+const token = localStorage.getItem("viepropchain_token");
+const socket = io("http://localhost:4008", {
+  auth: { token }, // ✅ Correct
   // NOT: headers: { Authorization: `Bearer ${token}` }
 });
 ```
 
 ### Không nhận được tin nhắn real-time
+
 **Check:**
+
 1. Socket connected: `socket.connected` → `true`
 2. Browser console có log "✅ Connected to chat server"
 3. Network tab có WebSocket connection màu xanh
 
 ### Message không lưu vào DB
+
 **Check:**
+
 1. MongoDB connection thành công
 2. JWT token hợp lệ (decode tại jwt.io)
 3. receiver_id tồn tại trong database
 
 ### CORS error
+
 **Solution:**
+
 ```javascript
 // Trong message-service/index.js đã config:
 io: {
@@ -253,27 +275,32 @@ io: {
 ## 📈 Performance Tips
 
 1. **Pagination** - Luôn giới hạn số message load:
+
    ```javascript
    GET /chats/:id/messages?limit=50&page=1
    ```
 
 2. **Lazy loading** - Load thêm khi scroll lên:
+
    ```javascript
    const loadMore = async (page) => {
-     const response = await fetch(`/api/messages/chats/${id}/messages?page=${page}`);
-   }
+     const response = await fetch(
+       `/api/messages/chats/${id}/messages?page=${page}`
+     );
+   };
    ```
 
 3. **Optimistic UI** - Hiển thị message ngay, không chờ server:
+
    ```javascript
-   setMessages(prev => [...prev, tempMessage]);
-   socket.emit('send_message', data);
+   setMessages((prev) => [...prev, tempMessage]);
+   socket.emit("send_message", data);
    ```
 
 4. **Debounce typing** - Giảm số lần emit:
    ```javascript
    const handleTyping = debounce(() => {
-     socket.emit('typing', { receiver_id });
+     socket.emit("typing", { receiver_id });
    }, 300);
    ```
 
@@ -296,6 +323,7 @@ io: {
 ## 🆘 Support
 
 Nếu gặp vấn đề:
+
 1. Check service logs trong console
 2. Check MongoDB connection
 3. Check JWT token validity

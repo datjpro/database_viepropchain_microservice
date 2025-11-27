@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
-import { API_GATEWAY_URL } from '../config/api';
-import './Chat.css';
+import React, { useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
+import { API_GATEWAY_URL } from "../config/api";
+import "./Chat.css";
 
 const Chat = ({ receiverId, receiverName }) => {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,7 @@ const Chat = ({ receiverId, receiverName }) => {
 
   // Scroll to bottom when new message arrives
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -24,54 +24,56 @@ const Chat = ({ receiverId, receiverName }) => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const token = localStorage.getItem('viepropchain_token');
-    
+    const token = localStorage.getItem("viepropchain_token");
+
     if (!token || !receiverId) return;
 
     // Connect to WebSocket
-    const newSocket = io('http://localhost:4008', {
-      auth: { token }
+    const newSocket = io("http://localhost:4008", {
+      auth: { token },
     });
 
-    newSocket.on('connect', () => {
-      console.log('✅ Connected to chat server');
+    newSocket.on("connect", () => {
+      console.log("✅ Connected to chat server");
       setIsConnected(true);
       loadChatHistory();
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from chat server');
+    newSocket.on("disconnect", () => {
+      console.log("❌ Disconnected from chat server");
       setIsConnected(false);
     });
 
     // Receive new message
-    newSocket.on('new_message', (data) => {
-      console.log('📩 New message received:', data);
-      setMessages(prev => [...prev, data.data]);
+    newSocket.on("new_message", (data) => {
+      console.log("📩 New message received:", data);
+      setMessages((prev) => [...prev, data.data]);
     });
 
     // Message sent confirmation
-    newSocket.on('message_sent', (data) => {
-      console.log('✅ Message sent:', data);
+    newSocket.on("message_sent", (data) => {
+      console.log("✅ Message sent:", data);
       // Message already added via optimistic update
     });
 
     // Typing indicator
-    newSocket.on('user_typing', (data) => {
+    newSocket.on("user_typing", (data) => {
       console.log(`${data.email} is typing...`);
       setIsTyping(true);
     });
 
-    newSocket.on('user_stop_typing', () => {
+    newSocket.on("user_stop_typing", () => {
       setIsTyping(false);
     });
 
     // Messages seen
-    newSocket.on('messages_seen', (data) => {
-      console.log('Messages seen:', data);
-      setMessages(prev => prev.map(msg => 
-        msg.chat_id === data.chat_id ? { ...msg, seen: true } : msg
-      ));
+    newSocket.on("messages_seen", (data) => {
+      console.log("Messages seen:", data);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.chat_id === data.chat_id ? { ...msg, seen: true } : msg
+        )
+      );
     });
 
     setSocket(newSocket);
@@ -85,24 +87,24 @@ const Chat = ({ receiverId, receiverName }) => {
   const loadChatHistory = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('viepropchain_token');
-      
+      const token = localStorage.getItem("viepropchain_token");
+
       const response = await fetch(
         `${API_GATEWAY_URL}/api/messages/chats/${receiverId}/messages?limit=50`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
       const data = await response.json();
-      
+
       if (data.success) {
         setMessages(data.data);
       }
     } catch (error) {
-      console.error('Error loading chat history:', error);
+      console.error("Error loading chat history:", error);
     } finally {
       setLoading(false);
     }
@@ -111,34 +113,34 @@ const Chat = ({ receiverId, receiverName }) => {
   // Send message
   const handleSendMessage = (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || !socket) return;
 
     const messageData = {
       receiver_id: receiverId,
-      message: newMessage.trim()
+      message: newMessage.trim(),
     };
 
     // Optimistic update
     const tempMessage = {
       _id: Date.now(),
       message: newMessage.trim(),
-      sender_id: { _id: 'me' },
+      sender_id: { _id: "me" },
       receiver_id: { _id: receiverId },
       createdAt: new Date(),
-      seen: false
+      seen: false,
     };
 
-    setMessages(prev => [...prev, tempMessage]);
-    
+    setMessages((prev) => [...prev, tempMessage]);
+
     // Send via socket
-    socket.emit('send_message', messageData);
-    
+    socket.emit("send_message", messageData);
+
     // Clear input
-    setNewMessage('');
-    
+    setNewMessage("");
+
     // Stop typing
-    socket.emit('stop_typing', { receiver_id: receiverId });
+    socket.emit("stop_typing", { receiver_id: receiverId });
   };
 
   // Handle typing
@@ -148,7 +150,7 @@ const Chat = ({ receiverId, receiverName }) => {
     if (!socket) return;
 
     // Send typing indicator
-    socket.emit('typing', { receiver_id: receiverId });
+    socket.emit("typing", { receiver_id: receiverId });
 
     // Clear previous timeout
     if (typingTimeoutRef.current) {
@@ -157,7 +159,7 @@ const Chat = ({ receiverId, receiverName }) => {
 
     // Stop typing after 2 seconds
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('stop_typing', { receiver_id: receiverId });
+      socket.emit("stop_typing", { receiver_id: receiverId });
     }, 2000);
   };
 
@@ -165,9 +167,9 @@ const Chat = ({ receiverId, receiverName }) => {
   useEffect(() => {
     if (messages.length > 0 && socket) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.receiver_id._id === 'me' && !lastMessage.seen) {
-        const chat_id = `chat_${[receiverId, 'me'].sort().join('_')}`;
-        socket.emit('mark_seen', { chat_id });
+      if (lastMessage.receiver_id._id === "me" && !lastMessage.seen) {
+        const chat_id = `chat_${[receiverId, "me"].sort().join("_")}`;
+        socket.emit("mark_seen", { chat_id });
       }
     }
   }, [messages, socket, receiverId]);
@@ -188,8 +190,8 @@ const Chat = ({ receiverId, receiverName }) => {
       <div className="chat-header">
         <div className="chat-user-info">
           <h3>{receiverName}</h3>
-          <span className={`status ${isConnected ? 'online' : 'offline'}`}>
-            {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+          <span className={`status ${isConnected ? "online" : "offline"}`}>
+            {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
           </span>
         </div>
       </div>
@@ -202,24 +204,26 @@ const Chat = ({ receiverId, receiverName }) => {
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isMine = msg.sender_id._id === 'me';
+            const isMine = msg.sender_id._id === "me";
             return (
               <div
                 key={msg._id || index}
-                className={`message ${isMine ? 'message-mine' : 'message-theirs'}`}
+                className={`message ${
+                  isMine ? "message-mine" : "message-theirs"
+                }`}
               >
                 <div className="message-content">
                   <p>{msg.message}</p>
                   <div className="message-meta">
                     <span className="message-time">
-                      {new Date(msg.createdAt).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </span>
                     {isMine && (
                       <span className="message-status">
-                        {msg.seen ? '✓✓' : '✓'}
+                        {msg.seen ? "✓✓" : "✓"}
                       </span>
                     )}
                   </div>
@@ -228,7 +232,7 @@ const Chat = ({ receiverId, receiverName }) => {
             );
           })
         )}
-        
+
         {/* Typing indicator */}
         {isTyping && (
           <div className="message message-theirs">
@@ -239,7 +243,7 @@ const Chat = ({ receiverId, receiverName }) => {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

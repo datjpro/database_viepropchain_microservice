@@ -5,6 +5,8 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const connectDatabase = require("./src/config/database");
 const messageRoutes = require("./src/routes/messageRoutes");
+const keyRoutes = require("./src/routes/keyRoutes");
+const adminRoutes = require("./src/routes/adminRoutes");
 const SocketHandler = require("./src/socket/socketHandler");
 const { verifySocketToken } = require("./src/middleware/auth");
 
@@ -38,6 +40,8 @@ connectDatabase();
 
 // REST API Routes
 app.use("/api/messages", messageRoutes);
+app.use("/api/messages/keys", keyRoutes);
+app.use("/api/messages/admin", adminRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

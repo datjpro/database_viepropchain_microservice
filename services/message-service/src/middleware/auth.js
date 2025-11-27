@@ -2,7 +2,9 @@ const jwt = require("jsonwebtoken");
 
 const verifySocketToken = (socket, next) => {
   try {
-    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace("Bearer ", "");
+    const token =
+      socket.handshake.auth.token ||
+      socket.handshake.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
       return next(new Error("Authentication error: No token provided"));
@@ -12,7 +14,9 @@ const verifySocketToken = (socket, next) => {
     socket.userId = decoded.userId;
     socket.userEmail = decoded.email;
 
-    console.log(`✅ Socket authenticated: ${socket.userEmail} (${socket.userId})`);
+    console.log(
+      `✅ Socket authenticated: ${socket.userEmail} (${socket.userId})`
+    );
     next();
   } catch (error) {
     console.error("❌ Socket authentication failed:", error.message);

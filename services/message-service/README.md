@@ -5,6 +5,7 @@ Real-time messaging service với WebSocket (Socket.IO) và REST API.
 ## Tính năng
 
 ### ✅ Đã triển khai
+
 - **Real-time messaging** qua WebSocket
 - **Lịch sử chat** với pagination
 - **Typing indicators** (đang gõ...)
@@ -26,6 +27,7 @@ npm install
 ## Cấu hình
 
 Tạo file `.env`:
+
 ```env
 PORT=4008
 MONGODB_URI=mongodb+srv://...
@@ -51,6 +53,7 @@ npm start
 **Base URL:** `http://localhost:4008/api/messages`
 
 #### 1. Get All Chats
+
 ```http
 GET /chats
 Authorization: Bearer <token>
@@ -58,6 +61,7 @@ Query: ?page=1&limit=20
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -79,6 +83,7 @@ Response:
 ```
 
 #### 2. Get Chat History
+
 ```http
 GET /chats/:receiver_id/messages
 Authorization: Bearer <token>
@@ -86,6 +91,7 @@ Query: ?page=1&limit=50
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -106,30 +112,35 @@ Response:
 ```
 
 #### 3. Search Messages
+
 ```http
 GET /search?query=hello&receiver_id=<optional>
 Authorization: Bearer <token>
 ```
 
 #### 4. Mark as Seen
+
 ```http
 PUT /chats/:chat_id/seen
 Authorization: Bearer <token>
 ```
 
 #### 5. Delete Message
+
 ```http
 DELETE /messages/:message_id
 Authorization: Bearer <token>
 ```
 
 #### 6. Get Unread Count
+
 ```http
 GET /unread-count
 Authorization: Bearer <token>
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -144,96 +155,107 @@ Response:
 #### Client → Server
 
 **1. Send Message**
+
 ```javascript
-socket.emit('send_message', {
-  receiver_id: '674abc...',
-  message: 'Hello!',
+socket.emit("send_message", {
+  receiver_id: "674abc...",
+  message: "Hello!",
   attachments: [
     {
-      type: 'image',
-      url: 'https://...',
-      filename: 'photo.jpg',
-      size: 123456
-    }
+      type: "image",
+      url: "https://...",
+      filename: "photo.jpg",
+      size: 123456,
+    },
   ],
   metadata: {
-    property_id: '...',
-    transaction_type: 'sale'
-  }
+    property_id: "...",
+    transaction_type: "sale",
+  },
 });
 ```
 
 **2. Typing Indicator**
+
 ```javascript
-socket.emit('typing', {
-  receiver_id: '674abc...'
+socket.emit("typing", {
+  receiver_id: "674abc...",
 });
 ```
 
 **3. Stop Typing**
+
 ```javascript
-socket.emit('stop_typing', {
-  receiver_id: '674abc...'
+socket.emit("stop_typing", {
+  receiver_id: "674abc...",
 });
 ```
 
 **4. Mark as Seen**
+
 ```javascript
-socket.emit('mark_seen', {
-  chat_id: 'chat_userId1_userId2'
+socket.emit("mark_seen", {
+  chat_id: "chat_userId1_userId2",
 });
 ```
 
 #### Server → Client
 
 **1. New Message**
+
 ```javascript
-socket.on('new_message', (data) => {
-  console.log('New message:', data.data);
+socket.on("new_message", (data) => {
+  console.log("New message:", data.data);
 });
 ```
 
 **2. Message Sent Confirmation**
+
 ```javascript
-socket.on('message_sent', (data) => {
-  console.log('Message sent:', data.data);
+socket.on("message_sent", (data) => {
+  console.log("Message sent:", data.data);
 });
 ```
 
 **3. User Typing**
+
 ```javascript
-socket.on('user_typing', (data) => {
+socket.on("user_typing", (data) => {
   console.log(`${data.email} is typing...`);
 });
 ```
 
 **4. User Stop Typing**
+
 ```javascript
-socket.on('user_stop_typing', (data) => {
-  console.log('User stopped typing');
+socket.on("user_stop_typing", (data) => {
+  console.log("User stopped typing");
 });
 ```
 
 **5. Messages Seen**
+
 ```javascript
-socket.on('messages_seen', (data) => {
-  console.log('Messages seen in:', data.chat_id);
+socket.on("messages_seen", (data) => {
+  console.log("Messages seen in:", data.chat_id);
 });
 ```
 
 **6. User Status Change**
+
 ```javascript
-socket.on('user_status_change', (data) => {
-  console.log(`User ${data.user_id} is ${data.online ? 'online' : 'offline'}`);
+socket.on("user_status_change", (data) => {
+  console.log(`User ${data.user_id} is ${data.online ? "online" : "offline"}`);
 });
 ```
 
 ## Frontend Integration Example
 
 ### React Hook
+
 ```javascript
-import { io } from 'socket.io-client';
-import { useEffect, useState } from 'react';
+import { io } from "socket.io-client";
+import { useEffect, useState } from "react";
 
 function useChat(receiverId) {
   const [socket, setSocket] = useState(null);
@@ -241,26 +263,26 @@ function useChat(receiverId) {
   const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('viepropchain_token');
-    
+    const token = localStorage.getItem("viepropchain_token");
+
     // Connect to WebSocket
-    const newSocket = io('http://localhost:4008', {
-      auth: { token }
+    const newSocket = io("http://localhost:4008", {
+      auth: { token },
     });
 
-    newSocket.on('connect', () => {
-      console.log('Connected to chat');
+    newSocket.on("connect", () => {
+      console.log("Connected to chat");
     });
 
-    newSocket.on('new_message', (data) => {
-      setMessages(prev => [...prev, data.data]);
+    newSocket.on("new_message", (data) => {
+      setMessages((prev) => [...prev, data.data]);
     });
 
-    newSocket.on('user_typing', () => {
+    newSocket.on("user_typing", () => {
       setIsTyping(true);
     });
 
-    newSocket.on('user_stop_typing', () => {
+    newSocket.on("user_stop_typing", () => {
       setIsTyping(false);
     });
 
@@ -270,18 +292,18 @@ function useChat(receiverId) {
   }, []);
 
   const sendMessage = (message) => {
-    socket.emit('send_message', {
+    socket.emit("send_message", {
       receiver_id: receiverId,
-      message
+      message,
     });
   };
 
   const startTyping = () => {
-    socket.emit('typing', { receiver_id: receiverId });
+    socket.emit("typing", { receiver_id: receiverId });
   };
 
   const stopTyping = () => {
-    socket.emit('stop_typing', { receiver_id: receiverId });
+    socket.emit("stop_typing", { receiver_id: receiverId });
   };
 
   return { messages, sendMessage, startTyping, stopTyping, isTyping };
@@ -291,6 +313,7 @@ function useChat(receiverId) {
 ## Database Schema
 
 ### Messages Collection
+
 ```javascript
 {
   chat_id: String,              // Unique chat identifier
@@ -309,6 +332,7 @@ function useChat(receiverId) {
 ```
 
 ### Chats Collection
+
 ```javascript
 {
   chat_id: String,              // Unique identifier
@@ -330,14 +354,16 @@ function useChat(receiverId) {
 ## Quy trình hoạt động
 
 ### 1. Gửi tin nhắn
+
 ```
-User A → Socket.emit('send_message') 
-→ Server lưu DB 
+User A → Socket.emit('send_message')
+→ Server lưu DB
 → Server emit 'new_message' → User B (nếu online)
 → Server emit 'message_sent' → User A (confirmation)
 ```
 
 ### 2. Nhận tin khi offline
+
 ```
 User B offline → tin nhắn lưu trong DB
 User B online lại → GET /chats/:receiver_id/messages
@@ -345,6 +371,7 @@ User B online lại → GET /chats/:receiver_id/messages
 ```
 
 ### 3. Multi-device sync
+
 ```
 User A có 3 thiết bị (Web, Mobile, Tablet)
 → Tất cả join room `user_${userId}`
@@ -357,20 +384,23 @@ User A có 3 thiết bị (Web, Mobile, Tablet)
 Thêm vào `api-gateway/index.js`:
 
 ```javascript
-app.use('/api/messages', createProxyMiddleware({
-  target: 'http://localhost:4008',
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/messages': '/api/messages'
-  },
-  ws: true, // Enable WebSocket proxy
-  onError: (err, req, res) => {
-    res.status(503).json({
-      success: false,
-      error: 'Message service unavailable'
-    });
-  }
-}));
+app.use(
+  "/api/messages",
+  createProxyMiddleware({
+    target: "http://localhost:4008",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/messages": "/api/messages",
+    },
+    ws: true, // Enable WebSocket proxy
+    onError: (err, req, res) => {
+      res.status(503).json({
+        success: false,
+        error: "Message service unavailable",
+      });
+    },
+  })
+);
 ```
 
 ## Performance Tips
@@ -393,22 +423,26 @@ app.use('/api/messages', createProxyMiddleware({
 ## Troubleshooting
 
 ### Socket không kết nối được
+
 ```javascript
 // Check token format
-socket.on('connect_error', (error) => {
-  console.error('Connection error:', error.message);
+socket.on("connect_error", (error) => {
+  console.error("Connection error:", error.message);
 });
 ```
 
 ### Message không gửi được
+
 - Kiểm tra token hợp lệ
 - Kiểm tra receiver_id tồn tại
 - Xem console logs ở server
 
 ### Không nhận được message realtime
+
 - Check socket connected: `socket.connected`
 - Check joined room: Server logs sẽ hiển thị
 - Check network tab trong DevTools
 
 ## License
+
 MIT

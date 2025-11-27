@@ -7,7 +7,12 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": ["chat", "websocket", "socket.io", "messaging"],
+  "keywords": [
+    "chat",
+    "websocket",
+    "socket.io",
+    "messaging"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
