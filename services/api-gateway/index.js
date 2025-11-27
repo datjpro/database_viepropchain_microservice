@@ -212,11 +212,11 @@ app.use(
   })
 );
 
-// Marketplace Service (4008) - /api/marketplace/*
+// Marketplace Service (4009) - /api/marketplace/*
 app.use(
   "/api/marketplace",
   createProxyMiddleware({
-    target: "http://localhost:4008",
+    target: "http://localhost:4009",
     changeOrigin: true,
     pathRewrite: {
       "^/api/marketplace": "",
@@ -230,6 +230,35 @@ app.use(
     },
   })
 );
+
+// Message Service (4008) - /api/messages/* + WebSocket
+const messageProxy = createProxyMiddleware({
+  target: "http://localhost:4008",
+  changeOrigin: true,
+  pathRewrite: {
+    "^/api/messages": "/api/messages",
+  },
+  ws: true, // Enable WebSocket proxy
+  onError: (err, req, res) => {
+    console.error("❌ Message Service Error:", err.message);
+    if (!res.headersSent) {
+      res.status(503).json({
+        success: false,
+        error: "Message Service unavailable",
+      });
+    }
+  },
+});
+
+app.use("/api/messages", messageProxy);
+
+// WebSocket upgrade handler
+app.on("upgrade", (req, socket, head) => {
+  if (req.url.startsWith("/socket.io")) {
+    console.log("🔌 WebSocket upgrade request for Message Service");
+    messageProxy.upgrade(req, socket, head);
+  }
+});
 
 // ============================================================================
 // ERROR HANDLER
@@ -262,7 +291,8 @@ app.listen(PORT, () => {
 ║  ├─ /api/query/*         → Query Service (4005)              ║
 ║  ├─ /api/user/*          → User Service (4006)               ║
 ║  ├─ /api/kyc/*           → KYC Service (4007)                ║
-║  └─ /api/marketplace/*   → Marketplace Service (4008)        ║
+║  ├─ /api/messages/*      → Message Service (4008) + WS      ║
+║  └─ /api/marketplace/*   → Marketplace Service (4009)        ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
