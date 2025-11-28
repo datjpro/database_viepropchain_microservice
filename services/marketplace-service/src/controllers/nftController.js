@@ -12,6 +12,8 @@ const BLOCKCHAIN_SERVICE_URL =
   process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:4004";
 const ADMIN_SERVICE_URL =
   process.env.ADMIN_SERVICE_URL || "http://localhost:4003";
+const IPFS_SERVICE_URL =
+  process.env.IPFS_SERVICE_URL || "http://localhost:4002";
 
 class NFTController {
   /**
@@ -77,13 +79,26 @@ class NFTController {
                 if (nft.tokenURI.startsWith("http")) {
                   const metadataResponse = await axios.get(nft.tokenURI);
                   metadata = metadataResponse.data;
+                } else if (nft.tokenURI.startsWith("ipfs://")) {
+                  // Use IPFS service to fetch content
+                  const ipfsHash = nft.tokenURI.replace("ipfs://", "");
+                  const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
+
+                  console.log(
+                    `   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`
+                  );
+
+                  const metadataResponse = await axios.get(ipfsServiceUrl);
+                  if (metadataResponse.data.success) {
+                    metadata = metadataResponse.data.data.content;
+                  }
                 } else {
-                  // Nếu là IPFS hoặc format khác, parse JSON
+                  // Try to parse as JSON
                   metadata = JSON.parse(nft.tokenURI);
                 }
               } catch (error) {
                 console.warn(
-                  `Failed to parse metadata for NFT #${nft.tokenId}:`,
+                  `Failed to fetch/parse metadata for NFT #${nft.tokenId}:`,
                   error.message
                 );
               }
@@ -206,6 +221,19 @@ class NFTController {
           if (nftData.tokenURI.startsWith("http")) {
             const metadataResponse = await axios.get(nftData.tokenURI);
             metadata = metadataResponse.data;
+          } else if (nftData.tokenURI.startsWith("ipfs://")) {
+            // Use IPFS service to fetch content
+            const ipfsHash = nftData.tokenURI.replace("ipfs://", "");
+            const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
+
+            console.log(
+              `   📡 Fetching metadata from IPFS service: ${ipfsServiceUrl}`
+            );
+
+            const metadataResponse = await axios.get(ipfsServiceUrl);
+            if (metadataResponse.data.success) {
+              metadata = metadataResponse.data.data.content;
+            }
           } else {
             metadata = JSON.parse(nftData.tokenURI);
           }
@@ -309,6 +337,15 @@ class NFTController {
               if (nft.tokenURI.startsWith("http")) {
                 const metadataResponse = await axios.get(nft.tokenURI);
                 metadata = metadataResponse.data;
+              } else if (nft.tokenURI.startsWith("ipfs://")) {
+                // Use IPFS service to fetch content
+                const ipfsHash = nft.tokenURI.replace("ipfs://", "");
+                const ipfsServiceUrl = `${IPFS_SERVICE_URL}/content/${ipfsHash}`;
+
+                const metadataResponse = await axios.get(ipfsServiceUrl);
+                if (metadataResponse.data.success) {
+                  metadata = metadataResponse.data.data.content;
+                }
               } else {
                 metadata = JSON.parse(nft.tokenURI);
               }

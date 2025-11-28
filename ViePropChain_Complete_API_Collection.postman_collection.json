@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ViePropChain - Hybrid Architecture Complete (API Gateway)",
-    "description": "� **HYBRID ARCHITECTURE** - Complete NFT Marketplace Testing\n\n**✅ IMPLEMENTED FEATURES:**\n- 🔥 **ERC721Enumerable** NFT Querying (FIXED)\n- ⚡ **Fast Read APIs** từ MongoDB (50ms vs 3s)\n- 🎯 **Blockchain Event Indexer** (Auto-sync)\n- 💰 **Complete Marketplace** với listings & offers\n- 🔄 **Real-time sync** giữa Blockchain & Database\n\n**KIẾN TRÚC HYBRID:**\n```\nWRITE: Frontend → Smart Contract → Events → Indexer → MongoDB\nREAD:  Frontend → API → MongoDB (Fast) → Formatted Response\n```\n\n**SERVICES ARCHITECTURE:**\n- 🚪 API Gateway: 4000 (Main entry point)\n- 🔐 Auth Service: 4010 (Gmail OAuth + Wallet)\n- 📁 IPFS Service: 4002 (File upload)\n- 🏢 Admin Service: 4003 (Property mgmt)\n- ⛓️ Blockchain Service: 4004 (Smart contracts)\n- 🔍 Query Service: 4005 (Property search)\n- 👤 User Service: 4006 (User profiles)\n- ✅ KYC Service: 4007 (Identity verification)\n- 🛒 Marketplace Service: 4008 (NFT marketplace)\n- 📊 Indexer Service: 5000 (Event listener)\n\n**🎯 COMPLETE TEST WORKFLOW:**\n```\n1. 🌐 Login Gmail (Browser) → JWT token\n2. 📋 Get user info → Verify authentication\n3. ✅ Submit KYC → Auto-verified\n4. 💼 Link wallet (Optional) → Enable transactions\n5. 🏠 Create property → Property data\n6. 📷 Upload image → IPFS CID\n7. 📝 Generate metadata → IPFS metadata\n8. 🎨 Mint NFT → Blockchain transaction\n9. 🔍 Query NFTs → ERC721Enumerable (FIXED)\n10. 💰 Create listing → Marketplace listing\n11. ⚡ Browse fast → MongoDB cached data\n12. 💵 Create offer → Negotiation\n13. ✅ Accept offer → Complete transaction\n```",
+    "description": "🔥 **HYBRID ARCHITECTURE + ERC4907 RENTAL** - Complete NFT Marketplace Testing\n\n**✅ NEW FEATURES:**\n- 🏠 **ERC4907 NFT Rental** (setUser, userOf, userExpires)\n- ⚡ **Fast Read APIs** từ MongoDB (50ms vs 3s)\n- 🎯 **Blockchain Event Indexer** (Auto-sync)\n- 💰 **Complete Marketplace** với listings & offers + rental\n- 🔄 **Real-time sync** giữa Blockchain & Database\n- 📷 **NFT Image Display** via metadata enrichment\n\n**📜 UPDATED CONTRACTS:**\n- 🎨 **ViePropChainNFT**: `0x55f732E0d866A155b3A151A862996A13a22C0e8e` (ERC721 + ERC4907)\n- 🛒 **Marketplace**: `0x67bC8255530323abd8ae3f4215Dd531ba6425ee3` (Rental support)\n\n**KIẾN TRÚC HYBRID:**\n```\nWRITE: Frontend → Smart Contract → Events → Indexer → MongoDB\nREAD:  Frontend → API → MongoDB (Fast) → Formatted Response\n```\n\n**SERVICES ARCHITECTURE:**\n- 🚪 API Gateway: 4000 (Main entry point)\n- 🔐 Auth Service: 4010 (Gmail OAuth + Wallet)\n- 📁 IPFS Service: 4002 (File upload)\n- 🏢 Admin Service: 4003 (Property mgmt)\n- ⛓️ Blockchain Service: 4004 (Smart contracts)\n- 🔍 Query Service: 4005 (Property search)\n- 👤 User Service: 4006 (User profiles)\n- ✅ KYC Service: 4007 (Identity verification)\n- 🛒 Marketplace Service: 4008 (NFT marketplace)\n- 📊 Indexer Service: 5000 (Event listener)\n\n**🎯 COMPLETE TEST WORKFLOW + RENTAL:**\n```\n1. 🌐 Login Gmail (Browser) → JWT token\n2. 📋 Get user info → Verify authentication\n3. ✅ Submit KYC → Auto-verified\n4. 💼 Link wallet (Optional) → Enable transactions\n5. 🏠 Create property → Property data\n6. 📷 Upload image → IPFS CID\n7. 📝 Generate metadata → IPFS metadata\n8. 🎨 Mint NFT → Blockchain transaction\n9. 🔍 Query NFTs → ERC721Enumerable (FIXED)\n10. 💰 Create listing (sale/rent) → Marketplace listing\n11. ⚡ Browse fast → MongoDB cached data\n12. 🏠 Rent NFT → ERC4907 setUser transaction\n13. 💵 Create offer → Negotiation\n14. ✅ Accept offer → Complete transaction\n```",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -20,7 +20,7 @@
               "port": "4000",
               "path": ["health"]
             },
-            "description": "## 🚀 HƯỚNG DẪN TEST HYBRID ARCHITECTURE VIEPROPCHAIN\n\n### **🎯 LUỒNG TEST HOÀN CHỈNH: Login → Marketplace Transaction**\n\n**✅ ĐÃ IMPLEMENT:**\n- 🔥 **ERC721Enumerable** NFT Query (FIXED)\n- ⚡ **Fast Read APIs** từ MongoDB (50ms)\n- 🎯 **Event Indexer** tự động sync\n- 💰 **Complete Marketplace** workflow\n\n---\n\n### **🚀 QUICK TEST - NFT Marketplace (3 phút)**\n\n**1. Test Fast Read APIs ngay:**\n```bash\n# Test marketplace homepage (MongoDB fast read)\nGET http://localhost:4008/api/marketplace/home\n\n# Test NFT query với wallet có sẵn\nGET http://localhost:4008/api/marketplace/my-nfts/0xc6890b26a32d9d92aefbc8635c4588247529cdfe\n\n# Test listing detail\nGET http://localhost:4008/api/marketplace/listings/69060885436f7c5880be62c5\n```\n\n**2. Chạy các folders theo thứ tự:**\n- **📊 Fast Read APIs** → Test MongoDB speed\n- **🔥 NFT Query Test** → Verify ERC721Enumerable\n- **💰 Marketplace Demo** → Complete workflow\n\n---\n\n### **🔧 Services Setup (Required)**\n\n```bash\n# 1. Start Core Services\ncd database_viepropchain_microservice/services/api-gateway\nnpm start  # Port 4000 (REQUIRED)\n\ncd database_viepropchain_microservice/services/marketplace-service\nnpm start  # Port 4008 (REQUIRED)\n\ncd database_viepropchain_microservice/services/blockchain-service\nnpm start  # Port 4004 (REQUIRED)\n\n# 2. Start Indexer (Background)\ncd database_viepropchain_microservice/services/indexer-service\nnpm start  # Port 5000 (Event listener)\n\n# 3. Start Ganache\nganache -m \"arm either chef prosper fish lonely rigid antique dawn stumble wife camera\" --database.dbPath \"./ganache-data-dev\" --chain.networkId 1337 --server.port 8545\n```\n\n**Full Services (for complete workflow):**\n```bash\n# Auth & User\ncd services/auth-service && npm start     # Port 4010\ncd services/user-service && npm start     # Port 4006\ncd services/kyc-service && npm start      # Port 4007\n\n# Property & IPFS\ncd services/admin-service && npm start    # Port 4003\ncd services/ipfs-service && npm start     # Port 4002\ncd services/query-service && npm start    # Port 4005\n```\n\n---\n\n### **📱 COMPLETE WORKFLOW TESTING**\n\n#### **🔥 Phase 1: Authentication & Setup**\n\n**1.1. Gmail Login (BROWSER ONLY)**\n```\n🌐 Mở browser: http://localhost:4000/api/auth/google\n📝 Login Gmail → Copy JWT token từ URL\n🔧 Paste vào Postman Environment: {{jwt_token}}\n```\n\n**1.2. Verify Authentication**\n```\n📋 Run: \"Get My Info\"\n✅ Expected: User data + userId\n🔧 Auto-set: {{user_id}}, {{user_email}}\n```\n\n**1.3. KYC Verification**\n```\n✅ Run: \"Submit KYC\"\n⚡ Auto-verified ngay lập tức\n```\n\n**1.4. Link Wallet (Optional)**\n```\n🔗 Run: \"Get Link Wallet Message\"\n🔧 Generate signature với Node.js:\n\nconst { ethers } = require('ethers');\nconst PRIVATE_KEY = '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';\nconst wallet = new ethers.Wallet(PRIVATE_KEY);\nconst message = 'Link wallet 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2 to account ...';\nwallet.signMessage(message).then(signature => console.log('Signature:', signature));\n\n💼 Run: \"Link Wallet\" với signature\n✅ Auto-set: {{user_wallet}}\n```\n\n#### **🔥 Phase 2: Property & NFT Creation**\n\n**2.1. Create Property**\n```\n🏠 Run: \"Create Property\"\n✅ Auto-set: {{property_id}}\n```\n\n**2.2. IPFS Upload**\n```\n📷 Run: \"Upload Image\" (select file)\n✅ Auto-set: {{image_cid}}\n\n📝 Run: \"Upload Metadata\"\n✅ Auto-set: {{metadata_cid}}\n```\n\n**2.3. Mint NFT**\n```\n🎨 Run: \"Admin Mint NFT\"\n✅ Auto-set: {{token_id}}\n⛓️ Blockchain transaction executed\n```\n\n#### **🔥 Phase 3: NFT Query & Verification**\n\n**3.1. Test ERC721Enumerable (FIXED)**\n```\n🔍 Run: \"🔥 Test NFT Query by Wallet\"\n✅ Expected: NFT array với tokenId, owner, tokenURI\n🎯 Verify: ERC721Enumerable functions working\n```\n\n**3.2. Verify NFT Ownership**\n```\n👤 Run: \"Get User's NFTs\"\n✅ Expected: Danh sách NFTs của wallet\n```\n\n#### **🔥 Phase 4: Marketplace Operations**\n\n**4.1. Create Listing**\n```\n💰 Run: \"Create Listing\"\nBody:\n{\n  \"tokenId\": {{token_id}},\n  \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\",\n  \"propertyId\": {{property_id}},\n  \"price\": \"50000000000000000000\",\n  \"description\": \"Beautiful property for sale\"\n}\n✅ Auto-set: {{listing_id}}\n```\n\n**4.2. Test Fast Read APIs**\n```\n⚡ Run: \"🚀 Browse Marketplace (Fast)\"\n✅ Expected: MongoDB response < 100ms\n🔍 Run: \"🚀 Get Listing Detail (Fast)\"\n✅ Expected: Enhanced listing data\n```\n\n**4.3. Create & Manage Offers**\n```\n💵 Run: \"Create Offer\"\nBody:\n{\n  \"listingId\": {{listing_id}},\n  \"price\": \"45000000000000000000\",\n  \"message\": \"Interested in buying\"\n}\n✅ Auto-set: {{offer_id}}\n\n👀 Run: \"Get Offers by Listing\"\n✅ Expected: List of offers\n\n✅ Run: \"Accept Offer\" (as seller)\n🎯 Expected: Listing → sold, Offer → accepted\n```\n\n#### **🔥 Phase 5: Verify Event Indexing**\n\n**5.1. Check Indexer Sync**\n```\n📊 Run: \"🚀 Browse Marketplace (Fast)\"\n✅ Verify: Listing status updated automatically\n⚡ Check: Event indexer đã sync từ blockchain\n```\n\n---\n\n### **📊 HYBRID ARCHITECTURE BENEFITS**\n\n**⚡ Performance Comparison:**\n```\nBEFORE (Blockchain Direct):\n- Browse listings: 3-5 seconds\n- Filter/search: Not possible\n- Pagination: Very slow\n\nAFTER (Hybrid MongoDB):\n- Browse listings: 50-100ms (30-50x faster!)\n- Filter/search: Full-text search\n- Pagination: Efficient with large datasets\n```\n\n**🎯 Key Features:**\n- ✅ **Real-time sync** via event indexer\n- ✅ **Source of truth** vẫn là blockchain\n- ✅ **Fast reads** từ MongoDB\n- ✅ **Rich queries** (filter, sort, search)\n- ✅ **Analytics** (views, favorites)\n\n---\n\n### **🚨 TROUBLESHOOTING**\n\n**Services Not Starting:**\n```bash\n# Check ports\nnetstat -ano | findstr :4000\nnetstat -ano | findstr :4008\n\n# Kill processes if needed\ntaskkill /PID <pid> /F\n```\n\n**Ganache Issues:**\n```bash\n# Reset blockchain\nrm -rf ./ganache-data-dev\nganache -m \"arm either chef...\" --database.dbPath \"./ganache-data-dev\"\n```\n\n**MongoDB Issues:**\n```bash\n# Check MongoDB connection\nmongo\nshow dbs\nuse viepropchain\ndb.listings.find()\n```\n\n**Event Indexer Not Working:**\n```bash\n# Check indexer logs\ncd services/indexer-service\nnpm start\n# Should show: \"✅ Marketplace Indexer started\"\n```\n\n---\n\n**🎉 SUCCESS CRITERIA:**\n1. ✅ Fast marketplace loading (< 100ms)\n2. ✅ NFT query returning complete data\n3. ✅ Listing creation working\n4. ✅ Offer workflow complete\n5. ✅ Real-time sync between blockchain & DB\n\n**🚀 Ready for production-scale NFT marketplace!**"
+            "description": "## 🚀 HƯỚNG DẪN TEST HYBRID ARCHITECTURE VIEPROPCHAIN\n\n### **🎯 LUỒNG TEST HOÀN CHỈNH: Login → Marketplace Transaction**\n\n**✅ ĐÃ IMPLEMENT:**\n- 🔥 **ERC721Enumerable** NFT Query (FIXED)\n- ⚡ **Fast Read APIs** từ MongoDB (50ms)\n- 🎯 **Event Indexer** tự động sync\n- 💰 **Complete Marketplace** workflow\n\n---\n\n### **🚀 QUICK TEST - NFT Marketplace (3 phút)**\n\n**1. Test Fast Read APIs ngay:**\n```bash\n# Test marketplace homepage (MongoDB fast read)\nGET http://localhost:4008/api/marketplace/home\n\n# Test NFT query với wallet có sẵn\nGET http://localhost:4008/api/marketplace/my-nfts/0xc6890b26a32d9d92aefbc8635c4588247529cdfe\n\n# Test listing detail\nGET http://localhost:4008/api/marketplace/listings/69060885436f7c5880be62c5\n```\n\n**2. Chạy các folders theo thứ tự:**\n- **📊 Fast Read APIs** → Test MongoDB speed\n- **🔥 NFT Query Test** → Verify ERC721Enumerable\n- **💰 Marketplace Demo** → Complete workflow\n\n---\n\n### **🔧 Services Setup (Required)**\n\n```bash\n# 1. Start Core Services\ncd database_viepropchain_microservice/services/api-gateway\nnpm start  # Port 4000 (REQUIRED)\n\ncd database_viepropchain_microservice/services/marketplace-service\nnpm start  # Port 4008 (REQUIRED)\n\ncd database_viepropchain_microservice/services/blockchain-service\nnpm start  # Port 4004 (REQUIRED)\n\n# 2. Start Indexer (Background)\ncd database_viepropchain_microservice/services/indexer-service\nnpm start  # Port 5000 (Event listener)\n\n# 3. Start Ganache\nganache -m \"arm either chef prosper fish lonely rigid antique dawn stumble wife camera\" --database.dbPath \"./ganache-data-dev\" --chain.networkId 1337 --server.port 8545\n```\n\n**Full Services (for complete workflow):**\n```bash\n# Auth & User\ncd services/auth-service && npm start     # Port 4010\ncd services/user-service && npm start     # Port 4006\ncd services/kyc-service && npm start      # Port 4007\n\n# Property & IPFS\ncd services/admin-service && npm start    # Port 4003\ncd services/ipfs-service && npm start     # Port 4002\ncd services/query-service && npm start    # Port 4005\n```\n\n---\n\n### **📱 COMPLETE WORKFLOW TESTING**\n\n#### **🔥 Phase 1: Authentication & Setup**\n\n**1.1. Gmail Login (BROWSER ONLY)**\n```\n🌐 Mở browser: http://localhost:4000/api/auth/google\n📝 Login Gmail → Copy JWT token từ URL\n🔧 Paste vào Postman Environment: {{jwt_token}}\n```\n\n**1.2. Verify Authentication**\n```\n📋 Run: \"Get My Info\"\n✅ Expected: User data + userId\n🔧 Auto-set: {{user_id}}, {{user_email}}\n```\n\n**1.3. KYC Verification**\n```\n✅ Run: \"Submit KYC\"\n⚡ Auto-verified ngay lập tức\n```\n\n**1.4. Link Wallet (Optional)**\n```\n🔗 Run: \"Get Link Wallet Message\"\n🔧 Generate signature với Node.js:\n\nconst { ethers } = require('ethers');\nconst PRIVATE_KEY = '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d';\nconst wallet = new ethers.Wallet(PRIVATE_KEY);\nconst message = 'Link wallet 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2 to account ...';\nwallet.signMessage(message).then(signature => console.log('Signature:', signature));\n\n💼 Run: \"Link Wallet\" với signature\n✅ Auto-set: {{user_wallet}}\n```\n\n#### **🔥 Phase 2: Property & NFT Creation**\n\n**2.1. Create Property**\n```\n🏠 Run: \"Create Property\"\n✅ Auto-set: {{property_id}}\n```\n\n**2.2. IPFS Upload**\n```\n📷 Run: \"Upload Image\" (select file)\n✅ Auto-set: {{image_cid}}\n\n📝 Run: \"Upload Metadata\"\n✅ Auto-set: {{metadata_cid}}\n```\n\n**2.3. Mint NFT**\n```\n🎨 Run: \"Admin Mint NFT\"\n✅ Auto-set: {{token_id}}\n⛓️ Blockchain transaction executed\n```\n\n#### **🔥 Phase 3: NFT Query & Verification**\n\n**3.1. Test ERC721Enumerable (FIXED)**\n```\n🔍 Run: \"🔥 Test NFT Query by Wallet\"\n✅ Expected: NFT array với tokenId, owner, tokenURI\n🎯 Verify: ERC721Enumerable functions working\n```\n\n**3.2. Verify NFT Ownership**\n```\n👤 Run: \"Get User's NFTs\"\n✅ Expected: Danh sách NFTs của wallet\n```\n\n#### **🔥 Phase 4: Marketplace Operations**\n\n**4.1. Create Listing**\n```\n💰 Run: \"Create Listing\"\nBody:\n{\n  \"tokenId\": {{token_id}},\n  \"contractAddress\": \"{{contract_address}}\",\n  \"propertyId\": {{property_id}},\n  \"price\": \"50000000000000000000\",\n  \"description\": \"Beautiful property for sale\"\n}\n✅ Auto-set: {{listing_id}}\n```\n\n**4.2. Test Fast Read APIs**\n```\n⚡ Run: \"🚀 Browse Marketplace (Fast)\"\n✅ Expected: MongoDB response < 100ms\n🔍 Run: \"🚀 Get Listing Detail (Fast)\"\n✅ Expected: Enhanced listing data\n```\n\n**4.3. Create & Manage Offers**\n```\n💵 Run: \"Create Offer\"\nBody:\n{\n  \"listingId\": {{listing_id}},\n  \"price\": \"45000000000000000000\",\n  \"message\": \"Interested in buying\"\n}\n✅ Auto-set: {{offer_id}}\n\n👀 Run: \"Get Offers by Listing\"\n✅ Expected: List of offers\n\n✅ Run: \"Accept Offer\" (as seller)\n🎯 Expected: Listing → sold, Offer → accepted\n```\n\n#### **🔥 Phase 5: Verify Event Indexing**\n\n**5.1. Check Indexer Sync**\n```\n📊 Run: \"🚀 Browse Marketplace (Fast)\"\n✅ Verify: Listing status updated automatically\n⚡ Check: Event indexer đã sync từ blockchain\n```\n\n---\n\n### **📊 HYBRID ARCHITECTURE BENEFITS**\n\n**⚡ Performance Comparison:**\n```\nBEFORE (Blockchain Direct):\n- Browse listings: 3-5 seconds\n- Filter/search: Not possible\n- Pagination: Very slow\n\nAFTER (Hybrid MongoDB):\n- Browse listings: 50-100ms (30-50x faster!)\n- Filter/search: Full-text search\n- Pagination: Efficient with large datasets\n```\n\n**🎯 Key Features:**\n- ✅ **Real-time sync** via event indexer\n- ✅ **Source of truth** vẫn là blockchain\n- ✅ **Fast reads** từ MongoDB\n- ✅ **Rich queries** (filter, sort, search)\n- ✅ **Analytics** (views, favorites)\n\n---\n\n### **🚨 TROUBLESHOOTING**\n\n**Services Not Starting:**\n```bash\n# Check ports\nnetstat -ano | findstr :4000\nnetstat -ano | findstr :4008\n\n# Kill processes if needed\ntaskkill /PID <pid> /F\n```\n\n**Ganache Issues:**\n```bash\n# Reset blockchain\nrm -rf ./ganache-data-dev\nganache -m \"arm either chef...\" --database.dbPath \"./ganache-data-dev\"\n```\n\n**MongoDB Issues:**\n```bash\n# Check MongoDB connection\nmongo\nshow dbs\nuse viepropchain\ndb.listings.find()\n```\n\n**Event Indexer Not Working:**\n```bash\n# Check indexer logs\ncd services/indexer-service\nnpm start\n# Should show: \"✅ Marketplace Indexer started\"\n```\n\n---\n\n**🎉 SUCCESS CRITERIA:**\n1. ✅ Fast marketplace loading (< 100ms)\n2. ✅ NFT query returning complete data\n3. ✅ Listing creation working\n4. ✅ Offer workflow complete\n5. ✅ Real-time sync between blockchain & DB\n\n**🚀 Ready for production-scale NFT marketplace!**"
           }
         }
       ]
@@ -443,7 +443,176 @@
       ]
     },
     {
-      "name": "3️⃣ Wallet Linking (Optional)",
+      "name": "3️⃣ User Dashboard",
+      "item": [
+        {
+          "name": "Get User Properties",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user properties successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total Properties: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"📍 First Property: \" + jsonData.data[0].address);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/properties",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "properties"]
+            },
+            "description": "Lấy danh sách tất cả bất động sản của user"
+          }
+        },
+        {
+          "name": "Get User NFTs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user NFTs successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total NFTs: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"🎨 First NFT ID: \" + jsonData.data[0].tokenId);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/nfts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "nfts"]
+            },
+            "description": "Lấy danh sách NFTs của user từ blockchain"
+          }
+        },
+        {
+          "name": "Get User Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user transactions successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    console.log(\"✅ Total Transactions: \" + jsonData.count);",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        console.log(\"💳 First Transaction Type: \" + jsonData.data[0].type);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/transactions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "transactions"]
+            },
+            "description": "Lấy lịch sử giao dịch của user"
+          }
+        },
+        {
+          "name": "Get User Dashboard (Aggregated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Get user dashboard successfully\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    ",
+                  "    // Check stats",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalProperties');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalNFTs');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalTransactions');",
+                  "    pm.expect(jsonData.data.stats).to.have.property('totalValue');",
+                  "    ",
+                  "    console.log(\"📊 Dashboard Stats:\");",
+                  "    console.log(\"   Properties: \" + jsonData.data.stats.totalProperties);",
+                  "    console.log(\"   NFTs: \" + jsonData.data.stats.totalNFTs);",
+                  "    console.log(\"   Transactions: \" + jsonData.data.stats.totalTransactions);",
+                  "    console.log(\"   Total Value: \" + jsonData.data.stats.totalValue + \" ETH\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4000/api/user/users/{{user_id}}/dashboard",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4000",
+              "path": ["api", "user", "users", "{{user_id}}", "dashboard"]
+            },
+            "description": "Lấy toàn bộ dữ liệu dashboard của user (profile, stats, properties, NFTs, transactions) trong 1 request\n\n**Response includes:**\n- profile: Thông tin user\n- stats: Tổng số properties, NFTs, transactions, tổng giá trị (ETH)\n- properties: Danh sách bất động sản\n- nfts: Danh sách NFTs từ blockchain\n- transactions: Lịch sử giao dịch"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ Wallet Linking (Optional)",
       "item": [
         {
           "name": "Get Link Wallet Message",
@@ -563,7 +732,7 @@
       ]
     },
     {
-      "name": "4️⃣ Property",
+      "name": "5️⃣ Property",
       "item": [
         {
           "name": "Create Property",
@@ -664,7 +833,7 @@
       ]
     },
     {
-      "name": "5️⃣ IPFS Upload",
+      "name": "6️⃣ IPFS Upload",
       "item": [
         {
           "name": "Upload Image",
@@ -768,7 +937,7 @@
       ]
     },
     {
-      "name": "6️⃣ NFT Minting",
+      "name": "7️⃣ NFT Minting",
       "item": [
         {
           "name": "Admin Mint NFT",
@@ -845,7 +1014,7 @@
       ]
     },
     {
-      "name": "6️⃣.1 NFT Info Helper",
+      "name": "7️⃣.1 NFT Info Helper",
       "item": [
         {
           "name": "🔥 Test NFT Query by Wallet",
@@ -968,7 +1137,7 @@
       ]
     },
     {
-      "name": "6️⃣.2 ERC721Enumerable Direct (Blockchain Service)",
+      "name": "7️⃣.2 ERC721Enumerable Direct (Blockchain Service)",
       "item": [
         {
           "name": "Get Total Supply",
@@ -1033,7 +1202,7 @@
       ]
     },
     {
-      "name": "7️⃣ Marketplace - Listings (Enhanced)",
+      "name": "8️⃣ Marketplace - Listings (Enhanced)",
       "item": [
         {
           "name": "🔥 Create Listing (Test với NFT có sẵn)",
@@ -1073,7 +1242,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tokenId\": 1,\n  \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\",\n  \"propertyId\": \"6905c41423f8d019f2eb2ad6\",\n  \"price\": \"75000000000000000000\",\n  \"description\": \"🔥 ENHANCED: Beautiful apartment với đầy đủ thông tin property\"\n}"
+              "raw": "{\n  \"tokenId\": 1,\n  \"contractAddress\": \"{{contract_address}}\",\n  \"propertyId\": \"6905c41423f8d019f2eb2ad6\",\n  \"price\": \"75000000000000000000\",\n  \"description\": \"🔥 ENHANCED: Beautiful apartment với đầy đủ thông tin property\"\n}"
             },
             "url": {
               "raw": "http://localhost:4000/api/marketplace/listings",
@@ -1082,7 +1251,7 @@
               "port": "4000",
               "path": ["api", "marketplace", "listings"]
             },
-            "description": "🔥 **ENHANCED LISTING CREATION**\n\n**✅ Test với data có sẵn:**\n- **TokenId**: 1 (đã có sẵn)\n- **Contract**: 0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\n- **PropertyId**: 6905c41423f8d019f2eb2ad6 (existing)\n- **Price**: 75 ETH (75000000000000000000 wei)\n\n**🎯 Enhanced Features:**\n- ✅ **NFT Ownership Verification** từ blockchain\n- ✅ **Property Data Integration** từ Admin Service\n- ✅ **Auto-populate** property name, type, address\n- ✅ **Wallet Address Validation**\n- ✅ **Duplicate Listing Prevention**\n\n**Requirements:**\n- 🔐 Must be logged in (JWT token)\n- 💼 Must have wallet linked\n- 🎨 Must own the NFT\n- 🏠 Property must exist\n\n**Response Enhanced:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"listing_id\",\n    \"tokenId\": 1,\n    \"contractAddress\": \"0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48\",\n    \"propertyId\": \"6905c41423f8d019f2eb2ad6\",\n    \"propertyName\": \"Phòng 1124 E4\",\n    \"propertyType\": \"apartment\",\n    \"propertyAddress\": {\n      \"city\": \"TP. Hồ Chí Minh\",\n      \"district\": \"Đông Hòa\",\n      \"ward\": \"Mạc Đỉnh Chi\"\n    },\n    \"propertyArea\": 150,\n    \"seller\": {\n      \"walletAddress\": \"0xc6890b26a32d9d92aefbc8635c4588247529cdfe\",\n      \"email\": \"seller@gmail.com\"\n    },\n    \"price\": {\n      \"amount\": \"75000000000000000000\",\n      \"currency\": \"ETH\"\n    },\n    \"status\": \"active\",\n    \"listedAt\": \"2025-11-01T...\",\n    \"expiresAt\": \"2026-01-30T...\"\n  }\n}\n```\n\n**🚀 Workflow sau khi create:**\n1. ✅ Listing created trong MongoDB\n2. ⚡ Visible ngay trên fast read APIs\n3. 📊 Auto-indexed for search & filter\n4. 🔄 Ready for offers & transactions"
+            "description": "🔥 **ENHANCED LISTING CREATION WITH UPSERT LOGIC**\n\n**✅ UPSERT BEHAVIOR:**\nEndpoint này sử dụng **Update or Insert** pattern:\n- **Nếu NFT đã có listing active** → Tự động UPDATE thông tin (giá, type, description)\n- **Nếu NFT chưa có listing** → Tạo mới\n- **Nếu owner đổi** → Báo lỗi (phải cancel listing cũ trước)\n\n**🎯 Use Cases:**\n1. **List NFT lần đầu**: Tạo listing mới\n2. **Thay đổi giá**: Gọi lại với giá mới → Auto update\n3. **Chuyển Sale ↔ Rent**: Gọi với type khác → Update listing type\n4. **Relist sau khi cancel**: Tự động tạo lại hoặc update\n\n**✅ Test với data có sẵn:**\n- **TokenId**: 1 (đã có sẵn)\n- **Contract**: 0x55f732E0d866A155b3A151A862996A13a22C0e8e\n- **PropertyId**: 6905c41423f8d019f2eb2ad6 (existing)\n- **Price**: 75 ETH (75000000000000000000 wei)\n\n**🎯 Enhanced Features:**\n- ✅ **Upsert Logic** - Tự động xử lý create/update\n- ✅ **NFT Ownership Verification** từ blockchain\n- ✅ **Property Data Integration** từ Admin Service\n- ✅ **Auto-populate** property name, type, address\n- ✅ **Wallet Address Validation**\n- ✅ **Type Switching** (sale ↔ rent)\n\n**Requirements:**\n- 🔐 Must be logged in (JWT token)\n- 💼 Must have wallet linked\n- 🎨 Must own the NFT\n- 🏠 Property must exist\n\n**Response Enhanced:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Listing updated successfully\",\n  \"data\": {\n    \"_id\": \"listing_id\",\n    \"tokenId\": 1,\n    \"contractAddress\": \"0x55f732E0d866A155b3A151A862996A13a22C0e8e\",\n    \"propertyId\": \"6905c41423f8d019f2eb2ad6\",\n    \"propertyName\": \"Phòng 1124 E4\",\n    \"propertyType\": \"apartment\",\n    \"propertyAddress\": {\n      \"city\": \"TP. Hồ Chí Minh\",\n      \"district\": \"Đông Hòa\",\n      \"ward\": \"Mạc Đỉnh Chi\"\n    },\n    \"propertyArea\": 150,\n    \"seller\": {\n      \"walletAddress\": \"0xc6890b26a32d9d92aefbc8635c4588247529cdfe\",\n      \"email\": \"seller@gmail.com\"\n    },\n    \"price\": {\n      \"amount\": \"75000000000000000000\",\n      \"currency\": \"ETH\"\n    },\n    \"status\": \"active\",\n    \"listedAt\": \"2025-11-01T...\",\n    \"expiresAt\": \"2026-01-30T...\"\n  },\n  \"isUpdate\": true\n}\n```\n\n**📊 Response Fields:**\n- `isUpdate: true` → Listing đã tồn tại và được update\n- `isUpdate: false` hoặc undefined → Listing mới được tạo\n\n**🚀 Workflow sau khi create/update:**\n1. ✅ Listing created/updated trong MongoDB\n2. ⚡ Visible ngay trên fast read APIs\n3. 📊 Auto-indexed for search & filter\n4. 🔄 Ready for offers & transactions\n\n**💡 Testing Scenarios:**\n1. **First time listing**: Gọi lần đầu → status 201, isUpdate: false\n2. **Update price**: Gọi lại với giá khác → status 200, isUpdate: true\n3. **Switch to rent**: Thêm `listingType: \"rent\", pricePerDay, maxDurationDays`\n4. **After cancel**: Cancel rồi gọi lại → Tạo mới hoặc update"
           }
         },
         {
@@ -1278,7 +1447,7 @@
       ]
     },
     {
-      "name": "8️⃣ Marketplace - Offers (Complete Workflow)",
+      "name": "9️⃣ Marketplace - Offers (Complete Workflow)",
       "item": [
         {
           "name": "🔥 Create Offer (Enhanced)",
@@ -1551,6 +1720,222 @@
           }
         }
       ]
+    },
+    {
+      "name": "🏠 ERC4907 Rental Features (NEW)",
+      "item": [
+        {
+          "name": "🔧 Rental Management",
+          "item": [
+            {
+              "name": "Set User for Rental (ERC4907)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenId\": {{token_id}},\n  \"user\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n  \"expires\": 1735689600\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/blockchain/set-user",
+                  "host": ["{{base_url}}"],
+                  "path": ["blockchain", "set-user"]
+                },
+                "description": "🎯 **ERC4907: Set User for Rental**\n\n**Purpose:** Assign a user to rent an NFT for a specific duration.\n\n**Body Parameters:**\n- `tokenId`: NFT token ID to rent\n- `userAddress`: Address of the renter\n- `expires`: Unix timestamp when rental expires\n\n**Requirements:**\n- Must be NFT owner\n- Must have wallet linked\n- Valid expires timestamp\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"userAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"expires\": 1735689600,\n    \"transactionHash\": \"0x...\"\n  }\n}\n```"
+              }
+            },
+            {
+              "name": "Get Current User (Renter)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/blockchain/user/{{token_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["blockchain", "user", "{{token_id}}"]
+                },
+                "description": "🔍 **Get Current Renter of NFT**\n\n**Returns:** Current user address who has rental rights\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"user\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"isZeroAddress\": false\n  }\n}\n```\n\n**Note:** Returns zero address if no current renter"
+              }
+            },
+            {
+              "name": "Get User Expires Time",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/blockchain/user-expires/{{token_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["blockchain", "user-expires", "{{token_id}}"]
+                },
+                "description": "⏰ **Get Rental Expiration Time**\n\n**Returns:** Unix timestamp when rental expires\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"expires\": 1735689600,\n    \"expiresDate\": \"2025-01-01T00:00:00.000Z\",\n    \"timeLeft\": 86400000,\n    \"hasExpired\": false\n  }\n}\n```"
+              }
+            },
+            {
+              "name": "Check if NFT is Rented",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/blockchain/is-rented/{{token_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["blockchain", "is-rented", "{{token_id}}"]
+                },
+                "description": "🏠 **Check NFT Rental Status**\n\n**Returns:** Complete rental status information\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"isRented\": true,\n    \"currentUser\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"expires\": 1735689600,\n    \"timeLeft\": 86400000\n  }\n}\n```"
+              }
+            },
+            {
+              "name": "Get NFT Metadata",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/blockchain/nft/metadata/{{token_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["blockchain", "nft", "metadata", "{{token_id}}"]
+                },
+                "description": "📄 **Get NFT Metadata (NEW)**\n\n**Returns:** Complete NFT metadata including image\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"tokenURI\": \"ipfs://QmRctQ4FLBgstfGyLDUVdNsai8vTzM3xjykQ42xUi18Nfa\",\n    \"metadata\": {\n      \"name\": \"Phòng 1124 E4\",\n      \"description\": \"Beautiful property...\",\n      \"image\": \"ipfs://QmYourImageHash\",\n      \"attributes\": [...],\n      \"propertyId\": \"...\"\n    }\n  }\n}\n```\n\n**Use Case:** Display NFT images and metadata in marketplace"
+              }
+            }
+          ]
+        },
+        {
+          "name": "🛒 Marketplace Rental",
+          "item": [
+            {
+              "name": "Create Rental Listing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenId\": {{token_id}},\n  \"contractAddress\": \"0x55f732E0d866A155b3A151A862996A13a22C0e8e\",\n  \"propertyId\": {{property_id}},\n  \"listingType\": \"rent\",\n  \"pricePerDay\": \"1000000000000000000\",\n  \"maxDurationDays\": 30,\n  \"description\": \"Beautiful property available for rent\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/marketplace/api/listings",
+                  "host": ["{{base_url}}"],
+                  "path": ["marketplace", "api", "listings"]
+                },
+                "description": "🏠 **Create Rental Listing (NEW)**\n\n**Purpose:** List NFT for rent instead of sale\n\n**Body Parameters:**\n- `listingType`: \"rent\" (required for rental)\n- `pricePerDay`: Daily rental price in wei\n- `maxDurationDays`: Maximum rental duration\n- Standard listing fields (tokenId, contractAddress, etc.)\n\n**Example Values:**\n- `pricePerDay`: \"1000000000000000000\" = 1 ETH per day\n- `maxDurationDays`: 30 = Maximum 30 days rental\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"_id\": \"listing_id\",\n    \"tokenId\": 1,\n    \"listingType\": \"rent\",\n    \"rental\": {\n      \"pricePerDay\": \"1000000000000000000\",\n      \"maxDurationDays\": 30,\n      \"currentRenter\": null\n    },\n    \"status\": \"active\"\n  }\n}\n```"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Rental listing created successfully\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.success).to.eql(true);",
+                      "    ",
+                      "    if (jsonData.data && jsonData.data._id) {",
+                      "        pm.environment.set(\"rental_listing_id\", jsonData.data._id);",
+                      "        console.log(\"🏠 Rental Listing ID set: \" + jsonData.data._id);",
+                      "    }",
+                      "    ",
+                      "    // Verify rental specific fields",
+                      "    pm.expect(jsonData.data.listingType).to.eql(\"rent\");",
+                      "    pm.expect(jsonData.data.rental).to.exist;",
+                      "    pm.expect(jsonData.data.rental.pricePerDay).to.exist;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Rental Listings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/marketplace/api/listings/rental?page=1&limit=10&availability=available",
+                  "host": ["{{base_url}}"],
+                  "path": ["marketplace", "api", "listings", "rental"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "availability",
+                      "value": "available",
+                      "description": "available | rented | all"
+                    }
+                  ]
+                },
+                "description": "🏠 **Browse Rental Listings (NEW)**\n\n**Purpose:** Browse NFTs available for rent with enhanced filtering\n\n**Query Parameters:**\n- `availability`: \"available\", \"rented\", or \"all\"\n- `propertyType`: Filter by property type\n- `city`: Filter by city\n- `minPricePerDay`: Minimum daily price\n- `maxPricePerDay`: Maximum daily price\n- `maxDuration`: Maximum rental duration needed\n\n**Response with NFT Images:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"_id\": \"listing_id\",\n      \"tokenId\": 1,\n      \"listingType\": \"rent\",\n      \"rental\": {\n        \"pricePerDay\": \"1000000000000000000\",\n        \"maxDurationDays\": 30,\n        \"currentRenter\": null\n      },\n      \"nftMetadata\": {\n        \"name\": \"Property Name\",\n        \"image\": \"ipfs://QmImageHash\",\n        \"description\": \"...\"\n      },\n      \"image\": \"ipfs://QmImageHash\",\n      \"isCurrentlyRented\": false,\n      \"rentalTimeLeft\": 0\n    }\n  ]\n}\n```"
+              }
+            },
+            {
+              "name": "Get NFT Rental Status (Marketplace)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/marketplace/listings/token/{{token_id}}/rental-status",
+                  "host": ["{{base_url}}"],
+                  "path": [
+                    "marketplace",
+                    "listings",
+                    "token",
+                    "{{token_id}}",
+                    "rental-status"
+                  ]
+                },
+                "description": "🔍 **Get NFT Rental Status from Marketplace**\n\n**Purpose:** Get rental listing status including renter info from database\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"tokenId\": 1,\n    \"listingId\": \"listing_id\",\n    \"isAvailable\": false,\n    \"isCurrentlyRented\": true,\n    \"pricePerDay\": \"1000000000000000000\",\n    \"maxDurationDays\": 30,\n    \"currentRenter\": {\n      \"userId\": \"user_id\",\n      \"walletAddress\": \"0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13\",\n      \"email\": \"renter@example.com\",\n      \"name\": \"John Doe\",\n      \"rentedAt\": \"2024-12-25T00:00:00.000Z\",\n      \"expiresAt\": \"2025-01-01T00:00:00.000Z\",\n      \"rentalDays\": 7,\n      \"transactionHash\": \"0x...\"\n    },\n    \"timeLeft\": 604800000\n  }\n}\n```"
+              }
+            },
+            {
+              "name": "Rent NFT",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"listingId\": \"{{rental_listing_id}}\",\n  \"durationDays\": 7,\n  \"totalPrice\": \"7000000000000000000\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/marketplace/api/listings/rent",
+                  "host": ["{{base_url}}"],
+                  "path": ["marketplace", "api", "listings", "rent"]
+                },
+                "description": "🏠 **Rent an NFT (NEW)**\n\n**Purpose:** Rent an NFT for specified duration\n\n**Body Parameters:**\n- `listingId`: ID of rental listing\n- `durationDays`: How many days to rent (≤ maxDurationDays)\n- `totalPrice`: Total payment (durationDays × pricePerDay)\n\n**Process:**\n1. Validates listing is available for rent\n2. Calculates correct total price\n3. Calls ERC4907 setUser() function\n4. Updates listing status to \"rented\"\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"listingId\": \"listing_id\",\n    \"tokenId\": 1,\n    \"renter\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2\",\n    \"durationDays\": 7,\n    \"expires\": 1735689600,\n    \"totalPaid\": \"7000000000000000000\",\n    \"transactionHash\": \"0x...\"\n  }\n}\n```"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -1574,7 +1959,7 @@
     },
     {
       "key": "nft_contract_address",
-      "value": "0x4Cf97592f58e9f266BAce5405602c97c9bFc4F48",
+      "value": "{{contract_address}}",
       "type": "string",
       "description": "✅ NFT Contract Address (ViePropChainNFT with ERC721Enumerable)"
     },
@@ -1661,6 +2046,24 @@
       "value": "",
       "type": "string",
       "description": "💵 Offer ID - AUTO-SET từ Create Offer"
+    },
+    {
+      "key": "rental_listing_id",
+      "value": "",
+      "type": "string",
+      "description": "🏠 Rental Listing ID - AUTO-SET từ Create Rental Listing"
+    },
+    {
+      "key": "contract_address",
+      "value": "0x55f732E0d866A155b3A151A862996A13a22C0e8e",
+      "type": "string",
+      "description": "🔗 Updated NFT Contract Address (ERC721 + ERC4907)"
+    },
+    {
+      "key": "marketplace_contract_address",
+      "value": "0x67bC8255530323abd8ae3f4215Dd531ba6425ee3",
+      "type": "string",
+      "description": "🛒 Updated Marketplace Contract Address"
     }
   ]
 }

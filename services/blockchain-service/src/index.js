@@ -13,7 +13,7 @@ const {
   initBlockchain,
   getBlockchainHealth,
   GANACHE_URL,
-  CONTRACT_ADDRESS,
+  NFT_CONTRACT_ADDRESS,
   getSigner,
 } = require("./config/blockchain");
 const contractService = require("./services/contractService");
@@ -71,7 +71,7 @@ app.listen(PORT, () => {
 ║══════════════════════════════════════════════════════════════║
 ║  Port: ${PORT}                                                  ║
 ║  Ganache: ${GANACHE_URL}                          ║
-║  Contract: ${CONTRACT_ADDRESS}  ║
+║  Contract: ${NFT_CONTRACT_ADDRESS}  ║
 ║  Admin: ${signer.address}     ║
 ║                                                              ║
 ║  API Endpoints:                                              ║

@@ -29,4 +29,10 @@ router.get("/total-supply", nftController.getTotalSupply);
 router.get("/all-nfts", nftController.getAllNFTs);
 router.get("/nft-by-index/:index", nftController.getNFTByIndex);
 
+// ERC4907 Rental endpoints
+router.post("/set-user", nftController.setUser);
+router.get("/user/:tokenId", nftController.getUser);
+router.get("/user-expires/:tokenId", nftController.getUserExpires);
+router.get("/is-rented/:tokenId", nftController.isRented);
+
 module.exports = router;

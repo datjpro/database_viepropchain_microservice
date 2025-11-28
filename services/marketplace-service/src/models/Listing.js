@@ -51,6 +51,45 @@ const listingSchema = new mongoose.Schema(
       name: String,
     },
 
+    // Listing Type and Rental Info
+    listingType: {
+      type: String,
+      enum: ["sale", "rent"],
+      default: "sale",
+      index: true,
+    },
+
+    // Rental specific fields
+    rental: {
+      pricePerDay: {
+        type: String, // Wei format for daily rental price
+        required: function () {
+          return this.listingType === "rent";
+        },
+      },
+      maxDurationDays: {
+        type: Number,
+        required: function () {
+          return this.listingType === "rent";
+        },
+        min: 1,
+        max: 365,
+      },
+      currentRenter: {
+        userId: mongoose.Schema.Types.ObjectId,
+        walletAddress: {
+          type: String,
+          lowercase: true,
+        },
+        email: String,
+        name: String,
+        rentedAt: Date,
+        expiresAt: Date,
+        rentalDays: Number,
+        transactionHash: String,
+      },
+    },
+
     // Pricing
     price: {
       amount: {
@@ -67,7 +106,7 @@ const listingSchema = new mongoose.Schema(
     // Listing Status
     status: {
       type: String,
-      enum: ["active", "sold", "cancelled", "expired"],
+      enum: ["active", "sold", "cancelled", "expired", "rented"],
       default: "active",
       index: true,
     },
@@ -123,15 +162,23 @@ const listingSchema = new mongoose.Schema(
 
 // Indexes for efficient queries
 listingSchema.index({ status: 1, listedAt: -1 });
+listingSchema.index({ listingType: 1, status: 1 });
 listingSchema.index({ "seller.userId": 1, status: 1 });
 listingSchema.index({ "seller.walletAddress": 1 });
 listingSchema.index({ "price.amount": 1 });
+listingSchema.index({ "rental.pricePerDay": 1 });
 listingSchema.index({ propertyType: 1, status: 1 });
 listingSchema.index({ "propertyAddress.city": 1, status: 1 });
 
 // Virtual for checking if listing is expired
 listingSchema.virtual("isExpired").get(function () {
   return this.expiresAt < new Date() && this.status === "active";
+});
+
+// Virtual for checking if rental is active
+listingSchema.virtual("isRentalActive").get(function () {
+  if (this.listingType !== "rent" || !this.rental.currentRenter) return false;
+  return new Date() < this.rental.currentRenter.expiresAt;
 });
 
 module.exports = mongoose.model("Listing", listingSchema);

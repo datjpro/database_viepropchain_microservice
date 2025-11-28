@@ -100,6 +100,26 @@ class WalletLinkingController {
 
       console.log(`✅ Wallet linked successfully`);
 
+      // 🔥 UPDATE USER PROFILE SERVICE with wallet address
+      try {
+        const axios = require("axios");
+        const USER_SERVICE_URL =
+          process.env.USER_SERVICE_URL || "http://localhost:4006";
+        await axios.put(
+          `${USER_SERVICE_URL}/api/profiles/user/${user._id}/wallet`,
+          { walletAddress: user.walletAddress },
+          { timeout: 3000 }
+        );
+        console.log(
+          `✅ Updated wallet address in User Profile Service for user ${user._id}`
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ Failed to update User Profile Service (will auto-sync later):`,
+          error.message
+        );
+      }
+
       // 🔥 GENERATE NEW JWT TOKEN with wallet info
       const jwt = require("jsonwebtoken");
       const JWT_SECRET =

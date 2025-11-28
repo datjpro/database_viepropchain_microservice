@@ -474,6 +474,219 @@ class NFTController {
       });
     }
   }
+
+  /**
+   * ========================================================================
+   * ERC4907 RENTAL FUNCTIONS
+   * ========================================================================
+   */
+
+  /**
+   * Set rental user for NFT (ERC4907)
+   */
+  async setRentalUser(req, res) {
+    try {
+      const { tokenId } = req.params;
+      const { user, expires, rentedBy, transactionHash } = req.body;
+
+      if (!user || !expires) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields: user, expires",
+        });
+      }
+
+      const nft = await NFT.findOne({ tokenId });
+
+      if (!nft) {
+        return res.status(404).json({
+          success: false,
+          error: "NFT not found",
+        });
+      }
+
+      // Update rental information
+      nft.rental = {
+        currentUser: user.toLowerCase(),
+        expires: new Date(expires * 1000), // Convert timestamp to Date
+        rentedAt: new Date(),
+        rentedBy: rentedBy ? rentedBy.toLowerCase() : null,
+        transactionHash,
+        isActive: true,
+      };
+
+      nft.status = "rented";
+      await nft.save();
+
+      res.json({
+        success: true,
+        message: "Rental user set successfully",
+        data: {
+          tokenId: nft.tokenId,
+          rental: nft.rental,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to set rental user",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get current rental user of NFT
+   */
+  async getRentalUser(req, res) {
+    try {
+      const { tokenId } = req.params;
+
+      const nft = await NFT.findOne({ tokenId });
+
+      if (!nft) {
+        return res.status(404).json({
+          success: false,
+          error: "NFT not found",
+        });
+      }
+
+      const isRentalActive = nft.rental?.expires && new Date() < nft.rental.expires;
+
+      res.json({
+        success: true,
+        data: {
+          tokenId: nft.tokenId,
+          currentUser: isRentalActive ? nft.rental.currentUser : null,
+          expires: nft.rental?.expires || null,
+          isActive: isRentalActive,
+          rental: nft.rental || null,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to get rental user",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Clear expired rental user
+   */
+  async clearExpiredRental(req, res) {
+    try {
+      const { tokenId } = req.params;
+
+      const nft = await NFT.findOne({ tokenId });
+
+      if (!nft) {
+        return res.status(404).json({
+          success: false,
+          error: "NFT not found",
+        });
+      }
+
+      if (!nft.rental || !nft.rental.expires) {
+        return res.status(400).json({
+          success: false,
+          error: "No active rental found",
+        });
+      }
+
+      const now = new Date();
+      if (now < nft.rental.expires) {
+        return res.status(400).json({
+          success: false,
+          error: "Rental is still active",
+          message: `Rental expires at ${nft.rental.expires}`,
+        });
+      }
+
+      // Clear expired rental
+      nft.rental.isActive = false;
+      nft.status = nft.listing?.isListed ? "listed" : "minted";
+      await nft.save();
+
+      res.json({
+        success: true,
+        message: "Expired rental cleared",
+        data: {
+          tokenId: nft.tokenId,
+          status: nft.status,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to clear expired rental",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all rented NFTs
+   */
+  async getRentedNFTs(req, res) {
+    try {
+      const { renter } = req.query;
+
+      const filter = {
+        "rental.isActive": true,
+        "rental.expires": { $gte: new Date() },
+      };
+
+      if (renter) {
+        filter["rental.currentUser"] = renter.toLowerCase();
+      }
+
+      const nfts = await NFT.find(filter).populate("propertyId");
+
+      res.json({
+        success: true,
+        data: nfts,
+        count: nfts.length,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to get rented NFTs",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get NFTs available for rent
+   */
+  async getAvailableForRent(req, res) {
+    try {
+      const filter = {
+        $or: [
+          { "rental.isActive": { $ne: true } },
+          { "rental.expires": { $lt: new Date() } },
+          { rental: { $exists: false } },
+        ],
+        status: { $in: ["minted", "listed"] },
+      };
+
+      const nfts = await NFT.find(filter).populate("propertyId");
+
+      res.json({
+        success: true,
+        data: nfts,
+        count: nfts.length,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to get available NFTs",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new NFTController();

@@ -24,6 +24,12 @@ class OrchestratorService {
       description: property.description || "",
       image: property.images?.[0] || "",
       external_url: `https://viepropchain.com/properties/${property._id}`,
+      minted_at: new Date().toISOString(),
+      minted_timestamp: Date.now(),
+      property_id: property._id.toString(),
+      unique_hash: `${property._id}_${Date.now()}_${Math.random().toString(
+        36
+      )}`,
       attributes: [
         { trait_type: "Property Type", value: property.propertyType },
         { trait_type: "City", value: property.address?.city || "N/A" },
@@ -93,7 +99,7 @@ class OrchestratorService {
     try {
       console.log(`   🔄 Minting NFT on blockchain...`);
 
-      const response = await axios.post(`${BLOCKCHAIN_SERVICE_URL}/mint`, {
+      const response = await axios.post(`${BLOCKCHAIN_SERVICE_URL}/nft/mint`, {
         recipient,
         tokenURI,
       });

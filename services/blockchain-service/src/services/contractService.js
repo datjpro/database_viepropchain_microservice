@@ -5,7 +5,11 @@
  */
 
 const { ethers } = require("ethers");
-const { getSigner, CONTRACT_ADDRESS } = require("../config/blockchain");
+const {
+  getSigner,
+  getProvider,
+  NFT_CONTRACT_ADDRESS,
+} = require("../config/blockchain");
 const { CONTRACT_ABI } = require("../config/contract");
 
 class ContractService {
@@ -17,9 +21,33 @@ class ContractService {
    * Initialize contract instance
    */
   initContract() {
-    const signer = getSigner();
-    this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    return this.contract;
+    try {
+      const signer = getSigner();
+      const provider = getProvider();
+
+      if (!signer || !provider) {
+        throw new Error(
+          "Blockchain not initialized. Call initBlockchain() first."
+        );
+      }
+
+      if (!NFT_CONTRACT_ADDRESS) {
+        throw new Error("NFT_CONTRACT_ADDRESS not found");
+      }
+
+      // Create contract instance with signer
+      this.contract = new ethers.Contract(
+        NFT_CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        signer
+      );
+
+      console.log(`✅ Contract initialized at ${NFT_CONTRACT_ADDRESS}`);
+      return this.contract;
+    } catch (error) {
+      console.error("❌ Contract init error:", error.message);
+      throw error;
+    }
   }
 
   /**
@@ -53,7 +81,7 @@ class ContractService {
           tokenId: Number(existingTokenId),
           recipient,
           tokenURI,
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
           isDuplicate: true,
           message: "NFT with this metadata already exists",
         };
@@ -97,7 +125,7 @@ class ContractService {
         tokenId,
         recipient,
         tokenURI,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
@@ -127,7 +155,7 @@ class ContractService {
         tokenId: Number(tokenId),
         owner,
         tokenURI,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get NFT info: ${error.message}`);
@@ -163,7 +191,7 @@ class ContractService {
           owner,
           balance: balanceNum,
           nfts: [],
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
         };
       }
 
@@ -209,7 +237,7 @@ class ContractService {
         owner,
         balance: balanceNum,
         nfts,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       console.error(`❌ getNFTsByOwner error:`, error);
@@ -302,7 +330,7 @@ class ContractService {
         return {
           totalSupply: 0,
           nfts: [],
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: NFT_CONTRACT_ADDRESS,
         };
       }
 
@@ -332,7 +360,7 @@ class ContractService {
       return {
         totalSupply: totalSupplyNum,
         nfts,
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get all NFTs: ${error.message}`);
@@ -358,10 +386,173 @@ class ContractService {
         owner,
         tokenURI,
         globalIndex: Number(index),
-        contractAddress: CONTRACT_ADDRESS,
+        contractAddress: NFT_CONTRACT_ADDRESS,
       };
     } catch (error) {
       throw new Error(`Failed to get NFT by index: ${error.message}`);
+    }
+  }
+
+  /**
+   * ========================================================================
+   * ERC4907 RENTAL FUNCTIONS
+   * ========================================================================
+   */
+
+  /**
+   * Set user for rental (ERC4907)
+   */
+  async setUser(tokenId, user, expires) {
+    try {
+      if (!this.contract) {
+        this.initContract();
+      }
+
+      if (!ethers.isAddress(user)) {
+        throw new Error("Invalid user address");
+      }
+
+      console.log(`🔄 Setting user for rental...`);
+      console.log(`   TokenId: ${tokenId}`);
+      console.log(`   User: ${user}`);
+      console.log(`   Expires: ${expires}`);
+
+      // Convert expires to Unix timestamp if it's a Date
+      let expiresTimestamp = expires;
+      if (expires instanceof Date) {
+        expiresTimestamp = Math.floor(expires.getTime() / 1000);
+      } else if (typeof expires === "string") {
+        expiresTimestamp = Math.floor(new Date(expires).getTime() / 1000);
+      }
+
+      const tx = await this.contract.setUser(tokenId, user, expiresTimestamp);
+      console.log(`   📝 Transaction hash: ${tx.hash}`);
+
+      const receipt = await tx.wait();
+      console.log(
+        `   ✅ User set successfully at block ${receipt.blockNumber}`
+      );
+
+      return {
+        tokenId: Number(tokenId),
+        user,
+        expires: Number(expiresTimestamp),
+        expiresAt: new Date(Number(expiresTimestamp) * 1000),
+        transactionHash: tx.hash,
+        blockNumber: receipt.blockNumber,
+        contractAddress: NFT_CONTRACT_ADDRESS,
+      };
+    } catch (error) {
+      throw new Error(`Failed to set user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get current user of NFT (ERC4907)
+   */
+  async getUser(tokenId) {
+    try {
+      if (!this.contract) {
+        this.initContract();
+      }
+
+      console.log(`🔍 Getting user for tokenId: ${tokenId}`);
+
+      const [user, expires] = await Promise.all([
+        this.contract.userOf(tokenId),
+        this.contract.userExpires(tokenId),
+      ]);
+
+      const now = Math.floor(Date.now() / 1000);
+      const isRented = user !== ethers.ZeroAddress && Number(expires) > now;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+
+      console.log(`   👤 User: ${user}`);
+      console.log(
+        `   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`
+      );
+      console.log(`   🎯 Is Rented: ${isRented}`);
+
+      return {
+        user: user === ethers.ZeroAddress ? null : user,
+        expires: Number(expires),
+        expiresAt: new Date(Number(expires) * 1000),
+        isRented,
+        timeLeft,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get rental expiry time (ERC4907)
+   */
+  async getUserExpires(tokenId) {
+    try {
+      if (!this.contract) {
+        this.initContract();
+      }
+
+      console.log(`🔍 Getting expiry for tokenId: ${tokenId}`);
+
+      const expires = await this.contract.userExpires(tokenId);
+      const now = Math.floor(Date.now() / 1000);
+      const isActive = Number(expires) > now;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+
+      console.log(
+        `   ⏰ Expires: ${expires} (${new Date(Number(expires) * 1000)})`
+      );
+      console.log(`   🎯 Is Active: ${isActive}`);
+
+      return {
+        expires: Number(expires),
+        expiresAt: new Date(Number(expires) * 1000),
+        isActive,
+        timeLeft,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get user expires: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if NFT is currently rented
+   */
+  async isRented(tokenId) {
+    try {
+      if (!this.contract) {
+        this.initContract();
+      }
+
+      console.log(`🔍 Checking rental status for tokenId: ${tokenId}`);
+
+      const [user, expires] = await Promise.all([
+        this.contract.userOf(tokenId),
+        this.contract.userExpires(tokenId),
+      ]);
+
+      const now = Math.floor(Date.now() / 1000);
+      const isRented = user !== ethers.ZeroAddress && Number(expires) > now;
+      const timeLeft =
+        Number(expires) > now ? (Number(expires) - now) * 1000 : 0;
+
+      console.log(`   👤 Current User: ${user}`);
+      console.log(`   ⏰ Expires: ${expires}`);
+      console.log(`   🎯 Is Rented: ${isRented}`);
+
+      return {
+        isRented,
+        currentUser: user === ethers.ZeroAddress ? null : user,
+        expires: Number(expires),
+        expiresAt: new Date(Number(expires) * 1000),
+        timeLeft,
+      };
+    } catch (error) {
+      throw new Error(`Failed to check rental status: ${error.message}`);
     }
   }
 }

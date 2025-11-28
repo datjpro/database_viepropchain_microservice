@@ -91,8 +91,8 @@ app.listen(PORT, () => {
 ║  ├─ GET    /listings                - Browse listings       ║
 ║  ├─ GET    /listings/:id            - Get listing detail    ║
 ║  ├─ GET    /listings/token/:tokenId - Get by token ID       ║
-║  ├─ POST   /listings                - Create listing (*)    ║
-║  ├─ PUT    /listings/:id            - Update listing (*)    ║
+║  ├─ POST   /listings                - Create/Update (*)     ║
+║  ├─ PUT    /listings/:id            - Update price (*)      ║
 ║  ├─ DELETE /listings/:id            - Cancel listing (*)    ║
 ║  ├─ GET    /listings/my/listings    - My listings (*)       ║
 ║  └─ POST   /listings/:id/view       - Track view            ║
@@ -105,6 +105,12 @@ app.listen(PORT, () => {
 ║  ├─ POST   /offers/:id/accept       - Accept offer (*)      ║
 ║  ├─ POST   /offers/:id/reject       - Reject offer (*)      ║
 ║  └─ DELETE /offers/:id              - Cancel offer (*)      ║
+║                                                              ║
+║  🏠 Rental Endpoints:                                        ║
+║  ├─ POST   /listings/rental         - Create rental (*)     ║
+║  ├─ POST   /listings/:id/rent       - Rent NFT (*)          ║
+║  ├─ GET    /listings/rental         - Browse rentals        ║
+║  └─ GET    /my/rentals              - My rentals (*)        ║
 ║                                                              ║
 ║  🔍 NFT Info Helper:                                         ║
 ║  ├─ GET    /nft-info/:wallet        - My NFTs with property ║

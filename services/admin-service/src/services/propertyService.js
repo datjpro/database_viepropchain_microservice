@@ -78,6 +78,21 @@ class PropertyService {
   }
 
   /**
+   * Get properties by owner
+   */
+  async getPropertiesByOwner(owner) {
+    try {
+      const properties = await Property.find({
+        owner: owner.toLowerCase(),
+      }).sort({ createdAt: -1 });
+
+      return properties;
+    } catch (error) {
+      throw new Error(`Failed to get properties by owner: ${error.message}`);
+    }
+  }
+
+  /**
    * Get property by ID
    */
   async getPropertyById(id) {

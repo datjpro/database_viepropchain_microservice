@@ -43,6 +43,31 @@ class GoogleOAuthController {
 
       console.log("✅ JWT token generated");
 
+      // 🔥 CREATE USER PROFILE in User Service if not exists
+      try {
+        const axios = require("axios");
+        const USER_SERVICE_URL =
+          process.env.USER_SERVICE_URL || "http://localhost:4006";
+
+        await axios.post(
+          `${USER_SERVICE_URL}/api/profiles`,
+          {
+            userId: user._id.toString(),
+            email: user.email,
+            walletAddress: user.walletAddress || null,
+          },
+          { timeout: 3000 }
+        );
+        console.log(
+          `✅ User profile created/verified in User Service for ${user.email}`
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ Failed to create User Profile (may already exist):`,
+          error.response?.data?.error || error.message
+        );
+      }
+
       // Redirect to frontend with token
       // Frontend will save this token and use it for API calls
       const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&email=${user.email}`;
@@ -59,13 +84,24 @@ class GoogleOAuthController {
    */
   async getCurrentUser(req, res) {
     try {
-      // User is attached by verifyToken middleware
-      const user = req.user;
+      // req.user contains decoded JWT token (userId, email, etc.)
+      const User = require("../models/User");
+
+      // Fetch full user from database
+      const user = await User.findById(req.user.userId);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
 
       res.json({
         success: true,
         data: {
-          id: user._id,
+          id: user._id.toString(),
+          userId: user._id.toString(), // Add userId for compatibility
           email: user.email,
           emailVerified: user.emailVerified,
           walletAddress: user.walletAddress || null,

@@ -231,6 +231,154 @@ class NFTController {
       });
     }
   }
+
+  /**
+   * ========================================================================
+   * ERC4907 RENTAL FUNCTIONS
+   * ========================================================================
+   */
+
+  /**
+   * Set user for rental (ERC4907)
+   */
+  async setUser(req, res) {
+    try {
+      const { tokenId, user, expires } = req.body;
+
+      if (tokenId === undefined || !user || !expires) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing tokenId, user, or expires",
+        });
+      }
+
+      const result = await contractService.setUser(tokenId, user, expires);
+
+      // Notify marketplace service to update listing status
+      try {
+        const axios = require("axios");
+        const MARKETPLACE_SERVICE_URL =
+          process.env.MARKETPLACE_SERVICE_URL || "http://localhost:4008";
+
+        await axios.post(`${MARKETPLACE_SERVICE_URL}/listings/mark-rented`, {
+          tokenId: tokenId,
+          renterAddress: user,
+          expiresTimestamp: expires,
+          transactionHash: result.transactionHash,
+        });
+
+        console.log(
+          `✅ Marketplace listing updated: Token #${tokenId} marked as rented`
+        );
+      } catch (marketplaceError) {
+        console.error(
+          "⚠️ Failed to update marketplace listing:",
+          marketplaceError.message
+        );
+        // Don't fail the main request if marketplace update fails
+      }
+
+      res.json({
+        success: true,
+        message: "User set successfully for rental",
+        data: result,
+      });
+    } catch (error) {
+      console.error("❌ Set user error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to set user",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get current user of NFT (ERC4907)
+   */
+  async getUser(req, res) {
+    try {
+      const { tokenId } = req.params;
+
+      const result = await contractService.getUser(tokenId);
+
+      res.json({
+        success: true,
+        data: {
+          tokenId: Number(tokenId),
+          user: result.user,
+          expires: result.expires,
+          isRented: result.isRented,
+          timeLeft: result.timeLeft,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Get user error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get rental expiry time (ERC4907)
+   */
+  async getUserExpires(req, res) {
+    try {
+      const { tokenId } = req.params;
+
+      const result = await contractService.getUserExpires(tokenId);
+
+      res.json({
+        success: true,
+        data: {
+          tokenId: Number(tokenId),
+          expires: result.expires,
+          expiresAt: result.expiresAt,
+          isActive: result.isActive,
+          timeLeft: result.timeLeft,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Get user expires error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get user expires",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Check if NFT is currently rented
+   */
+  async isRented(req, res) {
+    try {
+      const { tokenId } = req.params;
+
+      const result = await contractService.isRented(tokenId);
+
+      res.json({
+        success: true,
+        data: {
+          tokenId: Number(tokenId),
+          isRented: result.isRented,
+          currentUser: result.currentUser,
+          expires: result.expires,
+          timeLeft: result.timeLeft,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Check rental status error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to check rental status",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new NFTController();

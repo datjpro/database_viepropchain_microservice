@@ -11,6 +11,7 @@ require("dotenv").config();
 
 const connectDB = require("./config/database");
 const userRoutes = require("./routers/userRoutes");
+const adminRoutes = require("./routers/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4006;
@@ -19,6 +20,28 @@ const PORT = process.env.PORT || 4006;
 // MIDDLEWARE
 // ============================================================================
 app.use(express.json());
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`📝 ${req.method} ${req.path}`);
+  next();
+});
 
 // ============================================================================
 // DATABASE CONNECTION
@@ -43,6 +66,7 @@ app.get("/health", (req, res) => {
 // ROUTES
 // ============================================================================
 app.use("/", userRoutes);
+app.use("/admin", adminRoutes);
 
 // ============================================================================
 // START SERVER
