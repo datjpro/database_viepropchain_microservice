@@ -129,7 +129,9 @@ class ApprovalController {
 
         await property.save();
 
-        console.log(`   ✅ Step 3: NFT Minted - TokenID: ${property.nft.tokenId}`);
+        console.log(
+          `   ✅ Step 3: NFT Minted - TokenID: ${property.nft.tokenId}`
+        );
 
         res.json({
           success: true,
@@ -153,7 +155,8 @@ class ApprovalController {
         res.status(500).json({
           success: false,
           error: "Failed to mint NFT",
-          message: blockchainError.response?.data?.message || blockchainError.message,
+          message:
+            blockchainError.response?.data?.message || blockchainError.message,
           property,
         });
       }

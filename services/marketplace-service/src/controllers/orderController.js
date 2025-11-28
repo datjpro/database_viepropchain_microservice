@@ -32,7 +32,9 @@ class OrderController {
 
       // Calculate rental details
       const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000);
+      const endDate = new Date(
+        startDate.getTime() + days * 24 * 60 * 60 * 1000
+      );
 
       // Create order
       const order = new Order({

@@ -53,7 +53,7 @@ const propertySchema = new mongoose.Schema(
       required: false,
       index: true,
     },
-    
+
     // Web2 Verification Layer (Admin approval)
     verificationStatus: {
       type: String,
@@ -61,7 +61,7 @@ const propertySchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
-    
+
     // Blockchain Sync Status
     blockchainStatus: {
       type: String,
@@ -69,17 +69,18 @@ const propertySchema = new mongoose.Schema(
       default: "none",
       index: true,
     },
-    
+
     // Legal Documents (Private - Only Admin/Owner can see)
     legalDocuments: [String],
-    
+
     // Custodial Wallet Management
     isCustodial: {
       type: Boolean,
       default: false,
-      description: "True if NFT is held by system wallet (user hasn't linked wallet yet)",
+      description:
+        "True if NFT is held by system wallet (user hasn't linked wallet yet)",
     },
-    
+
     nft: {
       isMinted: { type: Boolean, default: false, index: true },
       tokenId: { type: Number, sparse: true, required: false },

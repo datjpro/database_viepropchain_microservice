@@ -1,0 +1,859 @@
+{
+  "info": {
+    "_postman_id": "viepropchain-utility-final-v3",
+    "name": "ViePropChain - Utility-First (Final v3 - Secure Data)",
+    "description": "🚀 **UTILITY-FIRST & SECURE DATA FLOW**\n\n**🔒 Security Logic:**\n- **Ảnh nhà:** Upload lên IPFS (Public) -> Hiển thị trên Frontend.\n- **Sổ đỏ/CCCD:** Upload lên Private Server (Secure) -> Chỉ Admin thấy.\n\n**🔄 Workflow:**\n1. Login Gmail (GET /api/auth/google) → Browser redirect → Copy JWT token.\n2. Get My Info (GET /api/auth/me) → Lấy custodialWallet.\n3. Upload Ảnh (Public) & Giấy tờ (Private).\n4. Tạo BĐS (POST /api/admin/properties).\n5. Admin duyệt (POST /api/admin/properties/:id/approve-and-mint).\n6. Khách thuê tạo đơn (POST /api/marketplace/orders/rent).\n7. Admin xác nhận payment → Sync Blockchain.\n\n**📍 Important:**\n- All requests go through API Gateway: `http://localhost:4000`\n- Authentication: Gmail OAuth → JWT token in Authorization header\n- Before testing: Run `node run.js` to start all services",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0️⃣ Authentication (Setup)",
+      "item": [
+        {
+          "name": "🔐 Login Gmail (Landlord)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"landlord_token\", jsonData.token);",
+                  "    pm.environment.set(\"landlord_user_id\", jsonData.user._id);",
+                  "    console.log(\"✅ Landlord logged in: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "Mở browser, đăng nhập Gmail, hệ thống redirect về với JWT token. Copy token vào `landlord_token`."
+          }
+        },
+        {
+          "name": "🔐 Login Gmail (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"admin_token\", jsonData.token);",
+                  "    pm.environment.set(\"admin_user_id\", jsonData.user._id);",
+                  "    console.log(\"✅ Admin logged in: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "Đăng nhập bằng tài khoản Admin Gmail. Copy token vào `admin_token`."
+          }
+        },
+        {
+          "name": "🔐 Login Gmail (Renter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"renter_token\", jsonData.token);",
+                  "    pm.environment.set(\"renter_user_id\", jsonData.user._id);",
+                  "    console.log(\"✅ Renter logged in: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "Đăng nhập bằng tài khoản Renter Gmail. Copy token vào `renter_token`."
+          }
+        },
+        {
+          "name": "👤 Get My Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Lấy thông tin user hiện tại từ JWT token. Response bao gồm email, walletAddress, custodialWallet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.user) {",
+                  "    pm.environment.set(\"landlord_user_id\", jsonData.user._id);",
+                  "    if (jsonData.user.custodialWallet && jsonData.user.custodialWallet.address) {",
+                  "        pm.environment.set(\"custodial_wallet_address\", jsonData.user.custodialWallet.address);",
+                  "        console.log(\"💼 Custodial Wallet: \" + jsonData.user.custodialWallet.address);",
+                  "    }",
+                  "    console.log(\"✅ User Info: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📂 1. Upload Service (Split Strategy)",
+      "item": [
+        {
+          "name": "1. Upload Public Image (IPFS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    // Giả lập link IPFS public",
+                  "    var publicUrl = \"https://ipfs.io/ipfs/\" + jsonData.data.cid;",
+                  "    pm.environment.set(\"public_image_url\", publicUrl);",
+                  "    console.log(\"🌍 Public Image: \" + publicUrl);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn ảnh nhà đẹp (Show cho khách xem)"
+                },
+                {
+                  "key": "type",
+                  "value": "public",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload/public",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload", "public"]
+            },
+            "description": "Lưu file vào nơi công cộng (IPFS/Cloudinary). Trả về URL public."
+          }
+        },
+        {
+          "name": "2. Upload Legal Doc (Private Server)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    // Link này yêu cầu Auth mới xem được",
+                  "    var privateUrl = jsonData.data.secureUrl;",
+                  "    pm.environment.set(\"private_doc_url\", privateUrl);",
+                  "    console.log(\"🔒 Private Doc: \" + privateUrl);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn ảnh Sổ đỏ/CCCD"
+                },
+                {
+                  "key": "type",
+                  "value": "private",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload/private",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload", "private"]
+            },
+            "description": "Lưu file vào S3 Private Bucket hoặc Local Folder được bảo vệ. Trả về Internal ID hoặc Signed URL."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏠 2. Property (Landlord & Guest)",
+      "item": [
+        {
+          "name": "3. Create Property (Submit Form)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "    console.log(\"✅ Property Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Căn hộ Utility-First (Secure Demo)\",\n  \"description\": \"Chỉ hiển thị ảnh nhà, giấu sổ đỏ.\",\n  \"address\": {\"city\": \"Hanoi\"},\n  \"price\": 15000000,\n  \"images\": [\n    \"{{public_image_url}}\" \n  ],\n  \"legalDocuments\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"]
+            },
+            "description": "Gửi cả 2 loại link lên. Backend sẽ lưu `legalDocuments` với cờ `select: false`."
+          }
+        },
+        {
+          "name": "4. Get Property Detail (Guest View)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Guest should NOT see legal docs\", function () {",
+                  "    pm.expect(jsonData.data.legalDocuments).to.be.undefined;",
+                  "    pm.expect(jsonData.data.images).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}"]
+            },
+            "description": "API Public. Kiểm tra xem trường `legalDocuments` có bị ẩn không (Nên bị ẩn)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👮 3. Admin Verification (See All)",
+      "item": [
+        {
+          "name": "5. Get Pending Properties",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/pending/approval",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "pending", "approval"]
+            },
+            "description": "Lấy danh sách BĐS đang chờ duyệt (verificationStatus = pending)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.length > 0) {",
+                  "    pm.environment.set(\"property_id\", jsonData.data[0]._id);",
+                  "    console.log(\"📋 Found pending property: \" + jsonData.data[0]._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Get Property Detail (Admin View)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Admin MUST see legal docs\", function () {",
+                  "    pm.expect(jsonData.data.legalDocuments).to.exist;",
+                  "    console.log(\"🕵️ Admin checking docs: \" + jsonData.data.legalDocuments);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/admin-view",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "admin-view"
+              ]
+            },
+            "description": "API riêng cho Admin, có `select('+legalDocuments')` trong code backend."
+          }
+        },
+        {
+          "name": "7. Approve Only (No Mint)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"note\": \"Giấy tờ hợp lệ, chưa cần NFT.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "approve"
+              ]
+            },
+            "description": "Admin duyệt BĐS nhưng KHÔNG mint NFT. verificationStatus = verified, blockchainStatus = none."
+          }
+        },
+        {
+          "name": "8. Approve & Mint NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if(jsonData.success){",
+                  "    pm.environment.set(\"token_id\", jsonData.data.nft.tokenId);",
+                  "    console.log(\"🚀 Minted Token: \" + jsonData.data.nft.tokenId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"recipientWallet\": \"{{custodial_wallet_address}}\",\n    \"note\": \"Docs verified ok.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/approve-and-mint",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "approve-and-mint"
+              ]
+            },
+            "description": "Admin duyệt -> Hệ thống Mint NFT. Lưu ý: Metadata của NFT chỉ chứa `publicImages`, KHÔNG chứa `legalDocuments`."
+          }
+        },
+        {
+          "name": "9. Reject Property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Giấy tờ không rõ ràng, cần bổ sung.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "reject"
+              ]
+            },
+            "description": "Từ chối BĐS. verificationStatus = rejected."
+          }
+        },
+        {
+          "name": "10. Request More Info",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Cần bổ sung ảnh mặt sau sổ đỏ.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/request-info",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "request-info"
+              ]
+            },
+            "description": "Yêu cầu bổ sung thông tin. verificationStatus = info_required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 4. Marketplace (Hybrid Orders)",
+      "item": [
+        {
+          "name": "11. Create Rent Order (Fiat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"order_id\", jsonData.data.orderId);",
+                  "    console.log(\"📦 Order Created: \" + jsonData.data.orderId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{property_id}}\",\n    \"days\": 365,\n    \"paymentMethod\": \"bank_transfer\",\n    \"amount\": 180000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/rent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "orders", "rent"]
+            },
+            "description": "Người thuê tạo đơn thuê, thanh toán bằng chuyển khoản. status = pending_payment."
+          }
+        },
+        {
+          "name": "12. Create Buy Order (Cash)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"buy_order_id\", jsonData.data.orderId);",
+                  "    console.log(\"💰 Buy Order: \" + jsonData.data.orderId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"propertyId\": \"{{property_id}}\",\n    \"paymentMethod\": \"cash\",\n    \"amount\": 5000000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/buy",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "orders", "buy"]
+            },
+            "description": "Mua BĐS bằng tiền mặt. status = pending_payment."
+          }
+        },
+        {
+          "name": "13. Get Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "orders", "{{order_id}}"]
+            },
+            "description": "Xem chi tiết đơn hàng, bao gồm trạng thái blockchain sync."
+          }
+        },
+        {
+          "name": "14. Confirm Payment (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"proofImage\": \"{{public_image_url}}\",\n    \"bankRef\": \"FT123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/{{order_id}}/confirm-payment",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "orders",
+                "{{order_id}}",
+                "confirm-payment"
+              ]
+            },
+            "description": "Admin xác nhận đã nhận tiền. Hệ thống tự động sync blockchain (gọi setUser). status = blockchain_syncing."
+          }
+        },
+        {
+          "name": "15. Get Pending Orders (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "orders", "pending"]
+            },
+            "description": "Lấy danh sách đơn hàng đang chờ xác nhận thanh toán."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.length > 0) {",
+                  "    pm.environment.set(\"order_id\", jsonData.data[0].orderId);",
+                  "    console.log(\"📋 Pending Order: \" + jsonData.data[0].orderId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "16. Retry Blockchain Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/{{order_id}}/retry-sync",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "orders",
+                "{{order_id}}",
+                "retry-sync"
+              ]
+            },
+            "description": "Thử lại đồng bộ blockchain nếu lần trước bị lỗi. Giới hạn 3 lần."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 5. Monitoring & Stats",
+      "item": [
+        {
+          "name": "17. Get All Properties (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?verificationStatus=verified",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "verificationStatus",
+                  "value": "verified"
+                }
+              ]
+            },
+            "description": "Lấy danh sách BĐS đã được duyệt. Public không thấy legalDocuments."
+          }
+        },
+        {
+          "name": "18. Get Blockchain Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blockchain/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "blockchain", "stats"]
+            },
+            "description": "Thống kê số lượng NFT đã mint, pending transactions, etc."
+          }
+        },
+        {
+          "name": "19. Get User Orders (My Orders)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/my-orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "orders", "my-orders"]
+            },
+            "description": "Lấy danh sách đơn hàng của user hiện tại."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "landlord_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "renter_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "public_image_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "private_doc_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "custodial_wallet_address",
+      "value": "0xUserWalletOrCustodial...",
+      "type": "string"
+    }
+  ]
+}
