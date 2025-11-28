@@ -42,13 +42,17 @@ services:
     restart: unless-stopped
     ports:
       - "8545:8545"
-    command: >
-      ganache
-      --mnemonic "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
-      --networkId 1337
-      --hostname 0.0.0.0
-      --port 8545
-      --database.dbPath /ganache-data
+    command:
+      - "--mnemonic"
+      - "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
+      - "--chain.networkId"
+      - "1337"
+      - "--server.host"
+      - "0.0.0.0"
+      - "--server.port"
+      - "8545"
+      - "--database.dbPath"
+      - "/ganache-data"
     volumes:
       - ganache-data:/ganache-data
     networks:
