@@ -45,6 +45,33 @@ const userProfileSchema = new mongoose.Schema(
     // Timestamp khi link wallet
     walletLinkedAt: Date,
 
+    // Custodial Wallet (System-managed wallet for Web2 users)
+    custodialWallet: {
+      address: {
+        type: String,
+        lowercase: true,
+        validate: {
+          validator: function (v) {
+            return !v || /^0x[a-fA-F0-9]{40}$/.test(v);
+          },
+          message: "Invalid Ethereum address",
+        },
+      },
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
+      createdAt: Date,
+    },
+
+    // KYC Level (1: Basic Email, 2: CCCD Verified - Required for transactions)
+    kycLevel: {
+      type: Number,
+      enum: [1, 2],
+      default: 1,
+      index: true,
+    },
+
     // Basic Info
     basicInfo: {
       firstName: { type: String, trim: true },
@@ -146,6 +173,8 @@ const userProfileSchema = new mongoose.Schema(
 // Indexes for queries
 userProfileSchema.index({ userType: 1, status: 1 });
 userProfileSchema.index({ "kycStatus.isVerified": 1 });
+userProfileSchema.index({ kycLevel: 1 });
+userProfileSchema.index({ "custodialWallet.address": 1 });
 userProfileSchema.index({ createdAt: -1 });
 
 // Virtual for full name

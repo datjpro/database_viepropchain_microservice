@@ -1,0 +1,162 @@
+{
+  "project": "ViePropChain",
+  "version": "2.0.0",
+  "architecture": "Utility-First Hybrid (Web2 + Web3)",
+  "changes_by_service": {
+    "admin_service": {
+      "collection": "properties",
+      "description": "Nơi lưu trữ thông tin BĐS gốc. Thay đổi để cho phép lưu trữ mà chưa cần Mint NFT.",
+      "schema_changes": {
+        "new_fields": [
+          {
+            "name": "verificationStatus",
+            "type": "String",
+            "enum": ["pending", "verified", "rejected", "info_required"],
+            "default": "pending",
+            "description": "Trạng thái duyệt tin của Admin (Web2 layer)"
+          },
+          {
+            "name": "blockchainStatus",
+            "type": "String",
+            "enum": ["none", "queue_mint", "minting", "minted", "sync_failed"],
+            "default": "none",
+            "description": "Trạng thái của Digital Twin trên Blockchain. 'none' nghĩa là chưa có NFT."
+          },
+          {
+            "name": "legalDocuments",
+            "type": "Array<String>",
+            "description": "Danh sách link ảnh/IPFS của Sổ đỏ, CCCD (Private - Chỉ Admin/Owner thấy)"
+          },
+          {
+            "name": "isCustodial",
+            "type": "Boolean",
+            "default": false,
+            "description": "True nếu NFT này đang được hệ thống giữ hộ (do user chưa có ví)"
+          }
+        ],
+        "modified_fields": [
+          {
+            "name": "tokenId",
+            "type": "Number",
+            "required": false,
+            "default": null,
+            "note": "Trước đây là Required, giờ chuyển thành Optional (Null ban đầu)"
+          },
+          {
+            "name": "contractAddress",
+            "type": "String",
+            "required": false,
+            "default": null,
+            "note": "Chỉ có giá trị sau khi Admin bấm duyệt và Mint thành công"
+          },
+          {
+            "name": "ownerWallet",
+            "type": "String",
+            "required": false,
+            "note": "Nếu user chưa link ví, trường này có thể null hoặc trỏ về Ví Hệ Thống"
+          }
+        ]
+      }
+    },
+    "marketplace_service": {
+      "collection": "orders",
+      "description": "Collection MỚI để xử lý giao dịch Hybrid (Tiền mặt/Chuyển khoản + Blockchain Sync)",
+      "schema_structure": {
+        "orderId": "String (UUID)",
+        "buyerId": "ObjectId (Ref User)",
+        "propertyId": "ObjectId (Ref Property)",
+        "listingId": "ObjectId (Ref Listing - Optional)",
+        "type": "String (ENUM: 'rent', 'buy')",
+        "payment": {
+          "method": "String (ENUM: 'fiat_transfer', 'cash', 'crypto', 'stablecoin')",
+          "amount": "Number",
+          "currency": "String (Default: 'VND')",
+          "status": "String (ENUM: 'pending', 'paid', 'failed')",
+          "proofImage": "String (Link ảnh bill chuyển khoản)"
+        },
+        "rentalDetails": {
+          "startDate": "Date",
+          "endDate": "Date",
+          "durationDays": "Number"
+        },
+        "blockchainSync": {
+          "isSynced": "Boolean",
+          "txHash": "String",
+          "syncedAt": "Date",
+          "errorLog": "String",
+          "description": "Trạng thái đồng bộ giao dịch lên Blockchain (Background Job)"
+        },
+        "createdAt": "Date",
+        "updatedAt": "Date"
+      }
+    },
+    "user_service": {
+      "collection": "users",
+      "description": "Bổ sung tính năng ví hệ thống cho người dùng Web2",
+      "schema_changes": {
+        "new_fields": [
+          {
+            "name": "custodialWallet",
+            "type": "Object",
+            "structure": {
+              "address": "String",
+              "isActive": "Boolean"
+            },
+            "description": "Địa chỉ ví do hệ thống tạo tự động cho user (Account Abstraction Lite)"
+          },
+          {
+            "name": "kycLevel",
+            "type": "Number",
+            "default": 1,
+            "description": "1: Basic (Email), 2: Verified (CCCD) - Cần level 2 để giao dịch BĐS"
+          }
+        ]
+      }
+    },
+    "system_config": {
+      "file": ".env (Blockchain Service)",
+      "description": "Cấu hình ví Admin để trả gas fee cho các thao tác tự động",
+      "new_variables": [
+        {
+          "key": "OPERATOR_WALLET_PRIVATE_KEY",
+          "value": "0x...",
+          "description": "Private key của ví Admin/System. Dùng để Mint NFT và gọi setUser (ERC4907)"
+        },
+        {
+          "key": "OPERATOR_WALLET_ADDRESS",
+          "value": "0x...",
+          "description": "Public address tương ứng"
+        }
+      ]
+    }
+  },
+  "api_workflow_adjustments": {
+    "step_1_create_web2": {
+      "method": "POST",
+      "endpoint": "/api/admin/properties",
+      "action": "Chỉ validate dữ liệu và lưu vào MongoDB. KHÔNG gọi Blockchain Service.",
+      "required_fields": [
+        "title",
+        "description",
+        "price",
+        "images",
+        "legalDocuments"
+      ]
+    },
+    "step_2_admin_mint": {
+      "method": "POST",
+      "endpoint": "/api/admin/properties/{id}/approve-and-mint",
+      "action": "1. Đổi verificationStatus -> verified. 2. Blockchain Service -> Mint NFT tới ví User (hoặc Custodial Wallet). 3. Update tokenId vào DB."
+    },
+    "step_3_hybrid_rent": {
+      "method": "POST",
+      "endpoint": "/api/marketplace/orders/rent",
+      "body": {
+        "propertyId": "...",
+        "days": 30,
+        "paymentMethod": "fiat_transfer"
+      },
+      "action": "1. Tạo Order (Pending). 2. User thanh toán. 3. Admin/System confirm 'Paid'. 4. System Wallet gọi Smart Contract 'setUser'."
+    }
+  }
+}
