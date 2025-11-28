@@ -1,0 +1,64 @@
+# ============================================================================
+# Docker Compose for Development (Fast Build)
+# ============================================================================
+# Use this for development to avoid rebuilding images
+# ============================================================================
+
+networks:
+  viepropchain-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  ganache-data:
+
+services:
+  # ============================================================================
+  # DATABASE SERVICES
+  # ============================================================================
+
+  mongodb:
+    image: mongo:7.0
+    container_name: viepropchain-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: viepropchain2025
+      MONGO_INITDB_DATABASE: viepropchain
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - viepropchain-network
+
+  # ============================================================================
+  # BLOCKCHAIN SERVICES
+  # ============================================================================
+
+  ganache:
+    image: trufflesuite/ganache:latest
+    container_name: viepropchain-ganache
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    command: >
+      ganache
+      --mnemonic "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
+      --networkId 1337
+      --hostname 0.0.0.0
+      --port 8545
+      --database.dbPath /ganache-data
+    volumes:
+      - ganache-data:/ganache-data
+    networks:
+      - viepropchain-network
+
+  # ============================================================================
+  # NOTE: Services run directly on host machine using node run.js
+  # This docker-compose.dev.yml only provides MongoDB and Ganache
+  # ============================================================================
+
+  # To run all microservices on host:
+  # cd D:\DACN\RE-Chain
+  # node run.js

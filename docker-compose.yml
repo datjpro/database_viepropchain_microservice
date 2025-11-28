@@ -1,0 +1,384 @@
+networks:
+  viepropchain-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  ganache-data:
+  ipfs-data:
+
+services:
+  # ============================================================================
+  # DATABASE SERVICES
+  # ============================================================================
+
+  mongodb:
+    image: mongo:7.0
+    container_name: viepropchain-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: viepropchain2025
+      MONGO_INITDB_DATABASE: viepropchain
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================================================
+  # BLOCKCHAIN SERVICES
+  # ============================================================================
+
+  ganache:
+    image: trufflesuite/ganache:latest
+    container_name: viepropchain-ganache
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+    command: >
+      ganache
+      --mnemonic "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
+      --networkId 1337
+      --hostname 0.0.0.0
+      --port 8545
+      --database.dbPath /ganache-data
+    volumes:
+      - ganache-data:/ganache-data
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8545 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # MICROSERVICES
+  # ============================================================================
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-auth
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+    environment:
+      PORT: 4010
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+      SESSION_SECRET: ${SESSION_SECRET:-viepropchain-session-secret-2025}
+      FRONTEND_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: http://localhost:4000/api/auth/google/callback
+    command: node services/auth-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4010/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ipfs-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-ipfs
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+    environment:
+      PORT: 4002
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      PINATA_API_KEY: ${PINATA_API_KEY}
+      PINATA_SECRET_KEY: ${PINATA_SECRET_KEY}
+    command: node services/ipfs-service/src/index.js
+    volumes:
+      - ipfs-data:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-admin
+    restart: unless-stopped
+    ports:
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:4004
+    command: node services/admin-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  blockchain-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-blockchain
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    environment:
+      PORT: 4004
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      GANACHE_URL: http://ganache:8545
+      NETWORK_ID: 1337
+      OPERATOR_PRIVATE_KEY: ${OPERATOR_PRIVATE_KEY}
+      OPERATOR_WALLET_ADDRESS: ${OPERATOR_WALLET_ADDRESS}
+    command: node services/blockchain-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ganache:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  indexer-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-indexer
+    restart: unless-stopped
+    ports:
+      - "4005:4005"
+    environment:
+      PORT: 4005
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      GANACHE_URL: http://ganache:8545
+      NETWORK_ID: 1337
+    command: node services/indexer-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ganache:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4005/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-user
+    restart: unless-stopped
+    ports:
+      - "4006:4006"
+    environment:
+      PORT: 4006
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+    command: node services/user-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4006/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kyc-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-kyc
+    restart: unless-stopped
+    ports:
+      - "4007:4007"
+    environment:
+      PORT: 4007
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+    command: node services/kyc-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4007/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  message-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-message
+    restart: unless-stopped
+    ports:
+      - "4008:4008"
+    environment:
+      PORT: 4008
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+    command: node services/message-service/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4008/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  marketplace-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-marketplace
+    restart: unless-stopped
+    ports:
+      - "4009:4009"
+    environment:
+      PORT: 4009
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:viepropchain2025@mongodb:27017/viepropchain?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-viepropchain-super-secret-jwt-key-2025}
+      BLOCKCHAIN_SERVICE_URL: http://blockchain-service:4004
+    command: node services/marketplace-service/src/index.js
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      blockchain-service:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4009/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viepropchain-gateway
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:3000
+    command: node services/api-gateway/index.js
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      admin-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      marketplace-service:
+        condition: service_healthy
+      blockchain-service:
+        condition: service_healthy
+      ipfs-service:
+        condition: service_healthy
+      kyc-service:
+        condition: service_healthy
+      message-service:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q --spider http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # FRONTEND
+  # ============================================================================
+
+  frontend:
+    build:
+      context: ../viepropchain
+      dockerfile: Dockerfile
+    container_name: viepropchain-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:4000/api
+      REACT_APP_WS_URL: ws://localhost:4000
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - viepropchain-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
