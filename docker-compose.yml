@@ -43,22 +43,27 @@ services:
     restart: unless-stopped
     ports:
       - "8545:8545"
-    command: >
-      ganache
-      --mnemonic "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
-      --networkId 1337
-      --hostname 0.0.0.0
-      --port 8545
-      --database.dbPath /ganache-data
+    command:
+      - "--mnemonic"
+      - "arm either chef prosper fish lonely rigid antique dawn stumble wife camera"
+      - "--networkId"
+      - "1337"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8545"
+      - "--database.dbPath"
+      - "/ganache-data"
     volumes:
       - ganache-data:/ganache-data
     networks:
       - viepropchain-network
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8545 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
   # ============================================================================
   # MICROSERVICES
@@ -167,12 +172,13 @@ services:
       NETWORK_ID: 1337
       OPERATOR_PRIVATE_KEY: ${OPERATOR_PRIVATE_KEY}
       OPERATOR_WALLET_ADDRESS: ${OPERATOR_WALLET_ADDRESS}
+      ADMIN_PRIVATE_KEY: ${ADMIN_PRIVATE_KEY}
     command: node services/blockchain-service/src/index.js
     depends_on:
       mongodb:
         condition: service_healthy
       ganache:
-        condition: service_healthy
+        condition: service_started
     networks:
       - viepropchain-network
     healthcheck:
@@ -201,7 +207,7 @@ services:
       mongodb:
         condition: service_healthy
       ganache:
-        condition: service_healthy
+        condition: service_started
     networks:
       - viepropchain-network
     healthcheck:
