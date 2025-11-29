@@ -42,6 +42,7 @@ connectDatabase();
 app.use("/api/messages", messageRoutes);
 app.use("/api/messages/keys", keyRoutes);
 app.use("/api/messages/admin", adminRoutes);
+app.use("/api/livechat", require("./src/routes/liveChatRoutes"));
 
 // Health check
 app.get("/health", (req, res) => {
