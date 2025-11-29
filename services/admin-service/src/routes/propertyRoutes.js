@@ -14,17 +14,35 @@ const {
   requireAdmin,
 } = require("../middleware/authMiddleware");
 
+// Multer for file uploads
+const multer = require("multer");
+const storage = multer.memoryStorage(); // Store files in memory for processing
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
+
 const router = express.Router();
 
 // CRUD operations
 // Step 1: Create draft (no images/docs required)
 router.post("/", verifyToken, propertyController.createProperty); // 🔒 Require authentication
 
-// Step 2: Upload images to property
-router.post("/:id/images", verifyToken, propertyController.uploadImages); // 🔒 Auth
+// Step 2: Upload images to property (multipart/form-data)
+router.post(
+  "/:id/images",
+  verifyToken,
+  upload.array("images", 10), // Accept up to 10 images
+  propertyController.uploadImages
+); // 🔒 Auth + File Upload
 
-// Step 3: Upload legal documents to property
-router.post("/:id/documents", verifyToken, propertyController.uploadDocuments); // 🔒 Auth
+// Step 3: Upload legal documents to property (multipart/form-data)
+router.post(
+  "/:id/documents",
+  verifyToken,
+  upload.array("legalDocuments", 5), // Accept up to 5 documents
+  propertyController.uploadDocuments
+); // 🔒 Auth + File Upload
 
 // Step 4: Submit property for approval (draft -> active)
 router.put("/:id/submit", verifyToken, propertyController.submitProperty); // 🔒 Auth

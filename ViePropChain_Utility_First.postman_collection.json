@@ -312,18 +312,20 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Authorization",
                 "value": "Bearer {{landlord_token}}",
                 "type": "text"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"imageUrls\": [\n    \"{{public_image_url}}\"\n  ]\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/admin/properties/{{property_id}}/images",
@@ -336,7 +338,7 @@
                 "images"
               ]
             },
-            "description": "BƯỚC 2: Upload ảnh công khai (IPFS URLs) vào property. Backend kiểm tra trùng lặp với property khác."
+            "description": "BƯỚC 2: Upload ảnh (JPG/PNG) trực tiếp từ máy tính. Chọn File type và thêm nhiều file ảnh (tối đa 10 ảnh, mỗi file max 10MB). Backend tự upload lên IPFS và lưu URLs vào property."
           }
         },
         {
@@ -359,18 +361,20 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
                 "key": "Authorization",
                 "value": "Bearer {{landlord_token}}",
                 "type": "text"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"documentUrls\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "legalDocuments",
+                  "type": "file",
+                  "src": []
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/admin/properties/{{property_id}}/documents",
@@ -383,7 +387,7 @@
                 "documents"
               ]
             },
-            "description": "BƯỚC 3: Upload tài liệu pháp lý (Sổ đỏ, CCCD) vào property. Backend kiểm tra trùng lặp."
+            "description": "BƯỚC 3: Upload tài liệu pháp lý (PDF/JPG của Sổ đỏ, CCCD) trực tiếp từ máy tính. Chọn File type và thêm file tài liệu (tối đa 5 files, mỗi file max 10MB). Backend tự upload lên IPFS và lưu URLs vào property."
           }
         },
         {
@@ -428,6 +432,59 @@
               ]
             },
             "description": "BƯỚC 4: Submit property từ draft -> active. Backend validate phải có ít nhất 1 ảnh và 1 tài liệu."
+          }
+        },
+        {
+          "name": "3e. STEP 5: Mint NFT (Custodial Wallet)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"token_id\", jsonData.data.tokenId);",
+                  "    console.log(\"🎉 NFT Minted!\");",
+                  "    console.log(\"🆔 Token ID: \" + jsonData.data.tokenId);",
+                  "    console.log(\"📍 Contract: \" + jsonData.data.contractAddress);",
+                  "    ",
+                  "    if (jsonData.data.isCustodial) {",
+                  "        console.log(\"🏦 CUSTODIAL MODE: NFT được mint vào ví Admin (giữ hộ)\");",
+                  "        console.log(\"💼 Admin Wallet: \" + jsonData.data.custodialWallet);",
+                  "        console.log(\"👤 Chủ sở hữu thực: \" + jsonData.data.owner);",
+                  "    } else {",
+                  "        console.log(\"✅ USER WALLET: NFT được mint trực tiếp vào ví user\");",
+                  "        console.log(\"👛 User Wallet: \" + jsonData.data.owner);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadataUri\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/mint",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}", "mint"]
+            },
+            "description": "BƯỚC 5: Mint NFT với Custodial Wallet.\n\n**LOGIC TỰ ĐỘNG:**\n- Nếu user CHƯA link ví (ownerWallet = null) → Mint vào ví Admin (0xC6890b26A32d9d92aefbc8635C4588247529CdfE)\n- Nếu user ĐÃ link ví (ownerWallet có giá trị) → Mint trực tiếp vào ví user\n\n**KHÔNG CẦN TRUYỀN recipient!** Hệ thống tự động quyết định.\n\n**Response:**\n- `isCustodial: true` → NFT ở ví Admin, database ghi chủ sở hữu\n- `isCustodial: false` → NFT ở ví user, user tự quản lý"
           }
         },
         {

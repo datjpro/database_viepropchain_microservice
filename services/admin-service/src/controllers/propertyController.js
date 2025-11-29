@@ -121,26 +121,80 @@ class PropertyController {
   }
 
   /**
-   * STEP 2: Upload images to property
+   * STEP 2: Upload images to property (multipart/form-data)
    */
   async uploadImages(req, res) {
     try {
       const { id } = req.params;
-      const { imageUrls } = req.body; // Array of IPFS URLs
 
-      if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+      // Check if files were uploaded
+      if (!req.files || req.files.length === 0) {
         return res.status(400).json({
           success: false,
-          error: "imageUrls array is required",
+          error: "No images uploaded. Please select at least 1 image file.",
         });
       }
 
-      // 🔍 Check for duplicate images in other properties
       const Property = require("../models/Property");
-      for (const url of imageUrls) {
+      const property = await Property.findById(id);
+      if (!property) {
+        return res.status(404).json({
+          success: false,
+          error: "Property not found",
+        });
+      }
+
+      // Upload each file to IPFS Service
+      const axios = require("axios");
+      const FormData = require("form-data");
+      const IPFS_SERVICE_URL =
+        process.env.IPFS_SERVICE_URL || "http://localhost:4002";
+
+      const uploadedUrls = [];
+
+      for (const file of req.files) {
+        try {
+          // Create form data for IPFS upload
+          const formData = new FormData();
+          formData.append("file", file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
+
+          // Upload to IPFS service
+          const ipfsResponse = await axios.post(
+            `${IPFS_SERVICE_URL}/upload/image`,
+            formData,
+            {
+              headers: formData.getHeaders(),
+              timeout: 30000,
+            }
+          );
+
+          if (ipfsResponse.data.success && ipfsResponse.data.data) {
+            const ipfsUrl =
+              ipfsResponse.data.data.url ||
+              `https://ipfs.io/ipfs/${ipfsResponse.data.data.cid}`;
+            uploadedUrls.push(ipfsUrl);
+            console.log(`✅ Uploaded to IPFS: ${ipfsUrl}`);
+          }
+        } catch (uploadError) {
+          console.error(
+            `❌ Failed to upload ${file.originalname}:`,
+            uploadError.message
+          );
+          return res.status(500).json({
+            success: false,
+            error: `Failed to upload image to IPFS: ${uploadError.message}`,
+          });
+        }
+      }
+
+      // 🔍 Check for duplicate images in other properties
+      for (const url of uploadedUrls) {
         const existing = await Property.findOne({
           images: url,
-          _id: { $ne: id }, // Exclude current property
+          _id: { $ne: id },
         });
 
         if (existing) {
@@ -152,26 +206,19 @@ class PropertyController {
         }
       }
 
-      const property = await Property.findById(id);
-      if (!property) {
-        return res.status(404).json({
-          success: false,
-          error: "Property not found",
-        });
-      }
-
-      // Add new images
-      property.images = [...new Set([...property.images, ...imageUrls])];
+      // Add new images to property
+      property.images = [...new Set([...property.images, ...uploadedUrls])];
       await property.save();
 
       console.log(
-        `📷 Images uploaded to property ${id}: ${imageUrls.length} images`
+        `📷 Images uploaded to property ${id}: ${uploadedUrls.length} images`
       );
 
       res.json({
         success: true,
-        message: "Images uploaded successfully",
+        message: `${uploadedUrls.length} image(s) uploaded successfully`,
         data: property,
+        uploadedUrls,
       });
     } catch (error) {
       console.error("❌ Upload images error:", error.message);
@@ -184,27 +231,78 @@ class PropertyController {
   }
 
   /**
-   * STEP 3: Upload legal documents to property
+   * STEP 3: Upload legal documents to property (multipart/form-data)
    */
   async uploadDocuments(req, res) {
     try {
       const { id } = req.params;
-      const { documentUrls } = req.body; // Array of private doc URLs
 
-      if (
-        !documentUrls ||
-        !Array.isArray(documentUrls) ||
-        documentUrls.length === 0
-      ) {
+      // Check if files were uploaded
+      if (!req.files || req.files.length === 0) {
         return res.status(400).json({
           success: false,
-          error: "documentUrls array is required",
+          error:
+            "No documents uploaded. Please select at least 1 document file.",
         });
       }
 
-      // 🔍 Check for duplicate documents in other properties
       const Property = require("../models/Property");
-      for (const url of documentUrls) {
+      const property = await Property.findById(id);
+      if (!property) {
+        return res.status(404).json({
+          success: false,
+          error: "Property not found",
+        });
+      }
+
+      // Upload each file to IPFS Service
+      const axios = require("axios");
+      const FormData = require("form-data");
+      const IPFS_SERVICE_URL =
+        process.env.IPFS_SERVICE_URL || "http://localhost:4002";
+
+      const uploadedUrls = [];
+
+      for (const file of req.files) {
+        try {
+          // Create form data for IPFS upload
+          const formData = new FormData();
+          formData.append("file", file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+          });
+
+          // Upload to IPFS service (use /document endpoint for legal docs)
+          const ipfsResponse = await axios.post(
+            `${IPFS_SERVICE_URL}/upload/document`,
+            formData,
+            {
+              headers: formData.getHeaders(),
+              timeout: 30000,
+            }
+          );
+
+          if (ipfsResponse.data.success && ipfsResponse.data.data) {
+            const ipfsUrl =
+              ipfsResponse.data.data.url ||
+              `https://ipfs.io/ipfs/${ipfsResponse.data.data.cid}`;
+            uploadedUrls.push(ipfsUrl);
+            console.log(`🔒 Uploaded legal doc to IPFS: ${ipfsUrl}`);
+          }
+        } catch (uploadError) {
+          console.error(
+            `❌ Failed to upload ${file.originalname}:`,
+            uploadError.message
+          );
+          return res.status(500).json({
+            success: false,
+            error: `Failed to upload document to IPFS: ${uploadError.message}`,
+          });
+        }
+      }
+
+      // 🔍 Check for duplicate documents in other properties
+      for (const url of uploadedUrls) {
         const existing = await Property.findOne({
           legalDocuments: url,
           _id: { $ne: id },
@@ -219,28 +317,21 @@ class PropertyController {
         }
       }
 
-      const property = await Property.findById(id);
-      if (!property) {
-        return res.status(404).json({
-          success: false,
-          error: "Property not found",
-        });
-      }
-
-      // Add new documents
+      // Add new documents to property
       property.legalDocuments = [
-        ...new Set([...property.legalDocuments, ...documentUrls]),
+        ...new Set([...property.legalDocuments, ...uploadedUrls]),
       ];
       await property.save();
 
       console.log(
-        `📄 Documents uploaded to property ${id}: ${documentUrls.length} docs`
+        `📄 Documents uploaded to property ${id}: ${uploadedUrls.length} docs`
       );
 
       res.json({
         success: true,
-        message: "Documents uploaded successfully",
+        message: `${uploadedUrls.length} document(s) uploaded successfully`,
         data: property,
+        uploadedUrls,
       });
     } catch (error) {
       console.error("❌ Upload documents error:", error.message);
