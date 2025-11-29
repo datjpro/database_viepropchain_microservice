@@ -17,7 +17,19 @@ const {
 const router = express.Router();
 
 // CRUD operations
+// Step 1: Create draft (no images/docs required)
 router.post("/", verifyToken, propertyController.createProperty); // 🔒 Require authentication
+
+// Step 2: Upload images to property
+router.post("/:id/images", verifyToken, propertyController.uploadImages); // 🔒 Auth
+
+// Step 3: Upload legal documents to property
+router.post("/:id/documents", verifyToken, propertyController.uploadDocuments); // 🔒 Auth
+
+// Step 4: Submit property for approval (draft -> active)
+router.put("/:id/submit", verifyToken, propertyController.submitProperty); // 🔒 Auth
+
+// Regular CRUD
 router.get("/", optionalAuth, propertyController.getProperties); // Public but auth-aware
 router.get(
   "/my-properties/:owner",

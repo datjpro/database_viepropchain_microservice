@@ -33,6 +33,25 @@ const propertySchema = new mongoose.Schema(
     bathrooms: Number,
     features: [String],
     legalStatus: String,
+
+    // Legal Document ID (Số vào sổ cấp GCN - UNIQUE per property)
+    legalDocumentId: {
+      type: String,
+      trim: true,
+      uppercase: true, // Tự động viết hoa (cs12345 -> CS12345)
+      required: true,
+      unique: true, // Không cho phép trùng lặp
+      index: true,
+      validate: {
+        validator: function (v) {
+          // Validate format: CS + numbers (e.g., CS12345)
+          return /^[A-Z]{2}\d{5,}$/.test(v);
+        },
+        message: (props) =>
+          `${props.value} is not a valid legal document ID! Format: CS12345`,
+      },
+    },
+
     price: {
       type: Number,
       required: true,
@@ -58,7 +77,21 @@ const propertySchema = new mongoose.Schema(
     // Web2 Verification Layer (Admin approval)
     verificationStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected", "info_required"],
+      enum: [
+        "pending_kyc", // User chưa KYC
+        "pending_approval", // User đã KYC, chờ Admin duyệt
+        "verified", // Admin đã duyệt
+        "rejected", // Admin từ chối
+        "info_required", // Cần bổ sung thông tin
+      ],
+      default: "pending_kyc",
+      index: true,
+    },
+
+    // KYC Status tracking
+    kycStatus: {
+      type: String,
+      enum: ["not_required", "pending", "verified", "rejected"],
       default: "pending",
       index: true,
     },
@@ -114,5 +147,6 @@ propertySchema.index({ price: 1, propertyType: 1 });
 propertySchema.index({ owner: 1, status: 1 });
 propertySchema.index({ verificationStatus: 1, blockchainStatus: 1 });
 propertySchema.index({ ownerWallet: 1 });
+propertySchema.index({ legalDocumentId: 1 }, { unique: true }); // UNIQUE: Không cho phép trùng số GCN
 
 module.exports = mongoose.model("Property", propertySchema);

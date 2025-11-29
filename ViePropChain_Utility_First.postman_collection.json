@@ -244,10 +244,10 @@
       ]
     },
     {
-      "name": "🏠 2. Property (Landlord & Guest)",
+      "name": "🏠 2. Property (4-Step Workflow)",
       "item": [
         {
-          "name": "3. Create Property (Submit Form)",
+          "name": "3a. STEP 1: Create Property Draft",
           "event": [
             {
               "listen": "test",
@@ -256,7 +256,11 @@
                   "var jsonData = pm.response.json();",
                   "if (jsonData.success) {",
                   "    pm.environment.set(\"property_id\", jsonData.data._id);",
-                  "    console.log(\"✅ Property Created: \" + jsonData.data._id);",
+                  "    pm.environment.set(\"kyc_required\", jsonData.kycRequired);",
+                  "    console.log(\"✅ Property DRAFT Created: \" + jsonData.data._id);",
+                  "    console.log(\"🔍 KYC Required: \" + jsonData.kycRequired);",
+                  "    console.log(\"📋 Status: \" + jsonData.data.status);",
+                  "    console.log(\"🔐 Verification: \" + jsonData.data.verificationStatus);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -278,14 +282,152 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Căn hộ Utility-First (Secure Demo)\",\n  \"description\": \"Chỉ hiển thị ảnh nhà, giấu sổ đỏ.\",\n  \"propertyType\": \"apartment\",\n  \"address\": {\n    \"street\": \"123 Xuan Thuy\",\n    \"ward\": \"Dich Vong\",\n    \"district\": \"Cau Giay\",\n    \"city\": \"Hanoi\",\n    \"country\": \"Vietnam\"\n  },\n  \"area\": 80,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"price\": 1500000000,\n  \"currency\": \"VND\",\n  \"features\": [\"Balcony\", \"Parking\", \"Gym\", \"Swimming Pool\"],\n  \"legalStatus\": \"Red Book (So Do)\",\n  \"images\": [\n    \"{{public_image_url}}\" \n  ],\n  \"legalDocuments\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
+              "raw": "{\n  \"title\": \"Căn hộ Utility-First (4-Step Workflow)\",\n  \"description\": \"Workflow mới: Draft -> Upload Images -> Upload Docs -> Submit\",\n  \"propertyType\": \"apartment\",\n  \"legalDocumentId\": \"CS987654321\",\n  \"address\": {\n    \"street\": \"123 Xuan Thuy\",\n    \"ward\": \"Dich Vong\",\n    \"district\": \"Cau Giay\",\n    \"city\": \"Hanoi\",\n    \"country\": \"Vietnam\"\n  },\n  \"area\": 80,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"price\": 1500000000,\n  \"currency\": \"VND\",\n  \"features\": [\"Balcony\", \"Parking\", \"Gym\", \"Swimming Pool\"],\n  \"legalStatus\": \"Red Book (So Do)\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/admin/properties",
               "host": ["{{base_url}}"],
               "path": ["api", "admin", "properties"]
             },
-            "description": "Gửi cả 2 loại link lên. Backend sẽ lưu `legalDocuments` với cờ `select: false`."
+            "description": "BƯỚC 1: Tạo bản nháp property (KHÔNG cần images/legalDocuments). Backend tự check KYC và set verificationStatus."
+          }
+        },
+        {
+          "name": "3b. STEP 2: Upload Images to Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"📷 Images uploaded: \" + jsonData.data.images.length);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrls\": [\n    \"{{public_image_url}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "images"
+              ]
+            },
+            "description": "BƯỚC 2: Upload ảnh công khai (IPFS URLs) vào property. Backend kiểm tra trùng lặp với property khác."
+          }
+        },
+        {
+          "name": "3c. STEP 3: Upload Documents to Property",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"📄 Documents uploaded: \" + jsonData.data.legalDocuments.length);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentUrls\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "documents"
+              ]
+            },
+            "description": "BƯỚC 3: Upload tài liệu pháp lý (Sổ đỏ, CCCD) vào property. Backend kiểm tra trùng lặp."
+          }
+        },
+        {
+          "name": "3d. STEP 4: Submit Property for Approval",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"✅ Property submitted!\");",
+                  "    console.log(\"📋 Status: \" + jsonData.data.status);",
+                  "    console.log(\"🔐 Verification: \" + jsonData.data.verificationStatus);",
+                  "    if (jsonData.kycRequired) {",
+                  "        console.log(\"⚠️ KYC REQUIRED: User needs to complete KYC before admin approval\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/submit",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "submit"
+              ]
+            },
+            "description": "BƯỚC 4: Submit property từ draft -> active. Backend validate phải có ít nhất 1 ảnh và 1 tài liệu."
           }
         },
         {
