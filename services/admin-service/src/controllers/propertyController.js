@@ -15,21 +15,44 @@ class PropertyController {
       const propertyData = req.body;
 
       // Validate required fields (accept either title or name)
+      // propertyType có default là "apartment" nên không bắt buộc
       if (
         (!propertyData.name && !propertyData.title) ||
-        !propertyData.propertyType ||
         !propertyData.price ||
         !propertyData.description
       ) {
         return res.status(400).json({
           success: false,
-          error:
-            "Missing required fields: name/title, description, propertyType, price",
+          error: "Missing required fields: name/title, description, price",
         });
       }
 
+      // 🔒 SECURITY: Get owner from JWT token (req.user)
+      // NEVER trust owner from request body!
+      let ownerId = req.user.email.toLowerCase(); // Default: current user
+
+      // ⚠️ Exception: Admin can create property for other users
+      if (req.user.role === "admin" && propertyData.ownerId) {
+        ownerId = propertyData.ownerId.toLowerCase();
+        console.log(`👮 Admin creating property for: ${ownerId}`);
+      }
+
+      // Remove owner/ownerId from body to prevent manipulation
+      delete propertyData.owner;
+      delete propertyData.ownerId;
+
+      // Set owner from authenticated user
+      propertyData.owner = ownerId;
+
+      // Set ownerWallet if available
+      if (req.user.walletAddress) {
+        propertyData.ownerWallet = req.user.walletAddress;
+      }
+
       console.log(
-        `🔄 Creating property: ${propertyData.title || propertyData.name}`
+        `🔄 Creating property: ${
+          propertyData.title || propertyData.name
+        } (Owner: ${ownerId})`
       );
 
       const property = await propertyService.createProperty(propertyData);

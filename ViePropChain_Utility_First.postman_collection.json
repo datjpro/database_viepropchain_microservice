@@ -120,13 +120,15 @@
               "script": {
                 "exec": [
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.success && jsonData.user) {",
-                  "    pm.environment.set(\"landlord_user_id\", jsonData.user._id);",
-                  "    if (jsonData.user.custodialWallet && jsonData.user.custodialWallet.address) {",
-                  "        pm.environment.set(\"custodial_wallet_address\", jsonData.user.custodialWallet.address);",
-                  "        console.log(\"💼 Custodial Wallet: \" + jsonData.user.custodialWallet.address);",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set(\"landlord_user_id\", jsonData.data.userId);",
+                  "    pm.environment.set(\"landlord_email\", jsonData.data.email);",
+                  "    if (jsonData.data.walletAddress) {",
+                  "        pm.environment.set(\"custodial_wallet_address\", jsonData.data.walletAddress);",
+                  "        console.log(\"💼 Wallet Address: \" + jsonData.data.walletAddress);",
                   "    }",
-                  "    console.log(\"✅ User Info: \" + jsonData.user.email);",
+                  "    console.log(\"✅ User Info: \" + jsonData.data.email);",
+                  "    console.log(\"🆔 User ID: \" + jsonData.data.userId);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -147,11 +149,14 @@
               "script": {
                 "exec": [
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.success) {",
-                  "    // Giả lập link IPFS public",
-                  "    var publicUrl = \"https://ipfs.io/ipfs/\" + jsonData.data.cid;",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    // Lưu CID và tạo URL IPFS",
+                  "    var cid = jsonData.data.cid || jsonData.data.hash;",
+                  "    var publicUrl = \"https://ipfs.io/ipfs/\" + cid;",
                   "    pm.environment.set(\"public_image_url\", publicUrl);",
-                  "    console.log(\"🌍 Public Image: \" + publicUrl);",
+                  "    pm.environment.set(\"public_image_cid\", cid);",
+                  "    console.log(\"🌍 Public Image CID: \" + cid);",
+                  "    console.log(\"🌍 Public Image URL: \" + publicUrl);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -175,20 +180,15 @@
                   "type": "file",
                   "src": [],
                   "description": "Chọn ảnh nhà đẹp (Show cho khách xem)"
-                },
-                {
-                  "key": "type",
-                  "value": "public",
-                  "type": "text"
                 }
               ]
             },
             "url": {
-              "raw": "{{base_url}}/api/upload/public",
+              "raw": "{{base_url}}/api/ipfs/upload/image",
               "host": ["{{base_url}}"],
-              "path": ["api", "upload", "public"]
+              "path": ["api", "ipfs", "upload", "image"]
             },
-            "description": "Lưu file vào nơi công cộng (IPFS/Cloudinary). Trả về URL public."
+            "description": "Upload ảnh lên IPFS Service. Trả về CID và URL public."
           }
         },
         {
@@ -199,11 +199,14 @@
               "script": {
                 "exec": [
                   "var jsonData = pm.response.json();",
-                  "if (jsonData.success) {",
-                  "    // Link này yêu cầu Auth mới xem được",
-                  "    var privateUrl = jsonData.data.secureUrl;",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    // Lưu CID và URL",
+                  "    var cid = jsonData.data.cid || jsonData.data.hash;",
+                  "    var privateUrl = \"https://ipfs.io/ipfs/\" + cid;",
                   "    pm.environment.set(\"private_doc_url\", privateUrl);",
-                  "    console.log(\"🔒 Private Doc: \" + privateUrl);",
+                  "    pm.environment.set(\"private_doc_cid\", cid);",
+                  "    console.log(\"🔒 Private Doc CID: \" + cid);",
+                  "    console.log(\"🔒 Private Doc URL: \" + privateUrl);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -227,20 +230,15 @@
                   "type": "file",
                   "src": [],
                   "description": "Chọn ảnh Sổ đỏ/CCCD"
-                },
-                {
-                  "key": "type",
-                  "value": "private",
-                  "type": "text"
                 }
               ]
             },
             "url": {
-              "raw": "{{base_url}}/api/upload/private",
+              "raw": "{{base_url}}/api/ipfs/upload/document",
               "host": ["{{base_url}}"],
-              "path": ["api", "upload", "private"]
+              "path": ["api", "ipfs", "upload", "document"]
             },
-            "description": "Lưu file vào S3 Private Bucket hoặc Local Folder được bảo vệ. Trả về Internal ID hoặc Signed URL."
+            "description": "Upload tài liệu lên IPFS Service (sổ đỏ, CCCD). Trả về CID và secure URL."
           }
         }
       ]
@@ -280,7 +278,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Căn hộ Utility-First (Secure Demo)\",\n  \"description\": \"Chỉ hiển thị ảnh nhà, giấu sổ đỏ.\",\n  \"address\": {\"city\": \"Hanoi\"},\n  \"price\": 15000000,\n  \"images\": [\n    \"{{public_image_url}}\" \n  ],\n  \"legalDocuments\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
+              "raw": "{\n  \"title\": \"Căn hộ Utility-First (Secure Demo)\",\n  \"description\": \"Chỉ hiển thị ảnh nhà, giấu sổ đỏ.\",\n  \"propertyType\": \"apartment\",\n  \"address\": {\n    \"street\": \"123 Xuan Thuy\",\n    \"ward\": \"Dich Vong\",\n    \"district\": \"Cau Giay\",\n    \"city\": \"Hanoi\",\n    \"country\": \"Vietnam\"\n  },\n  \"area\": 80,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"price\": 1500000000,\n  \"currency\": \"VND\",\n  \"features\": [\"Balcony\", \"Parking\", \"Gym\", \"Swimming Pool\"],\n  \"legalStatus\": \"Red Book (So Do)\",\n  \"images\": [\n    \"{{public_image_url}}\" \n  ],\n  \"legalDocuments\": [\n    \"{{private_doc_url}}\"\n  ]\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/admin/properties",
@@ -335,9 +333,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/properties/pending/approval",
+              "raw": "{{base_url}}/api/admin/properties?verificationStatus=pending",
               "host": ["{{base_url}}"],
-              "path": ["api", "admin", "properties", "pending", "approval"]
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "verificationStatus",
+                  "value": "pending"
+                }
+              ]
             },
             "description": "Lấy danh sách BĐS đang chờ duyệt (verificationStatus = pending)."
           },
@@ -384,15 +388,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/admin-view",
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}",
               "host": ["{{base_url}}"],
-              "path": [
-                "api",
-                "admin",
-                "properties",
-                "{{property_id}}",
-                "admin-view"
-              ]
+              "path": ["api", "admin", "properties", "{{property_id}}"]
             },
             "description": "API riêng cho Admin, có `select('+legalDocuments')` trong code backend."
           }
@@ -697,9 +695,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/marketplace/orders/pending",
+              "raw": "{{base_url}}/api/marketplace/orders/pending/all",
               "host": ["{{base_url}}"],
-              "path": ["api", "marketplace", "orders", "pending"]
+              "path": ["api", "marketplace", "orders", "pending", "all"]
             },
             "description": "Lấy danh sách đơn hàng đang chờ xác nhận thanh toán."
           },
@@ -769,7 +767,7 @@
           }
         },
         {
-          "name": "18. Get Blockchain Stats",
+          "name": "18. Get NFT Statistics",
           "request": {
             "method": "GET",
             "header": [
@@ -780,11 +778,11 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/blockchain/stats",
+              "raw": "{{base_url}}/api/admin/nfts/stats/overview",
               "host": ["{{base_url}}"],
-              "path": ["api", "blockchain", "stats"]
+              "path": ["api", "admin", "nfts", "stats", "overview"]
             },
-            "description": "Thống kê số lượng NFT đã mint, pending transactions, etc."
+            "description": "Thống kê số lượng NFT đã mint, listed, sold, etc."
           }
         },
         {
@@ -799,9 +797,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/marketplace/orders/my-orders",
+              "raw": "{{base_url}}/api/marketplace/orders/buyer/{{renter_user_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "marketplace", "orders", "my-orders"]
+              "path": [
+                "api",
+                "marketplace",
+                "orders",
+                "buyer",
+                "{{renter_user_id}}"
+              ]
             },
             "description": "Lấy danh sách đơn hàng của user hiện tại."
           }

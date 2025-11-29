@@ -18,6 +18,7 @@ const propertySchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ["apartment", "land", "house", "villa", "commercial"],
+      default: "apartment", // Default nếu không truyền
       index: true,
     },
     address: {
