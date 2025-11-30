@@ -50,7 +50,18 @@ class PropertyService {
 
       if (propertyType) query.propertyType = propertyType;
       if (status) query.status = status;
-      if (verificationStatus) query.verificationStatus = verificationStatus;
+
+      // Special handling for verificationStatus "pending" -> find both pending_kyc and pending_approval
+      if (verificationStatus) {
+        if (verificationStatus === "pending") {
+          query.verificationStatus = {
+            $in: ["pending_kyc", "pending_approval"],
+          };
+        } else {
+          query.verificationStatus = verificationStatus;
+        }
+      }
+
       if (kycStatus) query.kycStatus = kycStatus;
       if (blockchainStatus) query.blockchainStatus = blockchainStatus;
       if (city) query["location.city"] = city;

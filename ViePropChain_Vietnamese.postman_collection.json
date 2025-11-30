@@ -1,0 +1,1044 @@
+{
+  "info": {
+    "_postman_id": "viepropchain-vietnamese-v1",
+    "name": "ViePropChain - Hướng dẫn API (Tiếng Việt)",
+    "description": "🇻🇳 **HỆ THỐNG QUẢN LÝ BẤT ĐỘNG SẢN TRÊN BLOCKCHAIN**\n\n**📖 Hướng dẫn:**\n1. Đăng nhập Gmail → Lấy JWT token\n2. Upload ảnh nhà (công khai - IPFS)\n3. Upload giấy tờ (riêng tư - chỉ Admin xem)\n4. Tạo BĐS → Admin duyệt → Mint NFT\n5. Đăng bán/cho thuê trên Marketplace\n\n**🔐 Bảo mật:**\n- Ảnh nhà: Public (ai cũng xem được)\n- Sổ đỏ/CCCD: Private (chỉ Admin)\n- Blockchain: NFT chứa metadata public\n\n**⚙️ Cài đặt:**\n- Chạy: `node run.js` để khởi động services\n- Base URL: `http://localhost:4000` (API Gateway)\n- Token: Lưu vào biến môi trường sau khi login",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 1. Đăng nhập",
+      "item": [
+        {
+          "name": "Đăng nhập Gmail (Chủ nhà)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"landlord_token\", jsonData.token);",
+                  "    pm.environment.set(\"landlord_user_id\", jsonData.user._id);",
+                  "    console.log(\"✅ Chủ nhà đăng nhập: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "**Cách dùng:**\n1. Copy URL này vào trình duyệt\n2. Chọn tài khoản Gmail\n3. Sau khi đăng nhập, hệ thống redirect về với token\n4. Copy token vào biến `landlord_token`"
+          }
+        },
+        {
+          "name": "Đăng nhập Gmail (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"admin_token\", jsonData.token);",
+                  "    console.log(\"✅ Admin đăng nhập: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "Đăng nhập bằng tài khoản Admin để duyệt BĐS"
+          }
+        },
+        {
+          "name": "Đăng nhập Gmail (Người thuê)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"renter_token\", jsonData.token);",
+                  "    console.log(\"✅ Người thuê đăng nhập: \" + jsonData.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "google"]
+            },
+            "description": "Đăng nhập để thuê/mua BĐS"
+          }
+        },
+        {
+          "name": "Xem thông tin tài khoản",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.environment.set(\"landlord_email\", jsonData.data.email);",
+                  "    if (jsonData.data.walletAddress) {",
+                  "        pm.environment.set(\"user_wallet\", jsonData.data.walletAddress);",
+                  "        console.log(\"💼 Địa chỉ ví: \" + jsonData.data.walletAddress);",
+                  "    } else {",
+                  "        console.log(\"⚠️ Chưa liên kết ví MetaMask\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Xem thông tin: Email, địa chỉ ví, trạng thái KYC"
+          }
+        }
+      ],
+      "description": "APIs đăng nhập và xác thực"
+    },
+    {
+      "name": "📤 2. Upload File",
+      "item": [
+        {
+          "name": "Upload ảnh nhà (Công khai)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    var cid = jsonData.data.cid || jsonData.data.hash;",
+                  "    var publicUrl = \"https://ipfs.io/ipfs/\" + cid;",
+                  "    pm.environment.set(\"public_image_url\", publicUrl);",
+                  "    console.log(\"🌍 URL ảnh công khai: \" + publicUrl);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn ảnh nhà (JPG/PNG)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ipfs/upload/image",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ipfs", "upload", "image"]
+            },
+            "description": "Upload ảnh nhà lên IPFS. URL này sẽ công khai cho mọi người xem."
+          }
+        },
+        {
+          "name": "Upload giấy tờ (Riêng tư)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    var cid = jsonData.data.cid || jsonData.data.hash;",
+                  "    var privateUrl = \"https://ipfs.io/ipfs/\" + cid;",
+                  "    pm.environment.set(\"private_doc_url\", privateUrl);",
+                  "    console.log(\"🔒 URL tài liệu riêng tư: \" + privateUrl);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn ảnh Sổ đỏ/CCCD (PDF/JPG)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ipfs/upload/document",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ipfs", "upload", "document"]
+            },
+            "description": "Upload Sổ đỏ/CCCD. Chỉ Admin mới xem được."
+          }
+        }
+      ],
+      "description": "Upload ảnh và tài liệu lên IPFS"
+    },
+    {
+      "name": "🏠 3. Quản lý BĐS (Chủ nhà)",
+      "item": [
+        {
+          "name": "Bước 1: Tạo BĐS (Bản nháp)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "    console.log(\"✅ Tạo BĐS thành công: \" + jsonData.data._id);",
+                  "    console.log(\"📋 Trạng thái: \" + jsonData.data.status);",
+                  "    console.log(\"🔐 Duyệt: \" + jsonData.data.verificationStatus);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Căn hộ Vinhomes Central Park\",\n  \"description\": \"Căn hộ 2 phòng ngủ view sông Sài Gòn\",\n  \"propertyType\": \"apartment\",\n  \"legalDocumentId\": \"CS123456789\",\n  \"address\": {\n    \"street\": \"208 Nguyễn Hữu Cảnh\",\n    \"ward\": \"Phường 22\",\n    \"district\": \"Bình Thạnh\",\n    \"city\": \"TP. Hồ Chí Minh\",\n    \"country\": \"Việt Nam\"\n  },\n  \"area\": 80,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"price\": 5000000000,\n  \"currency\": \"VND\",\n  \"features\": [\"Ban công\", \"Hồ bơi\", \"Gym\", \"Bãi đỗ xe\"],\n  \"legalStatus\": \"Sổ đỏ chính chủ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"]
+            },
+            "description": "**Bước 1:** Tạo thông tin BĐS (chưa có ảnh/giấy tờ)\n\n**Lưu ý:**\n- `legalDocumentId`: Số GCN (Giấy chứng nhận) - PHẢI DUY NHẤT\n- Trạng thái ban đầu: `draft`"
+          }
+        },
+        {
+          "name": "Bước 2: Upload ảnh cho BĐS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"📷 Đã upload: \" + jsonData.data.images.length + \" ảnh\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn nhiều ảnh (tối đa 10 ảnh)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "images"
+              ]
+            },
+            "description": "**Bước 2:** Upload ảnh nhà\n\n**Cách dùng:**\n1. Chọn field `images` → Type: File\n2. Chọn nhiều file ảnh từ máy\n3. Max 10 ảnh, mỗi ảnh ≤ 10MB"
+          }
+        },
+        {
+          "name": "Bước 3: Upload giấy tờ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"📄 Đã upload: \" + jsonData.data.legalDocuments.length + \" tài liệu\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "legalDocuments",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chọn file Sổ đỏ/CCCD (PDF/JPG)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "documents"
+              ]
+            },
+            "description": "**Bước 3:** Upload Sổ đỏ, CCCD\n\n**Giấy tờ cần:**\n- Sổ đỏ (2 mặt)\n- CCCD chủ nhà\n- Max 5 files, mỗi file ≤ 10MB"
+          }
+        },
+        {
+          "name": "Bước 4: Gửi duyệt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    console.log(\"✅ Đã gửi duyệt!\");",
+                  "    console.log(\"📋 Trạng thái: \" + jsonData.data.status);",
+                  "    if (jsonData.kycRequired) {",
+                  "        console.log(\"⚠️ CẦN XÁC MINH: Vui lòng hoàn thành KYC\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/submit",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "submit"
+              ]
+            },
+            "description": "**Bước 4:** Gửi BĐS cho Admin duyệt\n\n**Yêu cầu:**\n- Phải có ít nhất 1 ảnh\n- Phải có ít nhất 1 giấy tờ\n\n**Sau khi submit:**\n- Trạng thái: `draft` → `active`\n- Chờ Admin kiểm tra"
+          }
+        },
+        {
+          "name": "Xem BĐS của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/my-properties/{{landlord_email}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "my-properties",
+                "{{landlord_email}}"
+              ]
+            },
+            "description": "Xem tất cả BĐS của bạn (draft, active, minted)"
+          }
+        }
+      ],
+      "description": "Quy trình tạo BĐS 4 bước"
+    },
+    {
+      "name": "👮 4. Admin - Duyệt BĐS",
+      "item": [
+        {
+          "name": "Xem BĐS chờ duyệt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.length > 0) {",
+                  "    pm.environment.set(\"property_id\", jsonData.data[0]._id);",
+                  "    console.log(\"📋 Tìm thấy: \" + jsonData.data.length + \" BĐS chờ duyệt\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?verificationStatus=pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "verificationStatus",
+                  "value": "pending",
+                  "description": "Bao gồm pending_kyc và pending_approval"
+                }
+              ]
+            },
+            "description": "Lấy danh sách BĐS đang chờ duyệt\n\n**Trạng thái:**\n- `pending_kyc`: Chưa xác minh danh tính\n- `pending_approval`: Đã KYC, chờ duyệt"
+          }
+        },
+        {
+          "name": "Xem chi tiết BĐS (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Admin phải thấy giấy tờ\", function () {",
+                  "    pm.expect(jsonData.data.legalDocuments).to.exist;",
+                  "    console.log(\"🕵️ Admin đang xem tài liệu: \" + jsonData.data.legalDocuments.length + \" file\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}"]
+            },
+            "description": "Admin xem chi tiết BĐS, bao gồm cả giấy tờ riêng tư"
+          }
+        },
+        {
+          "name": "Duyệt BĐS (không mint NFT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"note\": \"Giấy tờ hợp lệ, đã duyệt\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "approve"
+              ]
+            },
+            "description": "Duyệt BĐS nhưng chưa mint NFT\n\n**Kết quả:**\n- `verificationStatus` → `verified`\n- `blockchainStatus` → `none`"
+          }
+        },
+        {
+          "name": "Mint NFT (Tự động chọn ví)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"token_id\", jsonData.data.tokenId);",
+                  "    console.log(\"🎉 Mint NFT thành công!\");",
+                  "    console.log(\"🆔 Token ID: \" + jsonData.data.tokenId);",
+                  "    console.log(\"📍 Contract: \" + jsonData.data.contractAddress);",
+                  "    ",
+                  "    if (jsonData.data.isCustodial) {",
+                  "        console.log(\"🏦 Ví giữ hộ: NFT ở ví Admin\");",
+                  "        console.log(\"💼 Địa chỉ Admin: \" + jsonData.data.custodialWallet);",
+                  "    } else {",
+                  "        console.log(\"✅ Ví cá nhân: NFT ở ví User\");",
+                  "        console.log(\"👛 Địa chỉ User: \" + jsonData.data.owner);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadataUri\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/mint",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}", "mint"]
+            },
+            "description": "**Mint NFT với logic TỰ ĐỘNG:**\n\n**Nếu user CHƯA liên kết ví MetaMask:**\n- Mint vào ví Admin (0xC6890b26...)\n- Đánh dấu `isCustodial: true`\n- User sẽ claim về sau khi liên kết ví\n\n**Nếu user ĐÃ liên kết ví:**\n- Mint trực tiếp vào ví user\n- `isCustodial: false`\n- User sở hữu NFT ngay lập tức\n\n**Không cần truyền `recipient`!** Hệ thống tự động chọn."
+          }
+        },
+        {
+          "name": "Từ chối BĐS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Giấy tờ không rõ ràng, cần bổ sung thêm\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "reject"
+              ]
+            },
+            "description": "Từ chối BĐS với lý do cụ thể"
+          }
+        },
+        {
+          "name": "Yêu cầu bổ sung thông tin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Vui lòng bổ sung ảnh mặt sau của Sổ đỏ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/request-info",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "request-info"
+              ]
+            },
+            "description": "Yêu cầu chủ nhà bổ sung tài liệu"
+          }
+        }
+      ],
+      "description": "Admin duyệt BĐS và mint NFT"
+    },
+    {
+      "name": "🛒 5. Marketplace - Bán/Cho thuê",
+      "item": [
+        {
+          "name": "Đăng bán NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Đã tạo listing: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"price\": \"50000000000000000000\",\n    \"description\": \"Bán căn hộ cao cấp view sông\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"]
+            },
+            "description": "**Đăng bán NFT trên Marketplace**\n\n**Yêu cầu:**\n- NFT đã được mint\n- Có Token ID\n\n**Giá:**\n- Tính bằng Wei (1 ETH = 10^18 Wei)\n- VD: 50 ETH = \"50000000000000000000\""
+          }
+        },
+        {
+          "name": "Đăng cho thuê NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Đã tạo listing cho thuê: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"pricePerDay\": \"500000\",\n    \"maxRentalDuration\": 365,\n    \"description\": \"Cho thuê căn hộ theo ngày\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/rental",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "rental"]
+            },
+            "description": "**Đăng cho thuê NFT**\n\n**Thông số:**\n- `pricePerDay`: Giá thuê mỗi ngày (VND)\n- `maxRentalDuration`: Số ngày thuê tối đa (1-365)\n\n**Lưu ý:** NFT vẫn thuộc chủ nhà, người thuê chỉ có quyền sử dụng"
+          }
+        },
+        {
+          "name": "Xem tất cả listing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings?status=active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            },
+            "description": "Xem tất cả NFT đang được rao bán/cho thuê"
+          }
+        },
+        {
+          "name": "Xem listing của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/my/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "my", "listings"]
+            },
+            "description": "Xem các listing mình đã tạo"
+          }
+        },
+        {
+          "name": "Thuê NFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"order_id\", jsonData.data.orderId);",
+                  "    console.log(\"📦 Đã tạo đơn thuê: \" + jsonData.data.orderId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rentalDays\": 30,\n    \"paymentMethod\": \"bank_transfer\",\n    \"amount\": 15000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{listing_id}}/rent",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "{{listing_id}}",
+                "rent"
+              ]
+            },
+            "description": "**Thuê NFT**\n\n**Cách tính:**\n- Tổng tiền = `pricePerDay` × `rentalDays`\n- VD: 500,000đ/ngày × 30 ngày = 15,000,000đ\n\n**Sau khi thuê:**\n- NFT vẫn thuộc chủ nhà\n- Bạn được quyền sử dụng trong thời gian thuê"
+          }
+        }
+      ],
+      "description": "Đăng bán/cho thuê NFT trên Marketplace"
+    },
+    {
+      "name": "📊 6. Thống kê & Báo cáo",
+      "item": [
+        {
+          "name": "Danh sách BĐS đã duyệt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?verificationStatus=verified",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "verificationStatus",
+                  "value": "verified"
+                }
+              ]
+            },
+            "description": "Xem tất cả BĐS đã được duyệt (không hiển thị giấy tờ)"
+          }
+        },
+        {
+          "name": "Thống kê NFT",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/nfts/stats/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "nfts", "stats", "overview"]
+            },
+            "description": "Thống kê tổng quan: Số NFT đã mint, đang bán, đã bán"
+          }
+        },
+        {
+          "name": "Đơn hàng của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/orders/buyer/{{renter_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "orders",
+                "buyer",
+                "{{renter_user_id}}"
+              ]
+            },
+            "description": "Xem lịch sử thuê/mua của bạn"
+          }
+        },
+        {
+          "name": "Xem chi tiết BĐS (Khách)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Khách KHÔNG thấy giấy tờ\", function () {",
+                  "    pm.expect(jsonData.data.legalDocuments).to.be.undefined;",
+                  "    pm.expect(jsonData.data.images).to.be.an('array');",
+                  "    console.log(\"✅ Chỉ thấy ảnh công khai, không thấy giấy tờ\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}"]
+            },
+            "description": "Khách xem BĐS (không cần đăng nhập, không thấy giấy tờ)"
+          }
+        }
+      ],
+      "description": "Thống kê và xem báo cáo"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "landlord_token",
+      "value": "",
+      "type": "string",
+      "description": "Token đăng nhập của chủ nhà"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string",
+      "description": "Token đăng nhập của Admin"
+    },
+    {
+      "key": "renter_token",
+      "value": "",
+      "type": "string",
+      "description": "Token đăng nhập của người thuê"
+    },
+    {
+      "key": "landlord_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "landlord_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "renter_user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string",
+      "description": "ID của BĐS đang làm việc"
+    },
+    {
+      "key": "listing_id",
+      "value": "",
+      "type": "string",
+      "description": "ID của listing trên marketplace"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string",
+      "description": "ID đơn hàng"
+    },
+    {
+      "key": "token_id",
+      "value": "",
+      "type": "string",
+      "description": "Token ID của NFT"
+    },
+    {
+      "key": "user_wallet",
+      "value": "",
+      "type": "string",
+      "description": "Địa chỉ ví MetaMask của user"
+    },
+    {
+      "key": "public_image_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "private_doc_url",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

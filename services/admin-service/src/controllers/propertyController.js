@@ -377,10 +377,18 @@ class PropertyController {
       // Change status from draft -> active
       property.status = "active";
 
-      // Keep verificationStatus as is (pending_kyc or pending_approval)
+      // Update verificationStatus based on KYC status
+      if (property.kycStatus === "verified") {
+        property.verificationStatus = "pending_approval"; // KYC OK → Chờ admin duyệt
+      } else {
+        property.verificationStatus = "pending_kyc"; // Chưa KYC → Chờ KYC trước
+      }
+
       await property.save();
 
-      console.log(`✅ Property ${id} submitted for approval`);
+      console.log(
+        `✅ Property ${id} submitted for approval (verificationStatus: ${property.verificationStatus})`
+      );
 
       res.json({
         success: true,
