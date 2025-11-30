@@ -75,13 +75,51 @@ class PropertyService {
       const skip = (page - 1) * limit;
       const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
 
+      // Import NFT model to populate full NFT data
+      const NFT = require("../models/NFT");
+
       const [properties, total] = await Promise.all([
         Property.find(query).sort(sort).skip(skip).limit(Number(limit)),
         Property.countDocuments(query),
       ]);
 
+      // Populate NFT data for properties that have been minted
+      const propertiesWithNFT = await Promise.all(
+        properties.map(async (property) => {
+          if (property.nft?.isMinted && property.nft?.tokenId !== undefined) {
+            const nftData = await NFT.findOne({
+              tokenId: property.nft.tokenId,
+            });
+            if (nftData) {
+              // Merge NFT data into property.nft
+              property.nft = {
+                ...property.nft.toObject(),
+                currentOwner: nftData.currentOwner,
+                originalOwner: nftData.originalOwner,
+                metadataUri: nftData.metadataUri,
+                metadataCID: nftData.metadataCID,
+                mintedBy: nftData.mintedBy,
+                mintTransactionHash: nftData.mintTransactionHash,
+                mintBlockNumber: nftData.mintBlockNumber,
+                status: nftData.status,
+                listing: nftData.listing,
+                transferHistory: nftData.transferHistory,
+                saleHistory: nftData.saleHistory,
+                totalTransfers: nftData.totalTransfers,
+                totalSales: nftData.totalSales,
+                lastTransferAt: nftData.lastTransferAt,
+                lastSaleAt: nftData.lastSaleAt,
+                views: nftData.views,
+                favorites: nftData.favorites,
+              };
+            }
+          }
+          return property;
+        })
+      );
+
       return {
-        properties,
+        properties: propertiesWithNFT,
         pagination: {
           page: Number(page),
           limit: Number(limit),
@@ -118,6 +156,35 @@ class PropertyService {
       if (!property) {
         throw new Error("Property not found");
       }
+
+      // Populate NFT data if property has been minted
+      if (property.nft?.isMinted && property.nft?.tokenId !== undefined) {
+        const NFT = require("../models/NFT");
+        const nftData = await NFT.findOne({ tokenId: property.nft.tokenId });
+        if (nftData) {
+          property.nft = {
+            ...property.nft.toObject(),
+            currentOwner: nftData.currentOwner,
+            originalOwner: nftData.originalOwner,
+            metadataUri: nftData.metadataUri,
+            metadataCID: nftData.metadataCID,
+            mintedBy: nftData.mintedBy,
+            mintTransactionHash: nftData.mintTransactionHash,
+            mintBlockNumber: nftData.mintBlockNumber,
+            status: nftData.status,
+            listing: nftData.listing,
+            transferHistory: nftData.transferHistory,
+            saleHistory: nftData.saleHistory,
+            totalTransfers: nftData.totalTransfers,
+            totalSales: nftData.totalSales,
+            lastTransferAt: nftData.lastTransferAt,
+            lastSaleAt: nftData.lastSaleAt,
+            views: nftData.views,
+            favorites: nftData.favorites,
+          };
+        }
+      }
+
       return property;
     } catch (error) {
       throw new Error(`Failed to get property: ${error.message}`);
