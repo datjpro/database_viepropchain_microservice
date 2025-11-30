@@ -4,13 +4,21 @@
  * ========================================================================
  */
 
-// Contract addresses from latest deployment
-const NFT_CONTRACT_ADDRESS = "0x55f732E0d866A155b3A151A862996A13a22C0e8e";
-const MARKETPLACE_CONTRACT_ADDRESS =
-  "0x67bC8255530323abd8ae3f4215Dd531ba6425ee3";
+const path = require("path");
+const fs = require("fs");
 
-// ViePropChainNFT Contract ABI (ERC721 + ERC4907 + Custom)
-const CONTRACT_ABI = [
+// Contract addresses from latest deployment
+const NFT_CONTRACT_ADDRESS = "0xEA4F5F49F396B13CA447FaA792A8702054019Cc8";
+const MARKETPLACE_CONTRACT_ADDRESS =
+  "0x75573f6E6C40780FDf378bA29FcBb8c25c611E24";
+
+// Load ViePropChainNFT Contract ABI from compiled contract
+const abiPath = path.join(__dirname, "../../contract-abi.json");
+const contractJson = JSON.parse(fs.readFileSync(abiPath, "utf8"));
+const CONTRACT_ABI = contractJson.abi;
+
+// Old hard-coded ABI (deprecated - keeping for reference)
+const OLD_CONTRACT_ABI = [
   // Constructor
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },
 
@@ -318,7 +326,7 @@ const CONTRACT_ABI = [
   },
 ];
 
-// Marketplace Contract ABI
+// Marketplace Contract ABI (keeping old hard-coded version for now)
 const MARKETPLACE_ABI = [
   // Constructor
   {

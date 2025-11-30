@@ -744,10 +744,185 @@
       ]
     },
     {
-      "name": "🛒 4. Marketplace (Hybrid Orders)",
+      "name": "🛒 4. Marketplace (NFT Listing)",
       "item": [
         {
-          "name": "11. Create Rent Order (Fiat)",
+          "name": "10. Create Listing (Sale)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Listing Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"price\": \"50000000000000000000\",\n    \"description\": \"Bán căn hộ cao cấp Quận 2\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"]
+            },
+            "description": "Chủ nhà tạo listing để BÁN NFT. Yêu cầu: NFT đã mint, có tokenId."
+          }
+        },
+        {
+          "name": "11. Create Rental Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Rental Listing Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"pricePerDay\": \"500000\",\n    \"maxRentalDuration\": 365,\n    \"description\": \"Căn hộ cho thuê theo ngày, giá rẻ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/rental",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "rental"]
+            },
+            "description": "Chủ nhà tạo listing để CHO THUÊ NFT. Endpoint: POST /listings/rental"
+          }
+        },
+        {
+          "name": "12. Rent NFT (Tenant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"order_id\", jsonData.data.orderId);",
+                  "    console.log(\"📦 Order Created: \" + jsonData.data.orderId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{renter_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rentalDays\": 365,\n    \"paymentMethod\": \"bank_transfer\",\n    \"amount\": 180000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{property_id}}/rent",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "{{property_id}}",
+                "rent"
+              ]
+            },
+            "description": "Người thuê gọi API để thuê NFT đã được list. Yêu cầu: Listing phải tồn tại và type=rental"
+          }
+        },
+        {
+          "name": "13. Browse Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings?status=active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            },
+            "description": "Xem tất cả listing đang active. Public endpoint, không cần auth."
+          }
+        },
+        {
+          "name": "14. Get My Listings (Owner)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{landlord_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/my/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "my", "listings"]
+            },
+            "description": "Chủ nhà xem các listing của mình. Endpoint: GET /listings/my/listings"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 5. Marketplace (Hybrid Orders - Fiat)",
+      "item": [
+        {
+          "name": "15. Create Rent Order (Fiat)",
           "event": [
             {
               "listen": "test",
@@ -785,11 +960,11 @@
               "host": ["{{base_url}}"],
               "path": ["api", "marketplace", "orders", "rent"]
             },
-            "description": "Người thuê tạo đơn thuê, thanh toán bằng chuyển khoản. status = pending_payment."
+            "description": "Tạo đơn thuê qua Fiat (không qua blockchain). Endpoint khác với NFT rental!"
           }
         },
         {
-          "name": "12. Create Buy Order (Cash)",
+          "name": "16. Create Buy Order (Cash)",
           "event": [
             {
               "listen": "test",
@@ -831,7 +1006,7 @@
           }
         },
         {
-          "name": "13. Get Order Detail",
+          "name": "17. Get Order Detail",
           "request": {
             "method": "GET",
             "header": [
@@ -850,7 +1025,7 @@
           }
         },
         {
-          "name": "14. Confirm Payment (Admin)",
+          "name": "18. Confirm Payment (Admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -883,7 +1058,7 @@
           }
         },
         {
-          "name": "15. Get Pending Orders (Admin)",
+          "name": "19. Get Pending Orders (Admin)",
           "request": {
             "method": "GET",
             "header": [
@@ -917,7 +1092,7 @@
           ]
         },
         {
-          "name": "16. Retry Blockchain Sync",
+          "name": "20. Retry Blockchain Sync",
           "request": {
             "method": "POST",
             "header": [

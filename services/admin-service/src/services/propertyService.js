@@ -35,6 +35,9 @@ class PropertyService {
         limit = 20,
         propertyType,
         status,
+        verificationStatus,
+        kycStatus,
+        blockchainStatus,
         city,
         minPrice,
         maxPrice,
@@ -47,6 +50,9 @@ class PropertyService {
 
       if (propertyType) query.propertyType = propertyType;
       if (status) query.status = status;
+      if (verificationStatus) query.verificationStatus = verificationStatus;
+      if (kycStatus) query.kycStatus = kycStatus;
+      if (blockchainStatus) query.blockchainStatus = blockchainStatus;
       if (city) query["location.city"] = city;
       if (minPrice || maxPrice) {
         query["price.amount"] = {};

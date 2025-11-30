@@ -1,0 +1,808 @@
+{
+  "info": {
+    "_postman_id": "viepropchain-frontend-apis-v1",
+    "name": "ViePropChain - Frontend APIs (Theo từng trang)",
+    "description": "🎨 **TỔNG HỢP API THEO TỪNG TRANG FRONTEND**\n\n**📱 Cấu trúc Frontend:**\n- 🏠 Trang chủ (Homepage)\n- 🔍 Danh sách BĐS (Property Listing)\n- 📋 Chi tiết BĐS (Property Detail)\n- 🛒 Marketplace NFT (NFT Marketplace)\n- 👤 Trang cá nhân (User Profile)\n- 🏢 Admin Dashboard\n\n**🔑 Authentication:**\n- Base URL: `http://localhost:4000` (API Gateway)\n- Token: JWT từ Gmail OAuth\n- Header: `Authorization: Bearer {{token}}`\n\n**⚙️ Setup:**\n1. Chạy `node run.js` để start services\n2. Login để lấy token\n3. Test theo từng trang",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 1. Authentication (Đăng nhập/Đăng ký)",
+      "item": [
+        {
+          "name": "Đăng ký tài khoản mới",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.token) {",
+                  "    pm.environment.set(\"user_token\", jsonData.data.token);",
+                  "    console.log(\"✅ Đăng ký thành công!\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@gmail.com\",\n    \"password\": \"123456\",\n    \"name\": \"Nguyen Van A\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "**Chức năng:** Form đăng ký tài khoản mới\n\n**Frontend sử dụng:**\n- Trang: `/register`\n- Input: email, password, name\n- Output: JWT token\n\n**Lưu token vào:**\n- LocalStorage hoặc Cookie\n- Dùng cho các request sau"
+          }
+        },
+        {
+          "name": "Đăng nhập",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.token) {",
+                  "    pm.environment.set(\"user_token\", jsonData.data.token);",
+                  "    pm.environment.set(\"user_id\", jsonData.data.user._id);",
+                  "    pm.environment.set(\"user_email\", jsonData.data.user.email);",
+                  "    console.log(\"✅ Đăng nhập thành công: \" + jsonData.data.user.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"todat2207@gmail.com\",\n    \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "**Chức năng:** Đăng nhập vào hệ thống\n\n**Frontend sử dụng:**\n- Trang: `/login`\n- Input: email, password\n- Output: JWT token + thông tin user\n\n**Response chứa:**\n- `token`: JWT token (lưu vào localStorage)\n- `user._id`: ID user\n- `user.email`: Email\n- `user.role`: Role (user/admin)"
+          }
+        },
+        {
+          "name": "Lấy thông tin user hiện tại",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "**Chức năng:** Lấy thông tin user đang đăng nhập\n\n**Frontend sử dụng:**\n- Header: Hiển thị tên, avatar\n- Profile page: Hiển thị đầy đủ thông tin\n\n**Response chứa:**\n- `email`, `name`, `role`\n- `walletAddress`: Địa chỉ ví (nếu đã liên kết)\n- `kycStatus`: Trạng thái KYC"
+          }
+        }
+      ],
+      "description": "APIs cho trang đăng nhập, đăng ký, quản lý session"
+    },
+    {
+      "name": "🏠 2. Trang chủ (Homepage)",
+      "item": [
+        {
+          "name": "Lấy danh sách BĐS nổi bật",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?status=minted&limit=6",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "minted",
+                  "description": "Chỉ lấy BĐS đã mint NFT"
+                },
+                {
+                  "key": "limit",
+                  "value": "6",
+                  "description": "Hiển thị 6 BĐS đầu"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Hiển thị 6 BĐS nổi bật trên trang chủ\n\n**Frontend sử dụng:**\n- Section: \"BĐS nổi bật\" trên homepage\n- Hiển thị: Ảnh, tên, giá, địa chỉ\n\n**Query params:**\n- `status=minted`: Chỉ lấy BĐS đã có NFT\n- `limit=6`: Giới hạn 6 BĐS\n- `isFeatured=true`: (Optional) Lấy BĐS được đánh dấu featured"
+          }
+        },
+        {
+          "name": "Thống kê tổng quan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/stats/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "stats", "overview"]
+            },
+            "description": "**Chức năng:** Lấy số liệu thống kê hiển thị trên homepage\n\n**Frontend sử dụng:**\n- Section: Stats cards trên homepage\n- Hiển thị:\n  - Tổng số BĐS\n  - Số BĐS đang bán\n  - Số giao dịch\n  - Tổng giá trị\n\n**Response:**\n```json\n{\n  \"totalProperties\": 150,\n  \"activeListings\": 45,\n  \"totalTransactions\": 23,\n  \"totalValue\": \"50000000000\"\n}\n```"
+          }
+        }
+      ],
+      "description": "APIs cho trang chủ: BĐS nổi bật, thống kê, banner"
+    },
+    {
+      "name": "🔍 3. Danh sách BĐS (Property Listing Page)",
+      "item": [
+        {
+          "name": "Lấy danh sách tất cả BĐS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?page=1&limit=20&status=minted",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Trang hiện tại"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Số BĐS trên 1 trang"
+                },
+                {
+                  "key": "status",
+                  "value": "minted",
+                  "description": "Lọc theo trạng thái"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Hiển thị danh sách BĐS với phân trang\n\n**Frontend sử dụng:**\n- Trang: `/properties`\n- Grid view: Hiển thị cards BĐS\n- Pagination: Phân trang\n\n**Query params có thể dùng:**\n- `page`: Trang (mặc định 1)\n- `limit`: Số lượng/trang (mặc định 20)\n- `propertyType`: Loại BĐS (apartment, villa, house)\n- `status`: Trạng thái (draft, minted, active)\n- `verificationStatus`: KYC status\n- `minPrice`, `maxPrice`: Lọc theo giá\n- `city`: Lọc theo thành phố\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 150,\n    \"pages\": 8\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Lọc BĐS theo loại",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?propertyType=apartment&status=minted",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "propertyType",
+                  "value": "apartment",
+                  "description": "apartment | villa | house | land"
+                },
+                {
+                  "key": "status",
+                  "value": "minted"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Lọc BĐS theo loại\n\n**Frontend sử dụng:**\n- Sidebar filters\n- Dropdown \"Loại BĐS\"\n\n**Giá trị propertyType:**\n- `apartment`: Căn hộ\n- `villa`: Biệt thự\n- `house`: Nhà phố\n- `land`: Đất nền"
+          }
+        },
+        {
+          "name": "Lọc BĐS theo giá",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?minPrice=1000000000&maxPrice=5000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "1000000000",
+                  "description": "Giá tối thiểu (VND)"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000000000",
+                  "description": "Giá tối đa (VND)"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Lọc BĐS theo khoảng giá\n\n**Frontend sử dụng:**\n- Price range slider\n- Input min/max price\n\n**Ví dụ:**\n- 1-5 tỷ: `minPrice=1000000000&maxPrice=5000000000`\n- 5-10 tỷ: `minPrice=5000000000&maxPrice=10000000000`"
+          }
+        }
+      ],
+      "description": "APIs cho trang danh sách BĐS: lọc, search, phân trang"
+    },
+    {
+      "name": "📋 4. Chi tiết BĐS (Property Detail Page)",
+      "item": [
+        {
+          "name": "Lấy chi tiết 1 BĐS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}"]
+            },
+            "description": "**Chức năng:** Lấy chi tiết đầy đủ của 1 BĐS\n\n**Frontend sử dụng:**\n- Trang: `/properties/:id`\n- Hiển thị:\n  - Ảnh slider\n  - Thông tin cơ bản (tên, giá, diện tích, số phòng)\n  - Địa chỉ\n  - Mô tả chi tiết\n  - Thông tin NFT (nếu đã mint)\n  - Trạng thái (đang bán, đã bán, cho thuê)\n\n**Response chứa:**\n```json\n{\n  \"_id\": \"692b3b997540c6eee50380ab\",\n  \"title\": \"Căn hộ cao cấp\",\n  \"price\": 1500000000,\n  \"area\": 80,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"address\": {...},\n  \"images\": [...],\n  \"nft\": {\n    \"isMinted\": true,\n    \"tokenId\": 0,\n    \"contractAddress\": \"0x...\"\n  },\n  \"owner\": \"email@example.com\",\n  \"ownerWallet\": \"0x...\"\n}\n```"
+          }
+        },
+        {
+          "name": "Lấy thông tin NFT của BĐS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/nft-info/token/0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "nft-info", "token", "0"]
+            },
+            "description": "**Chức năng:** Lấy thông tin NFT trên blockchain\n\n**Frontend sử dụng:**\n- Section: \"Thông tin NFT\" trong trang chi tiết\n- Hiển thị:\n  - Token ID\n  - Contract address\n  - Owner wallet\n  - Metadata URI\n  - Transaction hash\n\n**Khi nào gọi:**\n- Nếu `property.nft.isMinted === true`\n- Hiển thị link scan blockchain\n- Button \"View on Blockchain\""
+          }
+        }
+      ],
+      "description": "APIs cho trang chi tiết BĐS: thông tin đầy đủ, NFT info, owner"
+    },
+    {
+      "name": "🛒 5. Marketplace NFT (NFT Listing & Trading)",
+      "item": [
+        {
+          "name": "Xem tất cả listing NFT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings?status=active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Chỉ hiển thị listing đang active"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Xem tất cả NFT đang được rao bán/cho thuê\n\n**Frontend sử dụng:**\n- Trang: `/marketplace`\n- Grid view: Cards NFT listing\n- Hiển thị:\n  - Ảnh property\n  - Giá (ETH hoặc VND)\n  - Loại (Sale/Rent)\n  - Seller\n  - Số ngày còn lại\n\n**Query params:**\n- `status=active`: Chỉ listing active\n- `listingType=sale`: Chỉ bán\n- `listingType=rent`: Chỉ cho thuê\n- `page`, `limit`: Phân trang"
+          }
+        },
+        {
+          "name": "Xem chi tiết 1 listing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{listing_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "{{listing_id}}"]
+            },
+            "description": "**Chức năng:** Xem chi tiết 1 listing trên marketplace\n\n**Frontend sử dụng:**\n- Trang: `/marketplace/listings/:id`\n- Hiển thị:\n  - Thông tin property đầy đủ\n  - Giá listing\n  - Thông tin seller\n  - Button \"Buy Now\" hoặc \"Rent Now\"\n  - Lịch sử offers (nếu có)\n\n**Response:**\n```json\n{\n  \"_id\": \"listing_id\",\n  \"tokenId\": 0,\n  \"propertyName\": \"...\",\n  \"price\": {...},\n  \"seller\": {...},\n  \"status\": \"active\",\n  \"listingType\": \"sale\"\n}\n```"
+          }
+        },
+        {
+          "name": "Tạo listing BÁN NFT (Chủ nhà)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Listing Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"price\": \"50000000000000000000\",\n    \"description\": \"Bán căn hộ cao cấp Quận 2\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings"]
+            },
+            "description": "**Chức năng:** Chủ nhà tạo listing để BÁN NFT property\n\n**Frontend sử dụng:**\n- Trang: `/my-properties/:id` (trang quản lý property của chủ nhà)\n- Button: \"Đăng bán NFT\"\n- Form:\n  - Giá bán (ETH)\n  - Mô tả\n\n**Yêu cầu:**\n- User phải sở hữu NFT (ownerOf)\n- NFT phải được approve cho Marketplace contract\n\n**Flow Frontend:**\n1. User nhấn \"Đăng bán\"\n2. Nhập giá → Submit\n3. MetaMask popup: Approve Marketplace\n4. Gọi API này → Tạo listing trong DB\n5. Redirect về `/marketplace`"
+          }
+        },
+        {
+          "name": "Tạo listing CHO THUÊ NFT (Chủ nhà)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"listing_id\", jsonData.data._id);",
+                  "    console.log(\"📋 Rental Listing Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"tokenId\": 0,\n    \"contractAddress\": \"0xEA4F5F49F396B13CA447FaA792A8702054019Cc8\",\n    \"propertyId\": \"{{property_id}}\",\n    \"pricePerDay\": \"500000\",\n    \"maxRentalDuration\": 365,\n    \"description\": \"Cho thuê căn hộ theo ngày\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/rental",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "rental"]
+            },
+            "description": "**Chức năng:** Chủ nhà tạo listing để CHO THUÊ NFT\n\n**Frontend sử dụng:**\n- Trang: `/my-properties/:id`\n- Button: \"Cho thuê\"\n- Form:\n  - Giá/ngày (VND hoặc ETH)\n  - Số ngày thuê tối đa\n  - Mô tả\n\n**Khác biệt với Sale:**\n- Có `pricePerDay` thay vì `price`\n- Có `maxRentalDuration` (1-365 ngày)\n- Sau khi thuê, NFT vẫn thuộc chủ nhà, người thuê chỉ có quyền sử dụng (ERC4907)"
+          }
+        },
+        {
+          "name": "MUA NFT (Người mua)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{listing_id}}/buy",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "{{listing_id}}",
+                "buy"
+              ]
+            },
+            "description": "**Chức năng:** Người mua mua NFT từ listing\n\n**Frontend sử dụng:**\n- Trang: `/marketplace/listings/:id`\n- Button: \"Mua ngay\"\n\n**Flow Frontend:**\n1. User nhấn \"Mua ngay\"\n2. Show modal xác nhận giá\n3. MetaMask popup: Gửi ETH\n4. Gọi Smart Contract: `Marketplace.buyItem(listingId)`\n5. Sau khi transaction success:\n   - Gọi API này để update DB\n   - NFT chuyển về ví người mua\n   - Listing status → sold\n\n**Lưu ý:**\n- API này CHỈ update DB\n- Giao dịch thật diễn ra trên blockchain\n- Cần gọi contract trước, sau đó gọi API"
+          }
+        },
+        {
+          "name": "THUÊ NFT (Người thuê)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rentalDays\": 30,\n    \"paymentMethod\": \"crypto\",\n    \"amount\": 15000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{listing_id}}/rent",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "listings",
+                "{{listing_id}}",
+                "rent"
+              ]
+            },
+            "description": "**Chức năng:** Người thuê thuê NFT property\n\n**Frontend sử dụng:**\n- Trang: `/marketplace/listings/:id` (listing type = rent)\n- Form:\n  - Chọn số ngày thuê (1-365)\n  - Tính tổng tiền = pricePerDay × days\n  - Button: \"Thuê ngay\"\n\n**Flow Frontend:**\n1. User nhập số ngày → Hiển thị tổng tiền\n2. Nhấn \"Thuê ngay\"\n3. MetaMask popup: Gửi ETH\n4. Gọi Smart Contract: `Marketplace.rentItem(listingId, days)`\n5. Contract gọi `NFTContract.setUser()` (ERC4907)\n6. Gọi API này → Update DB\n\n**Kết quả:**\n- NFT vẫn thuộc chủ nhà\n- Người thuê được set làm `user` (có quyền sử dụng)\n- Hết hạn thuê → quyền tự động thu hồi"
+          }
+        },
+        {
+          "name": "Xem listing của tôi (Chủ nhà)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/my/listings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "my", "listings"]
+            },
+            "description": "**Chức năng:** Chủ nhà xem các listing đã tạo\n\n**Frontend sử dụng:**\n- Trang: `/my-listings`\n- Dashboard chủ nhà\n- Hiển thị:\n  - Tất cả listing (active, sold, cancelled)\n  - Trạng thái từng listing\n  - Số views, offers\n  - Button: Edit, Cancel\n\n**Response:**\n```json\n[\n  {\n    \"_id\": \"...\",\n    \"propertyName\": \"...\",\n    \"status\": \"active\",\n    \"views\": 123,\n    \"offers\": [...]\n  }\n]\n```"
+          }
+        },
+        {
+          "name": "Hủy listing (Chủ nhà)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/listings/{{listing_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marketplace", "listings", "{{listing_id}}"]
+            },
+            "description": "**Chức năng:** Chủ nhà hủy listing chưa bán\n\n**Frontend sử dụng:**\n- Trang: `/my-listings`\n- Button: \"Hủy listing\"\n\n**Yêu cầu:**\n- Chỉ chủ nhà mới hủy được\n- Listing phải đang active\n\n**Flow:**\n1. Gọi Smart Contract: `Marketplace.cancelListing()`\n2. Gọi API này → Update DB (status = cancelled)"
+          }
+        }
+      ],
+      "description": "APIs cho marketplace: xem listing, mua/bán/cho thuê NFT"
+    },
+    {
+      "name": "👤 6. Trang cá nhân User (My Profile)",
+      "item": [
+        {
+          "name": "Xem BĐS của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/my-properties/{{user_email}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "my-properties",
+                "{{user_email}}"
+              ]
+            },
+            "description": "**Chức năng:** User xem tất cả BĐS của mình\n\n**Frontend sử dụng:**\n- Trang: `/my-properties`\n- Dashboard user\n- Hiển thị:\n  - BĐS đang draft\n  - BĐS đã mint NFT\n  - BĐS đang bán/cho thuê\n  - Trạng thái từng property\n\n**Actions:**\n- Button: \"Tạo BĐS mới\"\n- Button: \"Đăng bán\" (nếu đã mint)\n- Button: \"Chỉnh sửa\" (nếu draft)"
+          }
+        },
+        {
+          "name": "Xem NFT của tôi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/marketplace/nft-info/0xc6890b26a32d9d92aefbc8635c4588247529cdfe",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "marketplace",
+                "nft-info",
+                "0xc6890b26a32d9d92aefbc8635c4588247529cdfe"
+              ]
+            },
+            "description": "**Chức năng:** Xem tất cả NFT user sở hữu\n\n**Frontend sử dụng:**\n- Trang: `/my-nfts`\n- Tab: \"NFT của tôi\"\n- Hiển thị:\n  - Ảnh property\n  - Token ID\n  - Trạng thái (đang bán, đang cho thuê, đang giữ)\n\n**Lưu ý:**\n- Cần có wallet address\n- Query trực tiếp từ blockchain"
+          }
+        },
+        {
+          "name": "Tạo BĐS mới - Step 1: Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success) {",
+                  "    pm.environment.set(\"property_id\", jsonData.data._id);",
+                  "    console.log(\"🏠 Property Created: \" + jsonData.data._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Căn hộ cao cấp Landmark 81\",\n    \"description\": \"Căn hộ 2PN view sông Sài Gòn\",\n    \"propertyType\": \"apartment\",\n    \"area\": 80,\n    \"bedrooms\": 2,\n    \"bathrooms\": 2,\n    \"price\": 5000000000,\n    \"currency\": \"VND\",\n    \"address\": {\n        \"street\": \"720 Điện Biên Phủ\",\n        \"ward\": \"Vinhomes Tân Cảng\",\n        \"district\": \"Bình Thạnh\",\n        \"city\": \"TP. Hồ Chí Minh\",\n        \"country\": \"Vietnam\"\n    },\n    \"features\": [\"Hồ bơi\", \"Gym\", \"Parking\"],\n    \"legalStatus\": \"Red Book (So Do)\",\n    \"legalDocumentId\": \"SHC2024001234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"]
+            },
+            "description": "**Chức năng:** Tạo BĐS mới (bước 1 - Draft)\n\n**Frontend sử dụng:**\n- Trang: `/properties/create`\n- Form:\n  - Thông tin cơ bản\n  - Địa chỉ\n  - Số GCN (legalDocumentId) - PHẢI DUY NHẤT\n\n**Workflow 4 bước:**\n1. **Create Draft** (API này) → status = \"draft\"\n2. Upload images → IPFS\n3. Upload documents → IPFS\n4. Submit → Admin duyệt\n\n**Validation:**\n- `legalDocumentId` phải unique (không trùng)\n- Owner lấy từ JWT token (không cho phép gửi trong body)"
+          }
+        },
+        {
+          "name": "Tạo BĐS - Step 2: Upload ảnh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "images"
+              ]
+            },
+            "description": "**Chức năng:** Upload ảnh property lên IPFS\n\n**Frontend sử dụng:**\n- Trang: `/properties/create` (step 2)\n- File upload component\n- Cho phép chọn nhiều ảnh (max 10)\n\n**Flow:**\n1. User chọn ảnh từ device\n2. Frontend gửi FormData\n3. Backend upload lên IPFS\n4. Lưu URL vào property.images\n\n**Content-Type:** `multipart/form-data`\n**Field name:** `images` (array)"
+          }
+        },
+        {
+          "name": "Tạo BĐS - Step 3: Upload giấy tờ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "legalDocuments",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "documents"
+              ]
+            },
+            "description": "**Chức năng:** Upload sổ đỏ, CCCD lên IPFS\n\n**Frontend sử dụng:**\n- Trang: `/properties/create` (step 3)\n- File upload (PDF, JPG)\n- Max 5 files\n\n**Security:**\n- Chỉ Admin mới xem được\n- User chỉ upload, không xem lại\n\n**Field name:** `legalDocuments` (array)"
+          }
+        },
+        {
+          "name": "Tạo BĐS - Step 4: Submit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/submit",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "submit"
+              ]
+            },
+            "description": "**Chức năng:** Submit BĐS để Admin duyệt\n\n**Frontend sử dụng:**\n- Trang: `/properties/create` (step 4)\n- Button: \"Gửi duyệt\"\n\n**Kết quả:**\n- status: \"draft\" → \"submitted\"\n- verificationStatus: \"pending_kyc\"\n- Chờ Admin duyệt\n\n**Frontend redirect:**\n- Sau submit → `/my-properties`\n- Show message: \"BĐS đang chờ duyệt\""
+          }
+        }
+      ],
+      "description": "APIs cho user profile: xem property của tôi, tạo property mới, quản lý NFT"
+    },
+    {
+      "name": "🏢 7. Admin Dashboard",
+      "item": [
+        {
+          "name": "Xem BĐS chờ duyệt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties?verificationStatus=pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties"],
+              "query": [
+                {
+                  "key": "verificationStatus",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "**Chức năng:** Admin xem danh sách BĐS chờ duyệt\n\n**Frontend sử dụng:**\n- Trang: `/admin/pending-properties`\n- Table view\n- Hiển thị:\n  - Tên BĐS\n  - Owner\n  - Ngày tạo\n  - Trạng thái KYC\n  - Actions: Duyệt, Từ chối\n\n**Query params:**\n- `verificationStatus=pending`: Chờ duyệt\n- `verificationStatus=pending_kyc`: Chờ KYC\n- `kycStatus=pending`: Chờ verify KYC"
+          }
+        },
+        {
+          "name": "Duyệt BĐS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "properties",
+                "{{property_id}}",
+                "approve"
+              ]
+            },
+            "description": "**Chức năng:** Admin duyệt BĐS\n\n**Frontend sử dụng:**\n- Trang: `/admin/pending-properties`\n- Button: \"Duyệt\"\n\n**Kết quả:**\n- verificationStatus: \"verified\"\n- BĐS được công khai\n\n**Lưu ý:**\n- Chỉ duyệt, CHƯA mint NFT\n- Cần dùng endpoint riêng để mint"
+          }
+        },
+        {
+          "name": "Mint NFT (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"metadataUri\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/properties/{{property_id}}/mint",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "properties", "{{property_id}}", "mint"]
+            },
+            "description": "**Chức năng:** Admin mint NFT cho BĐS\n\n**Frontend sử dụng:**\n- Trang: `/admin/properties/:id`\n- Button: \"Mint NFT\"\n\n**Flow:**\n1. Admin review property đã duyệt\n2. Nhấn \"Mint NFT\"\n3. Backend tự động:\n   - Build metadata từ property data\n   - Upload metadata lên IPFS\n   - Gọi Smart Contract mint NFT\n   - Update DB\n\n**Custodial Wallet:**\n- Nếu user chưa có wallet → Mint vào Admin wallet (locked)\n- Nếu user có wallet → Mint vào user wallet\n\n**Kết quả:**\n- property.nft.isMinted = true\n- property.nft.tokenId = X\n- property.blockchainStatus = \"minted\""
+          }
+        }
+      ],
+      "description": "APIs cho admin: duyệt property, mint NFT, quản lý hệ thống"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "default"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "user_email",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "listing_id",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}
