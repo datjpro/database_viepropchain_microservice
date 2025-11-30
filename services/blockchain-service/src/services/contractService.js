@@ -52,8 +52,11 @@ class ContractService {
 
   /**
    * Mint NFT
+   * @param {string} recipient - Wallet address to receive NFT
+   * @param {string} tokenURI - Metadata URI (ipfs://...)
+   * @param {boolean} isCustodial - True nếu mint vào ví Admin (khóa ngay), false nếu mint vào ví user
    */
-  async mintNFT(recipient, tokenURI) {
+  async mintNFT(recipient, tokenURI, isCustodial = false) {
     try {
       // Đảm bảo contract được khởi tạo
       if (!this.contract) {
@@ -67,6 +70,7 @@ class ContractService {
       console.log(`🔄 Checking for duplicate NFT...`);
       console.log(`   Recipient: ${recipient}`);
       console.log(`   TokenURI: ${tokenURI}`);
+      console.log(`   Custodial Mode: ${isCustodial ? '🏦 YES (Will lock NFT)' : '❌ NO (Normal mint)'}`);
 
       // Check if tokenURI already exists
       const tokenURIExists = await this.contract.tokenURIExists(tokenURI);
@@ -90,7 +94,17 @@ class ContractService {
       console.log(`🔄 Minting new NFT...`);
 
       // Call smart contract mint function
-      const tx = await this.contract.mint(recipient, tokenURI);
+      let tx;
+      if (isCustodial) {
+        // Gọi mintCustodial (mint + lock)
+        console.log(`   🏦 Calling mintCustodial() - NFT will be LOCKED`);
+        tx = await this.contract.mintCustodial(recipient, tokenURI);
+      } else {
+        // Gọi mint thường (không lock)
+        console.log(`   ✅ Calling mint() - NFT will be FREE to transfer`);
+        tx = await this.contract.mint(recipient, tokenURI);
+      }
+      
       console.log(`   Transaction sent: ${tx.hash}`);
 
       // Wait for confirmation

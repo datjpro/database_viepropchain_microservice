@@ -9,9 +9,18 @@ const IPFSMetadata = require("../models/IPFSMetadata");
 class IPFSMetadataService {
   /**
    * Save IPFS metadata to database
+   * Skip if CID already exists (avoid E11000 duplicate key error)
    */
   async saveMetadata(data) {
     try {
+      // Check if CID already exists
+      const existing = await IPFSMetadata.findOne({ cid: data.cid });
+
+      if (existing) {
+        console.log(`⚠️  CID ${data.cid} already exists, skipping save`);
+        return existing;
+      }
+
       const ipfsMetadata = new IPFSMetadata(data);
       await ipfsMetadata.save();
       return ipfsMetadata;

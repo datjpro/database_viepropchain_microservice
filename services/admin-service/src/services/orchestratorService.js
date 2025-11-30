@@ -94,14 +94,18 @@ class OrchestratorService {
 
   /**
    * Mint NFT on blockchain
+   * @param {string} recipient - Wallet address
+   * @param {string} tokenURI - Metadata URI
+   * @param {boolean} isCustodial - True = mint vào Admin wallet + lock, False = mint bình thường
    */
-  async mintNFTOnBlockchain(recipient, tokenURI) {
+  async mintNFTOnBlockchain(recipient, tokenURI, isCustodial = false) {
     try {
       console.log(`   🔄 Minting NFT on blockchain...`);
 
-      const response = await axios.post(`${BLOCKCHAIN_SERVICE_URL}/nft/mint`, {
+      const response = await axios.post(`${BLOCKCHAIN_SERVICE_URL}/mint`, {
         recipient,
         tokenURI,
+        isCustodial,
       });
 
       if (!response.data.success) {
@@ -136,6 +140,16 @@ class OrchestratorService {
       };
 
       property.status = "minted";
+      property.blockchainStatus = "minted"; // ✅ Cập nhật blockchain status
+
+      // Nếu property đã verified, giữ nguyên. Nếu chưa, đổi thành verified sau khi mint
+      if (
+        property.verificationStatus === "pending_kyc" ||
+        property.verificationStatus === "pending_approval"
+      ) {
+        property.verificationStatus = "verified"; // ✅ Tự động verified sau mint
+      }
+
       await property.save();
 
       // 2. Create NFT record in database
@@ -220,10 +234,20 @@ class OrchestratorService {
         tokenURI = ipfsResult.url;
       }
 
-      // 3. Mint on blockchain
-      const mintResult = await this.mintNFTOnBlockchain(recipient, tokenURI);
+      // 3. Phát hiện Custodial Mode
+      const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS;
+      const isCustodial = !property.ownerWallet || recipient.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
+      
+      if (isCustodial) {
+        console.log(`   🏦 CUSTODIAL MODE: NFT will be minted to Admin wallet and LOCKED`);
+      } else {
+        console.log(`   ✅ NORMAL MODE: NFT will be minted to user wallet (no lock)`);
+      }
 
-      // 4. Update property and create NFT record
+      // 4. Mint on blockchain
+      const mintResult = await this.mintNFTOnBlockchain(recipient, tokenURI, isCustodial);
+
+      // 5. Update property and create NFT record
       const { property: updatedProperty, nft } =
         await this.updatePropertyWithNFT(
           property,
