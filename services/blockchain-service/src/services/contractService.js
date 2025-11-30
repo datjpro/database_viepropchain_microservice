@@ -70,7 +70,11 @@ class ContractService {
       console.log(`🔄 Checking for duplicate NFT...`);
       console.log(`   Recipient: ${recipient}`);
       console.log(`   TokenURI: ${tokenURI}`);
-      console.log(`   Custodial Mode: ${isCustodial ? '🏦 YES (Will lock NFT)' : '❌ NO (Normal mint)'}`);
+      console.log(
+        `   Custodial Mode: ${
+          isCustodial ? "🏦 YES (Will lock NFT)" : "❌ NO (Normal mint)"
+        }`
+      );
 
       // Check if tokenURI already exists
       const tokenURIExists = await this.contract.tokenURIExists(tokenURI);
@@ -104,7 +108,7 @@ class ContractService {
         console.log(`   ✅ Calling mint() - NFT will be FREE to transfer`);
         tx = await this.contract.mint(recipient, tokenURI);
       }
-      
+
       console.log(`   Transaction sent: ${tx.hash}`);
 
       // Wait for confirmation

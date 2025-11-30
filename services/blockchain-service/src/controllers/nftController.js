@@ -21,7 +21,11 @@ class NFTController {
         });
       }
 
-      const result = await contractService.mintNFT(recipient, tokenURI, isCustodial || false);
+      const result = await contractService.mintNFT(
+        recipient,
+        tokenURI,
+        isCustodial || false
+      );
 
       // Check if it's a duplicate
       if (result.isDuplicate) {

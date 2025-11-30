@@ -236,16 +236,26 @@ class OrchestratorService {
 
       // 3. Phát hiện Custodial Mode
       const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS;
-      const isCustodial = !property.ownerWallet || recipient.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
-      
+      const isCustodial =
+        !property.ownerWallet ||
+        recipient.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
+
       if (isCustodial) {
-        console.log(`   🏦 CUSTODIAL MODE: NFT will be minted to Admin wallet and LOCKED`);
+        console.log(
+          `   🏦 CUSTODIAL MODE: NFT will be minted to Admin wallet and LOCKED`
+        );
       } else {
-        console.log(`   ✅ NORMAL MODE: NFT will be minted to user wallet (no lock)`);
+        console.log(
+          `   ✅ NORMAL MODE: NFT will be minted to user wallet (no lock)`
+        );
       }
 
       // 4. Mint on blockchain
-      const mintResult = await this.mintNFTOnBlockchain(recipient, tokenURI, isCustodial);
+      const mintResult = await this.mintNFTOnBlockchain(
+        recipient,
+        tokenURI,
+        isCustodial
+      );
 
       // 5. Update property and create NFT record
       const { property: updatedProperty, nft } =
