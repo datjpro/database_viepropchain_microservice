@@ -159,22 +159,32 @@ exports.createListing = async (req, res) => {
 
       // Update pricing based on listing type
       if (listingType === "sale") {
+        // Convert ETH to wei for storage
+        const priceInWei = BigInt(
+          Math.floor(parseFloat(price) * 1e18)
+        ).toString();
         existingListing.price = {
-          amount: price.toString(),
+          amount: priceInWei,
           currency: "ETH",
         };
         // Clear rental info if switching from rent to sale
         existingListing.rental = undefined;
       } else if (listingType === "rent") {
+        const pricePerDayInWei = BigInt(
+          Math.floor(parseFloat(pricePerDay) * 1e18)
+        ).toString();
         existingListing.rental = {
-          pricePerDay: pricePerDay.toString(),
+          pricePerDay: pricePerDayInWei,
           maxDurationDays: parseInt(maxDurationDays),
           currentRenter: null, // Clear current renter on re-listing
         };
         // For rental listings, price is optional
         if (price) {
+          const priceInWei = BigInt(
+            Math.floor(parseFloat(price) * 1e18)
+          ).toString();
           existingListing.price = {
-            amount: price.toString(),
+            amount: priceInWei,
             currency: "ETH",
           };
         }
@@ -220,19 +230,29 @@ exports.createListing = async (req, res) => {
 
       // Set pricing based on listing type
       if (listingType === "sale") {
+        // Convert ETH to wei for storage
+        const priceInWei = BigInt(
+          Math.floor(parseFloat(price) * 1e18)
+        ).toString();
         listingData.price = {
-          amount: price.toString(),
+          amount: priceInWei,
           currency: "ETH",
         };
       } else if (listingType === "rent") {
+        const pricePerDayInWei = BigInt(
+          Math.floor(parseFloat(pricePerDay) * 1e18)
+        ).toString();
         listingData.rental = {
-          pricePerDay: pricePerDay.toString(),
+          pricePerDay: pricePerDayInWei,
           maxDurationDays: parseInt(maxDurationDays),
         };
         // For rental listings, price is optional (can be calculated)
         if (price) {
+          const priceInWei = BigInt(
+            Math.floor(parseFloat(price) * 1e18)
+          ).toString();
           listingData.price = {
-            amount: price.toString(),
+            amount: priceInWei,
             currency: "ETH",
           };
         }
@@ -411,7 +431,13 @@ exports.updateListing = async (req, res) => {
     }
 
     // Update fields
-    if (price) listing.price.amount = price.toString();
+    if (price) {
+      // Convert ETH to wei for storage
+      const priceInWei = BigInt(
+        Math.floor(parseFloat(price) * 1e18)
+      ).toString();
+      listing.price.amount = priceInWei;
+    }
     if (description) listing.description = description;
     if (expiresAt) listing.expiresAt = expiresAt;
 
