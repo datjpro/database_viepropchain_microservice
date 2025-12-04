@@ -89,10 +89,16 @@ class PropertyController {
         ? "pending_approval"
         : "pending_kyc";
 
-      // Set as DRAFT initially (no images/docs yet)
+      // Set as DRAFT initially
       propertyData.status = "draft";
-      propertyData.images = [];
-      propertyData.legalDocuments = [];
+
+      // Keep images and legalDocuments if provided (already uploaded to IPFS)
+      if (!propertyData.images) {
+        propertyData.images = [];
+      }
+      if (!propertyData.legalDocuments) {
+        propertyData.legalDocuments = [];
+      }
 
       console.log(
         `🔄 Creating DRAFT property: ${

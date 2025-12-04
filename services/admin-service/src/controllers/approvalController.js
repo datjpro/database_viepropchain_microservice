@@ -41,9 +41,17 @@ class ApprovalController {
       // Update verification status
       property.verificationStatus = "verified";
       property.blockchainStatus = "none"; // Not yet minted
+
+      // Change status from 'draft' to 'active' when approved
+      if (property.status === "draft") {
+        property.status = "active";
+      }
+
       await property.save();
 
-      console.log(`   ✅ Property verified (Web2 only): ${property._id}`);
+      console.log(
+        `   ✅ Property verified (Web2 only): ${property._id} - Status: ${property.status}`
+      );
 
       res.json({
         success: true,
@@ -82,9 +90,17 @@ class ApprovalController {
       // Step 1: Approve property
       property.verificationStatus = "verified";
       property.blockchainStatus = "queue_mint";
+
+      // Change status from 'draft' to 'active' when approved
+      if (property.status === "draft") {
+        property.status = "active";
+      }
+
       await property.save();
 
-      console.log(`   ✅ Step 1: Property verified`);
+      console.log(
+        `   ✅ Step 1: Property verified - Status: ${property.status}`
+      );
 
       // Step 2: Call Blockchain Service to mint NFT
       try {
@@ -261,6 +277,60 @@ class ApprovalController {
       res.status(500).json({
         success: false,
         error: "Failed to get pending properties",
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Fix property status (Admin utility)
+   * Changes approved properties from 'draft' to 'active'
+   */
+  async fixPropertyStatus(req, res) {
+    try {
+      const { id } = req.params;
+
+      console.log(`🔧 Fixing property status: ${id}`);
+
+      const property = await Property.findById(id);
+      if (!property) {
+        return res.status(404).json({
+          success: false,
+          error: "Property not found",
+        });
+      }
+
+      const oldStatus = property.status;
+
+      // Fix: If verified but still draft, change to active
+      if (
+        property.verificationStatus === "verified" &&
+        property.status === "draft"
+      ) {
+        property.status = "active";
+        await property.save();
+
+        console.log(`   ✅ Fixed: ${oldStatus} → ${property.status}`);
+
+        return res.json({
+          success: true,
+          message: `Property status updated: ${oldStatus} → ${property.status}`,
+          data: property,
+        });
+      }
+
+      // Already correct
+      res.json({
+        success: true,
+        message: "Property status is already correct",
+        data: property,
+        note: `Status: ${property.status}, VerificationStatus: ${property.verificationStatus}`,
+      });
+    } catch (error) {
+      console.error("❌ Fix property status error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fix property status",
         message: error.message,
       });
     }

@@ -91,6 +91,14 @@ router.post(
   approvalController.requestInfo
 ); // 👮 Admin
 
+// Fix stuck draft properties (Admin only)
+router.post(
+  "/:id/fix-status",
+  verifyToken,
+  requireAdmin,
+  approvalController.fixPropertyStatus
+); // 👮 Admin - Fix approved properties stuck in draft
+
 // Legacy: Direct mint (for backward compatibility)
 router.post("/:id/mint", mintController.mintProperty);
 
