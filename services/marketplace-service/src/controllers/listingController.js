@@ -293,7 +293,7 @@ exports.createListing = async (req, res) => {
             listingType === "sale" ? "Sale" : "Rental"
           } listing created successfully`,
       data: {
-        listingId: listing._id,
+        _id: listing._id,
         tokenId: listing.tokenId,
         propertyName: listing.propertyName,
         listingType: listing.listingType,

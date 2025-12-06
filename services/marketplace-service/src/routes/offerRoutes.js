@@ -12,7 +12,7 @@ const { verifyToken } = require("../middleware/auth");
 // All offer routes require authentication
 router.post("/", verifyToken, offerController.createOffer);
 router.get(
-  "/listing/:listingId",
+  "/listing/:listingRef",
   verifyToken,
   offerController.getOffersByListing
 );

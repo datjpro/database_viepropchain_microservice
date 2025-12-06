@@ -11,7 +11,7 @@ const { Listing, Offer } = require("../models");
  */
 exports.createOffer = async (req, res) => {
   try {
-    const { listingId, price, message, expiresAt } = req.body;
+    const { listingRef, price, message, expiresAt } = req.body;
     const userId = req.user.userId;
     const walletAddress = req.user.walletAddress;
 
@@ -24,7 +24,7 @@ exports.createOffer = async (req, res) => {
     }
 
     // Get listing
-    const listing = await Listing.findById(listingId);
+    const listing = await Listing.findById(listingRef);
 
     if (!listing) {
       return res.status(404).json({
@@ -50,7 +50,7 @@ exports.createOffer = async (req, res) => {
 
     // Create offer
     const offer = new Offer({
-      listingId,
+      listingRef,
       tokenId: listing.tokenId,
       buyer: {
         userId,
@@ -72,7 +72,7 @@ exports.createOffer = async (req, res) => {
     listing.offers.push(offer._id);
     await listing.save();
 
-    console.log(`✅ Offer created on listing ${listingId}`);
+    console.log(`✅ Offer created on listing ${listingRef}`);
 
     res.status(201).json({
       success: true,
@@ -94,10 +94,10 @@ exports.createOffer = async (req, res) => {
  */
 exports.getOffersByListing = async (req, res) => {
   try {
-    const { listingId } = req.params;
+    const { listingRef } = req.params;
     const { status } = req.query;
 
-    const query = { listingId };
+    const query = { listingRef };
     if (status) query.status = status;
 
     const offers = await Offer.find(query).sort({ offeredAt: -1 }).lean();
@@ -128,7 +128,7 @@ exports.getMyOffers = async (req, res) => {
 
     const offers = await Offer.find(query)
       .sort({ offeredAt: -1 })
-      .populate("listingId")
+      .populate("listingRef")
       .lean();
 
     res.json({
@@ -159,12 +159,12 @@ exports.getOffersOnMyListings = async (req, res) => {
 
     const listingIds = listings.map((l) => l._id);
 
-    const query = { listingId: { $in: listingIds } };
+    const query = { listingRef: { $in: listingIds } };
     if (status) query.status = status;
 
     const offers = await Offer.find(query)
       .sort({ offeredAt: -1 })
-      .populate("listingId")
+      .populate("listingRef")
       .lean();
 
     res.json({
@@ -189,7 +189,7 @@ exports.acceptOffer = async (req, res) => {
     const { transactionHash } = req.body;
     const userId = req.user.userId;
 
-    const offer = await Offer.findById(offerId).populate("listingId");
+    const offer = await Offer.findById(offerId).populate("listingRef");
 
     if (!offer) {
       return res.status(404).json({
@@ -198,7 +198,7 @@ exports.acceptOffer = async (req, res) => {
       });
     }
 
-    const listing = offer.listingId;
+    const listing = offer.listingRef;
 
     // Check if user is the seller
     if (listing.seller.userId.toString() !== userId) {
@@ -243,7 +243,7 @@ exports.acceptOffer = async (req, res) => {
     // Reject all other pending offers
     await Offer.updateMany(
       {
-        listingId: listing._id,
+        listingRef: listing._id,
         _id: { $ne: offerId },
         status: "pending",
       },
@@ -284,7 +284,7 @@ exports.rejectOffer = async (req, res) => {
     const { message } = req.body;
     const userId = req.user.userId;
 
-    const offer = await Offer.findById(offerId).populate("listingId");
+    const offer = await Offer.findById(offerId).populate("listingRef");
 
     if (!offer) {
       return res.status(404).json({
@@ -293,7 +293,7 @@ exports.rejectOffer = async (req, res) => {
       });
     }
 
-    const listing = offer.listingId;
+    const listing = offer.listingRef;
 
     // Check if user is the seller
     if (listing.seller.userId.toString() !== userId) {

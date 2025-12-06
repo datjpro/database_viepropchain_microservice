@@ -87,7 +87,7 @@ const TransactionSchema = new mongoose.Schema({
 // ============================================================================
 const ListingSchema = new mongoose.Schema(
   {
-    listingId: { type: Number, unique: true, sparse: true }, // From blockchain
+    // listingId: { type: Number, unique: true, sparse: true }, // Removed - not used in off-chain listings
     tokenId: { type: Number, required: true },
     contractAddress: { type: String, required: true },
     propertyId: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
@@ -142,7 +142,7 @@ const ListingSchema = new mongoose.Schema(
 // ============================================================================
 const OfferSchema = new mongoose.Schema(
   {
-    listingId: {
+    listingRef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Listing",
       required: true,

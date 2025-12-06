@@ -39,7 +39,7 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    listingId: {
+    listingRef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Listing",
       required: false,
