@@ -7,6 +7,38 @@
 const { Listing, Offer } = require("../models");
 const axios = require("axios");
 
+/**
+ * Convert price from ETH to wei using precise string manipulation
+ * @param {string|number} priceInEth - Price in ETH
+ * @returns {string} Price in wei
+ */
+const ethToWei = (priceInEth) => {
+  if (!priceInEth || priceInEth === "0") return "0";
+
+  const ethString = priceInEth.toString().trim();
+  const decimalIndex = ethString.indexOf(".");
+
+  if (decimalIndex === -1) {
+    // No decimal point, just append 18 zeros
+    const result = (
+      BigInt(ethString) * BigInt("1000000000000000000")
+    ).toString();
+    return result;
+  }
+
+  // Handle decimal numbers
+  const integerPart = ethString.slice(0, decimalIndex);
+  const decimalPart = ethString.slice(decimalIndex + 1);
+
+  // Pad or trim decimal part to 18 digits
+  const paddedDecimal = decimalPart.padEnd(18, "0").slice(0, 18);
+
+  // Combine and convert to wei
+  const fullNumber = integerPart + paddedDecimal;
+  const result = BigInt(fullNumber).toString();
+  return result;
+};
+
 const ADMIN_SERVICE_URL =
   process.env.ADMIN_SERVICE_URL || "http://localhost:4003";
 const BLOCKCHAIN_SERVICE_URL =
@@ -159,32 +191,23 @@ exports.createListing = async (req, res) => {
 
       // Update pricing based on listing type
       if (listingType === "sale") {
-        // Convert ETH to wei for storage
-        const priceInWei = BigInt(
-          Math.floor(parseFloat(price) * 1e18)
-        ).toString();
+        // Price already in wei from frontend
         existingListing.price = {
-          amount: priceInWei,
+          amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
         // Clear rental info if switching from rent to sale
         existingListing.rental = undefined;
       } else if (listingType === "rent") {
-        const pricePerDayInWei = BigInt(
-          Math.floor(parseFloat(pricePerDay) * 1e18)
-        ).toString();
         existingListing.rental = {
-          pricePerDay: pricePerDayInWei,
+          pricePerDay: pricePerDay || price, // Use pricePerDay if provided, fallback to price
           maxDurationDays: parseInt(maxDurationDays),
           currentRenter: null, // Clear current renter on re-listing
         };
         // For rental listings, price is optional
         if (price) {
-          const priceInWei = BigInt(
-            Math.floor(parseFloat(price) * 1e18)
-          ).toString();
           existingListing.price = {
-            amount: priceInWei,
+            amount: price, // Use price directly, already in wei
             currency: "ETH",
           };
         }
@@ -233,29 +256,20 @@ exports.createListing = async (req, res) => {
 
       // Set pricing based on listing type
       if (listingType === "sale") {
-        // Convert ETH to wei for storage
-        const priceInWei = BigInt(
-          Math.floor(parseFloat(price) * 1e18)
-        ).toString();
+        // Price already in wei from frontend
         listingData.price = {
-          amount: priceInWei,
+          amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
       } else if (listingType === "rent") {
-        const pricePerDayInWei = BigInt(
-          Math.floor(parseFloat(pricePerDay) * 1e18)
-        ).toString();
         listingData.rental = {
-          pricePerDay: pricePerDayInWei,
+          pricePerDay: pricePerDay || price, // Use pricePerDay if provided, fallback to price
           maxDurationDays: parseInt(maxDurationDays),
         };
         // For rental listings, price is optional (can be calculated)
         if (price) {
-          const priceInWei = BigInt(
-            Math.floor(parseFloat(price) * 1e18)
-          ).toString();
           listingData.price = {
-            amount: priceInWei,
+            amount: price, // Use price directly, already in wei
             currency: "ETH",
           };
         }
