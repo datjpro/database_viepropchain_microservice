@@ -194,9 +194,12 @@ exports.createListing = async (req, res) => {
       listing = existingListing;
       isUpdate = true;
 
-      console.log(`✅ Listing updated: Token #${tokenId}`);
+      console.log(`✅ Listing updated in database: Token #${tokenId}`);
       console.log(`   New status: ${listing.status}`);
       console.log(`   New type: ${listing.listingType}`);
+
+      // For updates, also need to list on blockchain
+      console.log(`🔗 Re-listing updated NFT #${tokenId} on blockchain...`);
     } else {
       // ===== INSERT SCENARIO =====
       // No active listing exists → Create new one
@@ -261,8 +264,12 @@ exports.createListing = async (req, res) => {
       listing = new Listing(listingData);
       await listing.save();
 
-      console.log(`✅ New listing created: Token #${tokenId}`);
+      console.log(`✅ New listing created in database: Token #${tokenId}`);
     }
+
+    // ========================================================================
+    // RESPONSE - Off-chain listing created successfully
+    // ========================================================================
 
     res.status(isUpdate ? 200 : 201).json({
       success: true,
@@ -271,8 +278,18 @@ exports.createListing = async (req, res) => {
         : `${
             listingType === "sale" ? "Sale" : "Rental"
           } listing created successfully`,
-      data: listing,
+      data: {
+        listingId: listing._id,
+        tokenId: listing.tokenId,
+        propertyName: listing.propertyName,
+        listingType: listing.listingType,
+        status: listing.status,
+        price: listing.price,
+        rental: listing.rental,
+        listedAt: listing.listedAt,
+      },
       isUpdate,
+      note: "Off-chain listing created. Blockchain interaction happens during actual transactions.",
     });
   } catch (error) {
     console.error("❌ Create listing error:", error);

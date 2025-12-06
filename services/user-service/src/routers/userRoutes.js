@@ -6,6 +6,7 @@
 
 const express = require("express");
 const userProfileController = require("../controllers/userProfileController");
+const { authenticate } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -47,6 +48,13 @@ router.put(
 router.put(
   "/profiles/user/:userId/kyc-status",
   userProfileController.updateKYCStatusByUserId
+);
+
+// Get user's properties (all lifecycle stages)
+router.get(
+  "/my-properties",
+  authenticate,
+  userProfileController.getMyProperties
 );
 
 // Update wallet address when user links wallet (internal - called by Auth Service)
