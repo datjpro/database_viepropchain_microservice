@@ -6,13 +6,15 @@
  * then sync to blockchain asynchronously
  */
 
-const { Order } = require("../models");
+const { Order, Listing } = require("../models");
 const axios = require("axios");
 
 const BLOCKCHAIN_SERVICE_URL =
   process.env.BLOCKCHAIN_SERVICE_URL || "http://localhost:4004";
 const USER_SERVICE_URL =
-  process.env.USER_SERVICE_URL || "http://localhost:4002";
+  process.env.USER_SERVICE_URL || "http://localhost:4006";
+const ADMIN_SERVICE_URL =
+  process.env.ADMIN_SERVICE_URL || "http://localhost:4003";
 
 class OrderController {
   /**
@@ -20,15 +22,25 @@ class OrderController {
    */
   async createRentOrder(req, res) {
     try {
-      const { propertyId, days, paymentMethod, buyerEmail } = req.body;
+      const { propertyId, tokenId, days, paymentMethod, buyerEmail, amount } =
+        req.body;
 
-      console.log(`🔄 Creating rent order for property: ${propertyId}`);
-
-      // Get buyer info
-      const userResponse = await axios.get(
-        `${USER_SERVICE_URL}/api/users/email/${buyerEmail}`
+      console.log(
+        `🔄 Creating rent order for property: ${propertyId}, tokenId: ${tokenId}`
       );
-      const buyer = userResponse.data.data;
+
+      // Validate tokenId
+      if (tokenId === undefined || tokenId === null) {
+        return res.status(400).json({
+          success: false,
+          error: "tokenId is required for NFT rental",
+        });
+      }
+
+      // Generate orderId
+      const orderId = `ORD-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
       // Calculate rental details
       const startDate = new Date();
@@ -36,39 +48,93 @@ class OrderController {
         startDate.getTime() + days * 24 * 60 * 60 * 1000
       );
 
-      // Create order
+      // Create order directly without user service
       const order = new Order({
+        orderId: orderId,
         buyer: {
-          userId: buyer._id,
-          email: buyer.email,
-          name: buyer.displayName,
-          walletAddress: buyer.walletAddress || buyer.custodialWallet?.address,
+          userId: "temp_user_id",
+          email: buyerEmail,
+          name: "User",
+          walletAddress: "0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13",
         },
         propertyId,
+        tokenId: tokenId,
         type: "rent",
         payment: {
-          method: paymentMethod || "fiat_transfer",
-          amount: req.body.amount,
+          method: paymentMethod || "crypto",
+          amount: amount,
           currency: "VND",
-          status: "pending",
+          status: "paid",
         },
         rentalDetails: {
           startDate,
           endDate,
           durationDays: days,
         },
-        status: "pending_payment",
+        status: "payment_confirmed",
       });
 
       await order.save();
 
-      console.log(`   ✅ Order created: ${order.orderId}`);
+      console.log(
+        `   ✅ Rent order created: ${order.orderId} with tokenId: ${order.tokenId}`
+      );
 
+      // Send response first
       res.json({
         success: true,
-        message: "Rent order created. Please complete payment.",
+        message: "Rent order created successfully!",
         data: order,
       });
+
+      // Auto trigger blockchain sync (non-blocking)
+      console.log(
+        `🔗 Scheduling blockchain rental sync for ${order.orderId}...`
+      );
+      const savedOrderId = order.orderId;
+      setTimeout(async () => {
+        console.log(
+          `⏳ Starting blockchain rental sync for ${savedOrderId}...`
+        );
+        try {
+          const order = await Order.findOne({ orderId: savedOrderId });
+          if (!order) {
+            console.error(`❌ Order ${savedOrderId} not found`);
+            return;
+          }
+
+          console.log(`📡 Calling blockchain service for rental setUser...`);
+          console.log(`   TokenId: ${order.tokenId}`);
+          console.log(`   Renter: ${order.buyer.walletAddress}`);
+          console.log(`   Expires: ${order.rentalDetails.endDate}`);
+
+          const response = await axios.post(
+            `${BLOCKCHAIN_SERVICE_URL}/set-user`,
+            {
+              tokenId: order.tokenId,
+              user: order.buyer.walletAddress,
+              expires: Math.floor(order.rentalDetails.endDate.getTime() / 1000),
+            }
+          );
+
+          if (response.data.success) {
+            console.log(
+              `✅ Blockchain rental sync completed for ${savedOrderId}`
+            );
+            console.log(`   TX Hash: ${response.data.data.transactionHash}`);
+          } else {
+            console.error(
+              `❌ Blockchain rental sync failed: ${response.data.error}`
+            );
+          }
+        } catch (syncError) {
+          console.error(
+            `❌ Blockchain rental sync failed for ${savedOrderId}:`,
+            syncError.message
+          );
+          console.error("Full error:", syncError);
+        }
+      }, 500);
     } catch (error) {
       console.error("❌ Create rent order error:", error.message);
       res.status(500).json({
@@ -84,44 +150,140 @@ class OrderController {
    */
   async createBuyOrder(req, res) {
     try {
-      const { propertyId, paymentMethod, buyerEmail } = req.body;
+      const { propertyId, tokenId, buyerEmail, amount, paymentMethod } =
+        req.body;
 
-      console.log(`🔄 Creating buy order for property: ${propertyId}`);
-
-      // Get buyer info
-      const userResponse = await axios.get(
-        `${USER_SERVICE_URL}/api/users/email/${buyerEmail}`
+      console.log(
+        `🔄 Creating buy order for property: ${propertyId}, tokenId: ${tokenId}`
       );
-      const buyer = userResponse.data.data;
 
-      // Create order
+      // Validate tokenId
+      if (tokenId === undefined || tokenId === null) {
+        return res.status(400).json({
+          success: false,
+          error: "tokenId is required for NFT purchase",
+        });
+      }
+
+      // Generate orderId
+      const orderId = `ORD-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Create order directly without user service check
       const order = new Order({
+        orderId: orderId,
         buyer: {
-          userId: buyer._id,
-          email: buyer.email,
-          name: buyer.displayName,
-          walletAddress: buyer.walletAddress || buyer.custodialWallet?.address,
+          userId: "temp_user_id",
+          email: buyerEmail,
+          name: "User",
+          walletAddress: "0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13",
         },
         propertyId,
+        tokenId: tokenId, // Add tokenId to order
         type: "buy",
         payment: {
-          method: paymentMethod || "fiat_transfer",
-          amount: req.body.amount,
+          method: paymentMethod || "crypto",
+          amount: amount,
           currency: "VND",
-          status: "pending",
+          status: "paid", // Auto-paid for crypto
         },
-        status: "pending_payment",
+        status: "payment_confirmed",
       });
 
       await order.save();
 
-      console.log(`   ✅ Order created: ${order.orderId}`);
+      console.log(
+        `   ✅ Order created: ${order.orderId} with tokenId: ${order.tokenId}`
+      );
 
+      // Send response first
       res.json({
         success: true,
-        message: "Buy order created. Please complete payment.",
+        message: "Buy order created successfully!",
         data: order,
       });
+
+      // Auto trigger blockchain sync (non-blocking)
+      console.log(`🔗 Scheduling blockchain sync for ${order.orderId}...`);
+      const savedOrderId = order.orderId;
+      setTimeout(async () => {
+        console.log(`⏳ Starting blockchain sync for ${savedOrderId}...`);
+        try {
+          // Call blockchain service directly
+          const order = await Order.findOne({ orderId: savedOrderId });
+          if (!order) {
+            console.error(`❌ Order ${savedOrderId} not found`);
+            return;
+          }
+
+          console.log(`📡 Calling blockchain service for NFT transfer...`);
+
+          // Get current owner from blockchain
+          const ownerResponse = await axios.get(
+            `${BLOCKCHAIN_SERVICE_URL}/nft/${order.tokenId}`
+          );
+
+          const currentOwner = ownerResponse.data.data.owner;
+          console.log(`   Current owner: ${currentOwner}`);
+          console.log(`   Transfer to: ${order.buyer.walletAddress}`);
+
+          const response = await axios.post(
+            `${BLOCKCHAIN_SERVICE_URL}/transfer`,
+            {
+              from: currentOwner,
+              to: order.buyer.walletAddress,
+              tokenId: order.tokenId,
+            }
+          );
+
+          if (response.data.success) {
+            order.blockchainStatus = "synced";
+            order.transactionHash = response.data.data.transactionHash;
+            await order.save();
+
+            // ✅ Update listing status to SOLD
+            console.log(
+              `📝 Updating listing status to SOLD for tokenId: ${order.tokenId}...`
+            );
+            const listing = await Listing.findOne({
+              tokenId: order.tokenId,
+              status: "active",
+            });
+            if (listing) {
+              listing.status = "sold";
+              listing.soldAt = new Date();
+              listing.soldTo = {
+                address: order.buyer.walletAddress,
+                email: order.buyer.email,
+                name: order.buyer.name,
+              };
+              listing.salePrice = order.payment.amount;
+              listing.saleTransactionHash = response.data.data.transactionHash;
+              await listing.save();
+              console.log(`   ✅ Listing ${listing._id} marked as SOLD`);
+            } else {
+              console.warn(
+                `   ⚠️ No active listing found for tokenId: ${order.tokenId}`
+              );
+            }
+
+            console.log(`✅ Blockchain sync completed for ${savedOrderId}`);
+            console.log(`   TX Hash: ${response.data.data.transactionHash}`);
+            console.log(`   Block: ${response.data.data.blockNumber}`);
+          } else {
+            console.error(
+              `❌ Blockchain transfer failed: ${response.data.error}`
+            );
+          }
+        } catch (syncError) {
+          console.error(
+            `❌ Blockchain sync failed for ${savedOrderId}:`,
+            syncError.message
+          );
+          console.error("Full error:", syncError);
+        }
+      }, 500);
     } catch (error) {
       console.error("❌ Create buy order error:", error.message);
       res.status(500).json({
@@ -162,8 +324,9 @@ class OrderController {
       console.log(`   ✅ Payment confirmed for order: ${orderId}`);
 
       // Trigger blockchain sync in background
+      const controller = this;
       setTimeout(() => {
-        this.syncToBlockchain(orderId);
+        controller.syncToBlockchain(orderId);
       }, 1000);
 
       res.json({
@@ -200,11 +363,17 @@ class OrderController {
 
       if (order.type === "rent") {
         // Call blockchain service to set user (ERC4907)
+        console.log(
+          `   🏠 Syncing rent to blockchain for tokenId: ${order.tokenId}`
+        );
+
         const response = await axios.post(
-          `${BLOCKCHAIN_SERVICE_URL}/api/blockchain/set-user`,
+          `${BLOCKCHAIN_SERVICE_URL}/set-user`,
           {
-            propertyId: order.propertyId.toString(),
-            userAddress: order.buyer.walletAddress,
+            tokenId: order.tokenId,
+            user:
+              order.buyer.walletAddress ||
+              "0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13",
             expires: Math.floor(order.rentalDetails.endDate.getTime() / 1000),
           }
         );
@@ -225,7 +394,9 @@ class OrderController {
           `${BLOCKCHAIN_SERVICE_URL}/api/blockchain/transfer-nft`,
           {
             propertyId: order.propertyId.toString(),
-            toAddress: order.buyer.walletAddress,
+            toAddress:
+              order.buyer.walletAddress ||
+              "0xd1abb2a4bb9652f90e0944affdf53f0cfff54d13",
           }
         );
 

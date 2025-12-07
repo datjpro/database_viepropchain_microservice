@@ -21,8 +21,8 @@ const orderSchema = new mongoose.Schema(
     // Transaction Parties
     buyer: {
       userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        type: String,
+        required: false,
         index: true,
       },
       email: String,
@@ -37,6 +37,11 @@ const orderSchema = new mongoose.Schema(
     propertyId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      index: true,
+    },
+    tokenId: {
+      type: Number,
+      required: false,
       index: true,
     },
     listingRef: {

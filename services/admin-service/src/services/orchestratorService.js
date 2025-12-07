@@ -236,18 +236,26 @@ class OrchestratorService {
 
       // 3. Phát hiện Custodial Mode
       const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS;
+
+      // Custodial = Ví Admin giữ hộ cho user CHƯA có ví
+      // Nếu property KHÔNG có ownerWallet → User chưa link ví → Custodial
+      // Nếu property có ownerWallet = Admin → Admin tự sở hữu → KHÔNG custodial
       const isCustodial =
-        !property.ownerWallet ||
+        !property.ownerWallet &&
         recipient.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
 
       if (isCustodial) {
         console.log(
-          `   🏦 CUSTODIAL MODE: NFT will be minted to Admin wallet and LOCKED`
+          `   🏦 CUSTODIAL MODE: User chưa link ví - NFT mint vào Admin wallet và KHÓA`
+        );
+      } else if (
+        recipient.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase()
+      ) {
+        console.log(
+          `   👑 ADMIN OWNERSHIP: Admin tự sở hữu - NFT mint vào Admin wallet KHÔNG khóa`
         );
       } else {
-        console.log(
-          `   ✅ NORMAL MODE: NFT will be minted to user wallet (no lock)`
-        );
+        console.log(`   ✅ NORMAL MODE: NFT mint vào ví user (không khóa)`);
       }
 
       // 4. Mint on blockchain

@@ -282,7 +282,61 @@ exports.createListing = async (req, res) => {
     }
 
     // ========================================================================
-    // RESPONSE - Off-chain listing created successfully
+    // BLOCKCHAIN SYNC - List NFT on Marketplace smart contract
+    // ========================================================================
+
+    let blockchainListingId = null;
+    let blockchainError = null;
+
+    try {
+      console.log(`🔗 Listing NFT #${tokenId} on Marketplace smart contract...`);
+      
+      let blockchainEndpoint;
+      let blockchainPayload;
+
+      if (listingType === "sale") {
+        // Sale listing
+        blockchainEndpoint = `${BLOCKCHAIN_SERVICE_URL}/marketplace/list`;
+        blockchainPayload = {
+          tokenId: listing.tokenId,
+          priceInWei: listing.price.amount, // Already in wei
+          sellerWallet: walletAddress,
+        };
+      } else if (listingType === "rent") {
+        // Rental listing
+        blockchainEndpoint = `${BLOCKCHAIN_SERVICE_URL}/marketplace/list-rent`;
+        blockchainPayload = {
+          tokenId: listing.tokenId,
+          pricePerDayInWei: listing.rental.pricePerDay, // Already in wei
+          maxDurationDays: listing.rental.maxDurationDays,
+          sellerWallet: walletAddress,
+        };
+      }
+
+      console.log("📤 Blockchain payload:", blockchainPayload);
+
+      const blockchainResponse = await axios.post(
+        blockchainEndpoint,
+        blockchainPayload
+      );
+
+      if (blockchainResponse.data.success) {
+        blockchainListingId = blockchainResponse.data.data.listingId;
+        
+        // Save blockchain listingId to database
+        listing.blockchainListingId = blockchainListingId;
+        await listing.save();
+
+        console.log(`✅ NFT listed on blockchain - ListingId: ${blockchainListingId}`);
+      }
+    } catch (error) {
+      console.error("❌ Blockchain listing failed:", error.response?.data || error.message);
+      blockchainError = error.response?.data?.message || error.message;
+      // Don't fail the entire request, listing exists in DB
+    }
+
+    // ========================================================================
+    // RESPONSE - Listing created (with optional blockchain sync)
     // ========================================================================
 
     res.status(isUpdate ? 200 : 201).json({
@@ -301,9 +355,14 @@ exports.createListing = async (req, res) => {
         price: listing.price,
         rental: listing.rental,
         listedAt: listing.listedAt,
+        blockchainListingId,
       },
       isUpdate,
-      note: "Off-chain listing created. Blockchain interaction happens during actual transactions.",
+      blockchain: {
+        synced: !!blockchainListingId,
+        listingId: blockchainListingId,
+        error: blockchainError,
+      },
     });
   } catch (error) {
     console.error("❌ Create listing error:", error);
@@ -1024,6 +1083,87 @@ exports.markAsRented = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to update listing status",
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Buy NFT - Mark listing as sold
+ */
+exports.buyListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { buyerAddress, transactionHash } = req.body;
+
+    console.log(`🛒 Processing buy request for listing ${id}:`, {
+      buyerAddress,
+      transactionHash,
+    });
+
+    // Validate required fields
+    if (!buyerAddress) {
+      return res.status(400).json({
+        success: false,
+        error: "Buyer address is required",
+      });
+    }
+
+    // Find and validate listing
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        error: "Listing not found",
+      });
+    }
+
+    // Check if listing is available for purchase
+    if (listing.status !== "active") {
+      return res.status(400).json({
+        success: false,
+        error: `Listing is not available for purchase. Current status: ${listing.status}`,
+      });
+    }
+
+    // Check if listing type is sale (not rental)
+    if (listing.listingType !== "sale") {
+      return res.status(400).json({
+        success: false,
+        error: "This listing is not for sale",
+      });
+    }
+
+    // Update listing status to sold
+    const updatedListing = await Listing.findByIdAndUpdate(
+      id,
+      {
+        status: "sold",
+        buyer: buyerAddress,
+        soldAt: new Date(),
+        transactionHash: transactionHash || null,
+        updatedAt: new Date(),
+      },
+      { new: true }
+    );
+
+    console.log(`✅ Listing ${id} marked as sold to ${buyerAddress}`);
+
+    res.json({
+      success: true,
+      message: "NFT purchased successfully",
+      data: {
+        listing: updatedListing,
+        transactionHash: transactionHash || null,
+        buyer: buyerAddress,
+        soldAt: updatedListing.soldAt,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Buy listing error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to process purchase",
       message: error.message,
     });
   }

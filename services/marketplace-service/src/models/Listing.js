@@ -19,6 +19,12 @@ const listingSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Blockchain Listing ID (from smart contract)
+    blockchainListingId: {
+      type: Number,
+      index: true,
+    },
+
     // Property Information (from property service)
     propertyId: {
       type: mongoose.Schema.Types.ObjectId,

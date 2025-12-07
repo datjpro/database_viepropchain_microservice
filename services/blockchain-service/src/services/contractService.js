@@ -279,7 +279,7 @@ class ContractService {
   }
 
   /**
-   * Transfer NFT
+   * Transfer NFT - Tự động phát hiện NFT bị khóa và dùng claimNFT
    */
   async transferNFT(from, to, tokenId) {
     try {
@@ -289,11 +289,46 @@ class ContractService {
 
       console.log(`🔄 Transferring NFT #${tokenId} from ${from} to ${to}`);
 
-      const tx = await this.contract.transferFrom(from, to, tokenId);
+      // Kiểm tra xem NFT có bị khóa không
+      const isLocked = await this.contract.isLocked(tokenId);
+      console.log(`   NFT locked status: ${isLocked}`);
+
+      // Get the current owner to verify
+      const currentOwner = await this.contract.ownerOf(tokenId);
+      console.log(`   Current owner: ${currentOwner}`);
+      console.log(`   Signer address: ${this.contract.runner.address}`);
+
+      // Verify the signer is the owner
+      if (
+        currentOwner.toLowerCase() !==
+        this.contract.runner.address.toLowerCase()
+      ) {
+        throw new Error(
+          `Signer ${this.contract.runner.address} is not the owner of token ${tokenId}. Owner is ${currentOwner}`
+        );
+      }
+
+      let tx;
+      if (isLocked) {
+        // NFT bị khóa - dùng claimNFT để mở khóa và chuyển trong 1 lần
+        console.log(
+          `   🔓 NFT is locked - using claimNFT() to unlock and transfer`
+        );
+        tx = await this.contract.claimNFT(from, to, tokenId);
+      } else {
+        // NFT không bị khóa - dùng safeTransferFrom bình thường
+        console.log(`   ✅ NFT is unlocked - using safeTransferFrom()`);
+        tx = await this.contract["safeTransferFrom(address,address,uint256)"](
+          from,
+          to,
+          tokenId
+        );
+      }
+
       console.log(`   Transaction sent: ${tx.hash}`);
 
       const receipt = await tx.wait();
-      console.log(`   ✅ Transfer confirmed`);
+      console.log(`   ✅ Transfer confirmed in block ${receipt.blockNumber}`);
 
       return {
         tokenId: Number(tokenId),
@@ -301,8 +336,10 @@ class ContractService {
         to,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
+        wasLocked: isLocked,
       };
     } catch (error) {
+      console.error(`❌ Transfer error details:`, error);
       throw new Error(`Transfer failed: ${error.message}`);
     }
   }
