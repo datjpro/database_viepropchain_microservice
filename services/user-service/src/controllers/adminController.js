@@ -319,6 +319,51 @@ class AdminController {
       });
     }
   }
+
+  /**
+   * 🔥 Fix NFT ownership in database to match blockchain state
+   * Use this when manual transfers happen outside the system
+   */
+  async fixNftOwnership(req, res) {
+    try {
+      const { tokenId, newOwner } = req.body;
+
+      console.log(`🔧 Fixing NFT #${tokenId} ownership → ${newOwner}`);
+
+      const Property = require("../models/Property");
+      const property = await Property.findOne({ "nft.tokenId": tokenId });
+
+      if (!property) {
+        return res.status(404).json({
+          success: false,
+          error: `NFT #${tokenId} not found in database`,
+        });
+      }
+
+      const oldOwner = property.owner;
+      property.owner = newOwner.toLowerCase();
+      await property.save();
+
+      console.log(`✅ NFT #${tokenId} owner: ${oldOwner} → ${property.owner}`);
+
+      res.json({
+        success: true,
+        message: "NFT ownership updated successfully",
+        data: {
+          tokenId,
+          oldOwner,
+          newOwner: property.owner,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Fix NFT ownership error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fix NFT ownership",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new AdminController();

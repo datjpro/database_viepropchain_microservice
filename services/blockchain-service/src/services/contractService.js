@@ -649,7 +649,16 @@ class ContractService {
         throw new Error("Marketplace contract not initialized");
       }
 
-      // Call listItem on marketplace contract
+      // Step 1: Approve Marketplace to transfer NFT
+      console.log(`🔓 Approving Marketplace to transfer NFT #${tokenId}...`);
+      const approveTx = await this.contract.approve(
+        MARKETPLACE_CONTRACT_ADDRESS,
+        tokenId
+      );
+      await approveTx.wait();
+      console.log(`✅ NFT #${tokenId} approved for Marketplace`);
+
+      // Step 2: Call listItem on marketplace contract
       const tx = await this.marketplaceContract.listItem(tokenId, priceInWei);
       console.log(`   Transaction sent: ${tx.hash}`);
 
@@ -659,11 +668,17 @@ class ContractService {
         `✅ NFT #${tokenId} listed successfully in block ${receipt.blockNumber}`
       );
 
+      // Step 3: Get listingId from event
+      const listingId =
+        receipt.logs.length > 0 ? receipt.logs[0].topics[1] : null;
+      const listingIdDecimal = listingId ? parseInt(listingId, 16) : null;
+
       return {
         success: true,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
+        listingId: listingIdDecimal,
       };
     } catch (error) {
       console.error(`❌ Failed to list NFT #${tokenId}:`, error.message);
@@ -690,7 +705,16 @@ class ContractService {
         throw new Error("Marketplace contract not initialized");
       }
 
-      // Call listForRent on marketplace contract
+      // Step 1: Approve Marketplace to manage NFT (for setUser)
+      console.log(`🔓 Approving Marketplace for NFT #${tokenId}...`);
+      const approveTx = await this.contract.approve(
+        MARKETPLACE_CONTRACT_ADDRESS,
+        tokenId
+      );
+      await approveTx.wait();
+      console.log(`✅ NFT #${tokenId} approved for Marketplace`);
+
+      // Step 2: Call listForRent on marketplace contract
       const tx = await this.marketplaceContract.listForRent(
         tokenId,
         pricePerDayInWei,
@@ -704,11 +728,17 @@ class ContractService {
         `✅ NFT #${tokenId} listed for rent successfully in block ${receipt.blockNumber}`
       );
 
+      // Step 3: Get listingId from event
+      const listingId =
+        receipt.logs.length > 0 ? receipt.logs[0].topics[1] : null;
+      const listingIdDecimal = listingId ? parseInt(listingId, 16) : null;
+
       return {
         success: true,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
+        listingId: listingIdDecimal,
       };
     } catch (error) {
       console.error(

@@ -529,6 +529,76 @@ class OrderController {
       });
     }
   }
+
+  /**
+   * Finalize sale after frontend completes blockchain transaction
+   * (Off-chain listing model: blockchain first, then update DB)
+   */
+  async finalizeSale(req, res) {
+    try {
+      const { listingId, tokenId, transactionHash, blockNumber, buyer } =
+        req.body;
+
+      console.log(`✅ Finalizing sale for listing: ${listingId}`);
+      console.log(`   TokenId: ${tokenId}`);
+      console.log(`   TX Hash: ${transactionHash}`);
+      console.log(`   Buyer: ${buyer}`);
+
+      // Update listing status to sold
+      const listing = await Listing.findById(listingId);
+
+      if (!listing) {
+        return res.status(404).json({
+          success: false,
+          error: "Listing not found",
+        });
+      }
+
+      listing.status = "sold";
+      listing.soldAt = new Date();
+      listing.buyer = {
+        walletAddress: buyer,
+      };
+      listing.transactionHash = transactionHash;
+      await listing.save();
+
+      console.log(`✅ Listing ${listingId} marked as sold`);
+
+      // 🔥 CRITICAL: Update NFT ownership in Property database
+      // Database must reflect blockchain state to show correct owner on frontend
+      const Property = require("../../user-service/src/models/Property");
+      const property = await Property.findOne({ "nft.tokenId": tokenId });
+
+      if (property) {
+        const oldOwner = property.owner;
+        property.owner = buyer.toLowerCase();
+        await property.save();
+        console.log(
+          `🔄 Property ownership updated: ${oldOwner} → ${property.owner}`
+        );
+      } else {
+        console.warn(`⚠️  Property with tokenId ${tokenId} not found in DB`);
+      }
+
+      res.json({
+        success: true,
+        message: "Sale finalized successfully",
+        data: {
+          listingId,
+          tokenId,
+          transactionHash,
+          status: "sold",
+        },
+      });
+    } catch (error) {
+      console.error("❌ Finalize sale error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to finalize sale",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new OrderController();

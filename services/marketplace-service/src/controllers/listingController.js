@@ -282,62 +282,11 @@ exports.createListing = async (req, res) => {
     }
 
     // ========================================================================
-    // BLOCKCHAIN SYNC - List NFT on Marketplace smart contract
+    // RESPONSE - Off-chain listing created successfully
     // ========================================================================
-
-    let blockchainListingId = null;
-    let blockchainError = null;
-
-    try {
-      console.log(`🔗 Listing NFT #${tokenId} on Marketplace smart contract...`);
-      
-      let blockchainEndpoint;
-      let blockchainPayload;
-
-      if (listingType === "sale") {
-        // Sale listing
-        blockchainEndpoint = `${BLOCKCHAIN_SERVICE_URL}/marketplace/list`;
-        blockchainPayload = {
-          tokenId: listing.tokenId,
-          priceInWei: listing.price.amount, // Already in wei
-          sellerWallet: walletAddress,
-        };
-      } else if (listingType === "rent") {
-        // Rental listing
-        blockchainEndpoint = `${BLOCKCHAIN_SERVICE_URL}/marketplace/list-rent`;
-        blockchainPayload = {
-          tokenId: listing.tokenId,
-          pricePerDayInWei: listing.rental.pricePerDay, // Already in wei
-          maxDurationDays: listing.rental.maxDurationDays,
-          sellerWallet: walletAddress,
-        };
-      }
-
-      console.log("📤 Blockchain payload:", blockchainPayload);
-
-      const blockchainResponse = await axios.post(
-        blockchainEndpoint,
-        blockchainPayload
-      );
-
-      if (blockchainResponse.data.success) {
-        blockchainListingId = blockchainResponse.data.data.listingId;
-        
-        // Save blockchain listingId to database
-        listing.blockchainListingId = blockchainListingId;
-        await listing.save();
-
-        console.log(`✅ NFT listed on blockchain - ListingId: ${blockchainListingId}`);
-      }
-    } catch (error) {
-      console.error("❌ Blockchain listing failed:", error.response?.data || error.message);
-      blockchainError = error.response?.data?.message || error.message;
-      // Don't fail the entire request, listing exists in DB
-    }
-
-    // ========================================================================
-    // RESPONSE - Listing created (with optional blockchain sync)
-    // ========================================================================
+    // NOTE: Blockchain interaction (approve + list) happens ONLY during actual
+    // purchase/rental transaction, NOT during listing creation.
+    // This approach saves gas fees and improves UX.
 
     res.status(isUpdate ? 200 : 201).json({
       success: true,
@@ -355,14 +304,9 @@ exports.createListing = async (req, res) => {
         price: listing.price,
         rental: listing.rental,
         listedAt: listing.listedAt,
-        blockchainListingId,
       },
       isUpdate,
-      blockchain: {
-        synced: !!blockchainListingId,
-        listingId: blockchainListingId,
-        error: blockchainError,
-      },
+      note: "Off-chain listing. Blockchain interaction happens during purchase/rental.",
     });
   } catch (error) {
     console.error("❌ Create listing error:", error);

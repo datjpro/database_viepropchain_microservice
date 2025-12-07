@@ -13,6 +13,9 @@ const router = express.Router();
 router.post("/rent", orderController.createRentOrder);
 router.post("/buy", orderController.createBuyOrder);
 
+// Finalize sale after frontend completes blockchain transaction
+router.post("/finalize-sale", orderController.finalizeSale);
+
 // Payment management
 router.post("/:orderId/confirm-payment", orderController.confirmPayment);
 
