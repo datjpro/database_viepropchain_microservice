@@ -22,9 +22,9 @@ const { NFT, Property, Transaction } = require("../../shared/models");
 // CONFIGURATION
 // ============================================================================
 const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
-const NFT_CONTRACT_ADDRESS = "0x17Aaf4b68DF5bA409FAEBE59ff771E27e1db85E2";
+const NFT_CONTRACT_ADDRESS = "0xEA4F5F49F396B13CA447FaA792A8702054019Cc8";
 const MARKETPLACE_CONTRACT_ADDRESS =
-  "0x0d32Dc114C7fba20bef83509CcaBE58d81e296cb";
+  "0x75573f6E6C40780FDf378bA29FcBb8c25c611E24";
 const POLL_INTERVAL = Number(process.env.POLL_INTERVAL) || 5000; // 5 seconds
 
 // Contract ABIs

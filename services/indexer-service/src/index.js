@@ -16,6 +16,8 @@ const {
   POLL_INTERVAL,
 } = require("./config/blockchain");
 const eventListenerService = require("./services/eventListenerService");
+const ownershipSyncService = require("./services/ownershipSyncService");
+const comprehensiveOwnershipSyncService = require("./services/comprehensiveOwnershipSyncService");
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
@@ -34,6 +36,9 @@ async function shutdown() {
   console.log("\n🛑 Shutting down indexer service...");
 
   eventListenerService.stop();
+  ownershipSyncService.stop(); // Dừng sync service cũ
+  comprehensiveOwnershipSyncService.stop(); // Dừng sync service mới cũ
+  comprehensiveOwnershipSyncService.stop(); // Dừng sync service mới
 
   await mongoose.connection.close();
   console.log("✅ MongoDB connection closed");
@@ -45,23 +50,33 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 // ============================================================================
-// START INDEXER
+// START INDEXER (Cấu trúc mới với async/await đúng cách)
 // ============================================================================
-(async function start() {
+const startIndexer = async () => {
   try {
-    // Connect to database
-    await connectDB();
+    // 1. Kết nối DB trước
+    console.log("⏳ Connecting to MongoDB...");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // 5 giây timeout
+      socketTimeoutMS: 45000, // 45 giây socket timeout
+    });
+    console.log("✅ MongoDB connected successfully");
 
-    // Wait for MongoDB connection
-    while (mongoose.connection.readyState !== 1) {
-      console.log("⏳ Waiting for MongoDB connection...");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+    // 2. SAU KHI kết nối xong mới khởi tạo các thứ khác
+    console.log("🔧 Initializing indexer services...");
 
-    // Start event listener
+    // 3. Start event listener (bây giờ DB đã sẵn sàng)
     await eventListenerService.start();
-  } catch (error) {
-    console.error("❌ Error starting indexer:", error);
+
+    // 4. Start comprehensive ownership sync service (cảnh sát dữ liệu nâng cao)
+    comprehensiveOwnershipSyncService.start();
+
+    console.log("✅ Marketplace Indexer started successfully");
+  } catch (err) {
+    console.error("❌ Startup Error:", err.message);
     process.exit(1);
   }
-})();
+};
+
+// Khởi động indexer
+startIndexer();

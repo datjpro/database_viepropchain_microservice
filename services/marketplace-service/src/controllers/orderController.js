@@ -580,6 +580,64 @@ class OrderController {
         console.warn(`⚠️  Property with tokenId ${tokenId} not found in DB`);
       }
 
+      // 🔥 CRITICAL: Update NFT ownership and history tracking
+      const { NFT } = require("../../shared/models");
+      const nft = await NFT.findOne({ tokenId });
+
+      if (nft) {
+        const oldOwner = nft.currentOwner || nft.owner;
+
+        // Update NFT with proper ownership and history tracking
+        await NFT.updateOne(
+          { tokenId },
+          {
+            // --- 1. UPDATE CURRENT STATE ---
+            $set: {
+              currentOwner: buyer.toLowerCase(), // Fix inconsistency
+              owner: buyer.toLowerCase(), // Sync both fields
+              lastTransferAt: new Date(),
+              status: "minted",
+            },
+
+            // --- 2. TRACK TRANSFER HISTORY ---
+            $push: {
+              transferHistory: {
+                from: oldOwner,
+                to: buyer.toLowerCase(),
+                transactionHash,
+                blockNumber,
+                transferredAt: new Date(),
+                transferType: "sale",
+              },
+
+              // --- 3. TRACK SALE HISTORY ---
+              saleHistory: {
+                seller: oldOwner,
+                buyer: buyer.toLowerCase(),
+                price: listing.price.amount,
+                currency: listing.price.currency,
+                date: new Date(),
+                txHash: transactionHash,
+                listingId,
+              },
+            },
+
+            // --- 4. UPDATE COUNTERS ---
+            $inc: {
+              totalTransfers: 1,
+              totalSales: 1,
+            },
+          }
+        );
+
+        console.log(
+          `🎨 NFT ownership updated: ${oldOwner} → ${buyer.toLowerCase()}`
+        );
+        console.log(`📊 Transfer and sale history recorded`);
+      } else {
+        console.warn(`⚠️  NFT with tokenId ${tokenId} not found in DB`);
+      }
+
       res.json({
         success: true,
         message: "Sale finalized successfully",
