@@ -1,78 +1,129 @@
-// Ensure MongoDB collections exist before any operation
-async function ensureCollectionsReady() {
-  const collections = await mongoose.connection.db.listCollections().toArray();
-  const names = collections.map(c => c.name);
-  if (!names.includes('nfts')) await mongoose.connection.createCollection('nfts');
-  if (!names.includes('properties')) await mongoose.connection.createCollection('properties');
-  if (!names.includes('transactions')) await mongoose.connection.createCollection('transactions');
-}
-
-// Wait until MongoDB responds to a ping (writable)
-async function waitForDbWritable(maxRetries = 20, interval = 1000) {
-  const db = mongoose.connection.db;
-  let retries = 0;
-  while (retries < maxRetries) {
-    try {
-      // `command({ ping: 1 })` will throw if server not responding
-      await db.command({ ping: 1 });
-      // also test a simple write to the server by doing a no-op createIndex with maxTimeMS
-      // This ensures the server accepts write operations
-      return;
-    } catch (err) {
-      retries++;
-      console.log(`⏳ Waiting for MongoDB writable (attempt ${retries}/${maxRetries})...`);
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-  }
-  throw new Error('MongoDB did not become writable in time');
-}
 /**
  * ========================================================================
- * INDEXER SERVICE - Blockchain Synchronization Service
+ * INDEXER SERVICE - Background Worker
  * ========================================================================
- * Nhiệm vụ: Đồng bộ dữ liệu giữa Blockchain và MongoDB
- *
- * 1. NFT Events:
- *    - Transfer events → Update NFT owner trong DB
- *    - Mint events → Create/update NFT records
- *
- * 2. Marketplace Events:
- *    - ItemListed → Tạo listing trong MongoDB
- *    - ItemSold → Cập nhật listing và ownership
- *    - ListingCancelled → Hủy listing
- *
- * 3. Sync Functions:
- *    - Sync toàn bộ NFTs từ blockchain → MongoDB
- *    - Sync Properties ownership với blockchain
- *    - Validate data consistency
+ * Nhiệm vụ: Lắng nghe blockchain events và update MongoDB
  * ========================================================================
  */
 
-const { ethers } = require("ethers");
-const mongoose = require("mongoose");
-const axios = require("axios");
 require("dotenv").config();
+const mongoose = require("mongoose");
 
-// Import models
-const { NFT, Property, Transaction } = require("../../shared/models");
+const {
+  GANACHE_URL,
+  CONTRACT_ADDRESS,
+  POLL_INTERVAL,
+} = require("./src/config/blockchain");
+const eventListenerService = require("./src/services/eventListenerService");
+const comprehensiveOwnershipSyncService = require("./src/services/comprehensiveOwnershipSyncService");
+
+console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                   INDEXER SERVICE                            ║
+║══════════════════════════════════════════════════════════════║
+║  Ganache: ${GANACHE_URL}                         ║
+║  Contract: ${CONTRACT_ADDRESS}        ║
+║  Poll Interval: ${POLL_INTERVAL}ms                                        ║
+║  🔄 Service Mode: CONTINUOUS SYNC                            ║
+║  💪 Resilient: Auto-retry & Error Recovery                   ║
+╚══════════════════════════════════════════════════════════════╝
+`);
 
 // ============================================================================
-// CONFIGURATION
+// GRACEFUL SHUTDOWN
 // ============================================================================
-const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
-const NFT_CONTRACT_ADDRESS = "0xEA4F5F49F396B13CA447FaA792A8702054019Cc8";
-const MARKETPLACE_CONTRACT_ADDRESS =
-  "0x75573f6E6C40780FDf378bA29FcBb8c25c611E24";
-const POLL_INTERVAL = Number(process.env.POLL_INTERVAL) || 5000; // 5 seconds
+async function shutdown() {
+  console.log("\n🛑 Shutting down indexer service...");
 
-// Contract ABIs
-const NFT_ABI = require("./contract-abi.json");
-const MARKETPLACE_ABI = [
-  "event ItemListed(uint256 indexed listingId, address indexed seller, uint256 indexed tokenId, uint256 price)",
-  "event ItemSold(uint256 indexed listingId, address indexed buyer, uint256 tokenId)",
-  "event ListingCancelled(uint256 indexed listingId)",
-  "function getListing(uint256 _listingId) external view returns (tuple(uint256 listingId, address seller, uint256 tokenId, uint256 price, uint8 status))",
-];
+  if (eventListenerService && eventListenerService.stop) {
+    eventListenerService.stop();
+  }
+  if (comprehensiveOwnershipSyncService && comprehensiveOwnershipSyncService.stop) {
+    comprehensiveOwnershipSyncService.stop();
+  }
+
+  await mongoose.connection.close();
+  console.log("✅ MongoDB connection closed");
+
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
+// ============================================================================
+// START INDEXER (Cấu trúc mới với async/await đúng cách)
+// ============================================================================
+const startIndexer = async (retryCount = 0) => {
+  try {
+    // 1. Kết nối DB trước với longer timeout
+    console.log("⏳ Connecting to MongoDB...");
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 30000, // 30 giây timeout
+      socketTimeoutMS: 0, // Không timeout
+      bufferMaxEntries: 0, // Disable mongoose buffering
+      maxPoolSize: 10,
+      retryWrites: true,
+      retryReads: true,
+    });
+    console.log("✅ MongoDB connected successfully");
+
+    // 2. SAU KHI kết nối xong mới khởi tạo các thứ khác
+    console.log("🔧 Initializing indexer services...");
+
+    // 3. Start event listener với error handling
+    try {
+      if (eventListenerService && eventListenerService.start) {
+        await eventListenerService.start();
+      }
+    } catch (eventError) {
+      console.error("⚠️ Event listener error (continuing):", eventError.message);
+    }
+
+    // 4. Start comprehensive ownership sync service (cảnh sát dữ liệu nâng cao)
+    if (comprehensiveOwnershipSyncService && comprehensiveOwnershipSyncService.start) {
+      comprehensiveOwnershipSyncService.start();
+    }
+
+    console.log("✅ Indexer Service started successfully");
+    console.log("🔄 Running continuous sync...");
+
+    // 5. Keep service alive với heartbeat
+    setInterval(() => {
+      console.log(`💓 Indexer heartbeat - ${new Date().toLocaleTimeString()}`);
+    }, 60000); // Heartbeat mỗi phút
+
+  } catch (err) {
+    console.error("❌ Startup Error:", err.message);
+    
+    if (retryCount < 5) {
+      const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff
+      console.log(`🔄 Retrying in ${retryDelay}ms... (Attempt ${retryCount + 1}/5)`);
+      setTimeout(() => {
+        startIndexer(retryCount + 1);
+      }, retryDelay);
+    } else {
+      console.error("❌ Max retry attempts reached. Service will keep running with limited functionality.");
+      
+      // Even if DB fails, keep service alive for potential recovery
+      setInterval(() => {
+        console.log(`💔 Service running with errors - ${new Date().toLocaleTimeString()}`);
+        
+        // Try to reconnect periodically
+        if (mongoose.connection.readyState === 0) {
+          console.log("🔄 Attempting to reconnect to MongoDB...");
+          startIndexer(0);
+        }
+      }, 60000);
+    }
+  }
+};
+
+// Khởi động indexer
+console.log("🚀 Starting Indexer Service...");
+startIndexer();
+
+
 
 // Listing Model (tạm thời inline, sau này sẽ move vào shared/models)
 const ListingSchema = new mongoose.Schema(
@@ -128,8 +179,8 @@ const Listing = mongoose.model("Listing", ListingSchema);
 // ============================================================================
 mongoose
   .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   })
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
@@ -154,15 +205,15 @@ const marketplaceContract = new ethers.Contract(
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║              BLOCKCHAIN SYNCHRONIZATION SERVICE              ║
+║                   MARKETPLACE INDEXER                       ║
 ║══════════════════════════════════════════════════════════════║
 ║  Ganache: ${GANACHE_URL}                         ║
 ║  NFT Contract: ${NFT_CONTRACT_ADDRESS}        ║
 ║  Marketplace: ${MARKETPLACE_CONTRACT_ADDRESS}         ║
 ║  Poll Interval: ${POLL_INTERVAL}ms                                        ║
 ║  MongoDB: ${
-  mongoose.connection.readyState === 1 ? "Connected ✅" : "Connecting... ⏳"
-}                                   ║
+  mongoose.connection.readyState === 1 ? "Connected" : "Connecting..."
+}                                       ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
 
@@ -177,62 +228,22 @@ let isProcessing = false;
 // ============================================================================
 async function initializeLastBlock() {
   try {
-    // Đợi MongoDB kết nối
-    let retries = 0;
-    while (mongoose.connection.readyState !== 1 && retries < 10) {
-      console.log("⏳ Waiting for MongoDB connection...");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      retries++;
-    }
+    const latestTransaction = await Transaction.findOne()
+      .sort({ blockNumber: -1 })
+      .select("blockNumber");
 
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error("MongoDB not connected after 10 seconds");
-    }
-
-    let latestTransaction = null;
-    try {
-      latestTransaction = await Transaction.findOne()
-        .sort({ blockNumber: -1 })
-        .select("blockNumber")
-        .maxTimeMS(5000);
-    } catch (err) {
-      console.warn(
-        "⚠️ Transaction collection not found or empty, will create a sample document."
-      );
-    }
-
-    if (!latestTransaction) {
-      // Tạo document mẫu nếu collection rỗng
-      const currentBlock = await provider.getBlockNumber();
-      try {
-        const coll = mongoose.connection.db.collection('transactions');
-        await coll.insertOne({
-          transactionHash: 'init',
-          type: 'mint',
-          from: '0x0',
-          to: '0x0',
-          tokenId: 0,
-          blockNumber: currentBlock,
-          gasUsed: 0,
-          status: 'confirmed',
-          timestamp: new Date(),
-        });
-        lastProcessedBlock = currentBlock;
-        console.log(`📌 Created sample transaction, starting from current block ${currentBlock}`);
-      } catch (err) {
-        console.error('❌ Failed to create sample transaction via raw insert:', err.message);
-        // fallback to set lastProcessedBlock to current block
-        lastProcessedBlock = currentBlock;
-      }
-    } else {
+    if (latestTransaction) {
       lastProcessedBlock = latestTransaction.blockNumber;
       console.log(`📌 Resuming from block ${lastProcessedBlock}`);
+    } else {
+      const currentBlock = await provider.getBlockNumber();
+      lastProcessedBlock = currentBlock;
+      console.log(`📌 Starting from current block ${currentBlock}`);
     }
   } catch (error) {
-    console.error("❌ Error initializing last block:", error.message);
+    console.error("❌ Error initializing last block:", error);
     const currentBlock = await provider.getBlockNumber();
     lastProcessedBlock = currentBlock;
-    console.log(`📌 Defaulting to current block ${currentBlock}`);
   }
 }
 
@@ -463,200 +474,6 @@ async function processListingCancelledEvent(event) {
 }
 
 // ============================================================================
-// SYNC NFTs FROM BLOCKCHAIN TO DATABASE
-// ============================================================================
-async function syncNFTsFromBlockchain() {
-  console.log("\n🔄 Starting NFT sync from blockchain...");
-
-  try {
-    // Get total supply from contract
-    const totalSupply = await nftContract.totalSupply();
-    const totalSupplyNumber = Number(totalSupply);
-
-    console.log(`📊 Total NFTs on blockchain: ${totalSupplyNumber}`);
-
-    let synced = 0;
-    let updated = 0;
-    let created = 0;
-
-    for (let tokenId = 0; tokenId < totalSupplyNumber; tokenId++) {
-      try {
-        // Get owner from blockchain
-        const owner = await nftContract.ownerOf(tokenId);
-
-        // Get tokenURI
-        let tokenURI = "";
-        let metadata = null;
-        try {
-          tokenURI = await nftContract.tokenURI(tokenId);
-          metadata = await fetchMetadataFromIPFS(tokenURI);
-        } catch (err) {
-          console.log(`   ⚠️  Could not fetch metadata for token ${tokenId}`);
-        }
-
-        // Find or create NFT in database
-        let nft = await NFT.findOne({ tokenId });
-
-        if (nft) {
-          // Update existing NFT
-          if (nft.owner.toLowerCase() !== owner.toLowerCase()) {
-            nft.owner = owner.toLowerCase();
-            await nft.save();
-            updated++;
-            console.log(`   ✅ Updated NFT #${tokenId} owner: ${owner}`);
-          }
-        } else {
-          // Create new NFT
-          nft = new NFT({
-            tokenId,
-            contractAddress: NFT_CONTRACT_ADDRESS,
-            owner: owner.toLowerCase(),
-            tokenURI,
-            metadata: metadata || {},
-            name: metadata?.name || `ViePropChain NFT #${tokenId}`,
-            description: metadata?.description || "",
-            image: metadata?.image || "",
-          });
-          await nft.save();
-          created++;
-          console.log(`   ✅ Created NFT #${tokenId} owner: ${owner}`);
-        }
-
-        synced++;
-
-        // Update associated property if exists
-        const property = await Property.findOne({ "nft.tokenId": tokenId });
-        if (property && property.owner.toLowerCase() !== owner.toLowerCase()) {
-          property.owner = owner.toLowerCase();
-          await property.save();
-          console.log(`   ✅ Updated Property ownership for NFT #${tokenId}`);
-        }
-      } catch (error) {
-        console.error(`   ❌ Error syncing NFT #${tokenId}:`, error.message);
-      }
-    }
-
-    console.log(`\n✅ NFT Sync Complete:`);
-    console.log(`   - Total Synced: ${synced}/${totalSupplyNumber}`);
-    console.log(`   - Created: ${created}`);
-    console.log(`   - Updated: ${updated}`);
-  } catch (error) {
-    console.error("❌ Error syncing NFTs from blockchain:", error);
-  }
-}
-
-// ============================================================================
-// SYNC PROPERTIES WITH BLOCKCHAIN
-// ============================================================================
-async function syncPropertiesWithBlockchain() {
-  console.log("\n🔄 Starting Properties sync with blockchain...");
-
-  try {
-    // Get all properties that have NFTs
-    const properties = await Property.find({
-      "nft.tokenId": { $exists: true },
-    });
-
-    console.log(`📊 Total Properties with NFTs: ${properties.length}`);
-
-    let synced = 0;
-    let updated = 0;
-
-    for (const property of properties) {
-      try {
-        const tokenId = property.nft.tokenId;
-
-        // Get owner from blockchain
-        const blockchainOwner = await nftContract.ownerOf(tokenId);
-
-        // Compare with database
-        if (property.owner.toLowerCase() !== blockchainOwner.toLowerCase()) {
-          property.owner = blockchainOwner.toLowerCase();
-          await property.save();
-          updated++;
-          console.log(
-            `   ✅ Updated Property "${property.title}" (NFT #${tokenId}) owner: ${blockchainOwner}`
-          );
-        }
-
-        synced++;
-      } catch (error) {
-        console.error(
-          `   ❌ Error syncing property ${property._id}:`,
-          error.message
-        );
-      }
-    }
-
-    console.log(`\n✅ Properties Sync Complete:`);
-    console.log(`   - Total Synced: ${synced}/${properties.length}`);
-    console.log(`   - Updated: ${updated}`);
-  } catch (error) {
-    console.error("❌ Error syncing properties with blockchain:", error);
-  }
-}
-
-// ============================================================================
-// PROCESS NFT TRANSFER EVENT
-// ============================================================================
-async function processTransferEvent(event) {
-  try {
-    const { from, to, tokenId } = event.args;
-    const tokenIdNumber = Number(tokenId);
-
-    console.log(
-      `   📤 Processing Transfer: NFT #${tokenIdNumber} from ${from} to ${to}`
-    );
-
-    // Skip mint events (from = 0x0)
-    if (from === ethers.ZeroAddress) {
-      console.log(`   ℹ️  Mint event - will be handled by sync function`);
-      return;
-    }
-
-    // Update NFT owner in database
-    let nft = await NFT.findOne({ tokenId: tokenIdNumber });
-    if (nft) {
-      nft.owner = to.toLowerCase();
-      await nft.save();
-      console.log(`   ✅ NFT owner updated in database`);
-    } else {
-      console.log(`   ⚠️  NFT not found in database - creating...`);
-      // Create NFT if not exists
-      try {
-        const tokenURI = await nftContract.tokenURI(tokenIdNumber);
-        const metadata = await fetchMetadataFromIPFS(tokenURI);
-
-        nft = new NFT({
-          tokenId: tokenIdNumber,
-          contractAddress: NFT_CONTRACT_ADDRESS,
-          owner: to.toLowerCase(),
-          tokenURI,
-          metadata: metadata || {},
-          name: metadata?.name || `ViePropChain NFT #${tokenIdNumber}`,
-          description: metadata?.description || "",
-          image: metadata?.image || "",
-        });
-        await nft.save();
-        console.log(`   ✅ NFT created in database`);
-      } catch (err) {
-        console.error(`   ❌ Error creating NFT:`, err.message);
-      }
-    }
-
-    // Update property owner if exists
-    const property = await Property.findOne({ "nft.tokenId": tokenIdNumber });
-    if (property) {
-      property.owner = to.toLowerCase();
-      await property.save();
-      console.log(`   ✅ Property owner updated`);
-    }
-  } catch (error) {
-    console.error("   ❌ Error processing Transfer event:", error);
-  }
-}
-
-// ============================================================================
 // POLL FOR NEW EVENTS
 // ============================================================================
 async function pollEvents() {
@@ -679,56 +496,42 @@ async function pollEvents() {
       `\n🔍 Polling blocks ${lastProcessedBlock + 1} to ${currentBlock}...`
     );
 
-    // Query NFT Transfer events
-    const transferFilter = nftContract.filters.Transfer();
-
     // Query Marketplace events
     const itemListedFilter = marketplaceContract.filters.ItemListed();
     const itemSoldFilter = marketplaceContract.filters.ItemSold();
     const listingCancelledFilter =
       marketplaceContract.filters.ListingCancelled();
 
-    // Get all events
-    const [transferEvents, listedEvents, soldEvents, cancelledEvents] =
-      await Promise.all([
-        nftContract.queryFilter(
-          transferFilter,
-          lastProcessedBlock + 1,
-          currentBlock
-        ),
-        marketplaceContract.queryFilter(
-          itemListedFilter,
-          lastProcessedBlock + 1,
-          currentBlock
-        ),
-        marketplaceContract.queryFilter(
-          itemSoldFilter,
-          lastProcessedBlock + 1,
-          currentBlock
-        ),
-        marketplaceContract.queryFilter(
-          listingCancelledFilter,
-          lastProcessedBlock + 1,
-          currentBlock
-        ),
-      ]);
+    // Get all marketplace events
+    const [listedEvents, soldEvents, cancelledEvents] = await Promise.all([
+      marketplaceContract.queryFilter(
+        itemListedFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
+      marketplaceContract.queryFilter(
+        itemSoldFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
+      marketplaceContract.queryFilter(
+        listingCancelledFilter,
+        lastProcessedBlock + 1,
+        currentBlock
+      ),
+    ]);
 
     const totalEvents =
-      transferEvents.length +
-      listedEvents.length +
-      soldEvents.length +
-      cancelledEvents.length;
+      listedEvents.length + soldEvents.length + cancelledEvents.length;
 
     if (totalEvents > 0) {
-      console.log(`📦 Found ${totalEvents} event(s):`);
-      console.log(`   - NFT Transfer: ${transferEvents.length}`);
+      console.log(`📦 Found ${totalEvents} Marketplace event(s):`);
       console.log(`   - ItemListed: ${listedEvents.length}`);
       console.log(`   - ItemSold: ${soldEvents.length}`);
       console.log(`   - ListingCancelled: ${cancelledEvents.length}`);
 
       // Process events in chronological order
       const allEvents = [
-        ...transferEvents.map((e) => ({ ...e, type: "Transfer" })),
         ...listedEvents.map((e) => ({ ...e, type: "ItemListed" })),
         ...soldEvents.map((e) => ({ ...e, type: "ItemSold" })),
         ...cancelledEvents.map((e) => ({ ...e, type: "ListingCancelled" })),
@@ -736,9 +539,6 @@ async function pollEvents() {
 
       for (const event of allEvents) {
         switch (event.type) {
-          case "Transfer":
-            await processTransferEvent(event);
-            break;
           case "ItemListed":
             await processItemListedEvent(event);
             break;
@@ -788,56 +588,18 @@ let pollInterval;
 (async function start() {
   try {
     // Wait for MongoDB connection
-    let retries = 0;
-    while (mongoose.connection.readyState !== 1 && retries < 10) {
+    while (mongoose.connection.readyState !== 1) {
       console.log("⏳ Waiting for MongoDB connection...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      retries++;
     }
-
-    if (mongoose.connection.readyState !== 1) {
-      console.error("❌ MongoDB failed to connect after 10 seconds");
-      process.exit(1);
-    }
-
-    // Ensure collections exist before any operation
-    await ensureCollectionsReady();
-
-    // Ensure DB is writable before attempting writes
-    await waitForDbWritable(20, 1000);
 
     // Initialize last processed block
     await initializeLastBlock();
 
-    // Perform initial sync
-    console.log(
-      "\n╔══════════════════════════════════════════════════════════════╗"
-    );
-    console.log(
-      "║              INITIAL BLOCKCHAIN SYNC                        ║"
-    );
-    console.log(
-      "╚══════════════════════════════════════════════════════════════╝"
-    );
-
-    await syncNFTsFromBlockchain();
-    await syncPropertiesWithBlockchain();
-
-    console.log(
-      "\n╔══════════════════════════════════════════════════════════════╗"
-    );
-    console.log(
-      "║              STARTING EVENT LISTENER                        ║"
-    );
-    console.log(
-      "╚══════════════════════════════════════════════════════════════╝"
-    );
-
     // Start polling
     console.log(
-      `\n✅ Blockchain Indexer started - polling every ${POLL_INTERVAL}ms`
+      `\n✅ Marketplace Indexer started - polling every ${POLL_INTERVAL}ms\n`
     );
-    console.log(`📡 Listening for NFT and Marketplace events...\n`);
 
     pollInterval = setInterval(pollEvents, POLL_INTERVAL);
 
