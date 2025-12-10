@@ -29,27 +29,75 @@ const NFTSchema = new mongoose.Schema({
 // PROPERTY MODEL
 // ============================================================================
 const PropertySchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  // fields used by older services / admin-service
+  name: String,
+  title: { type: String },
   description: String,
   propertyType: {
     type: String,
     enum: ["apartment", "house", "villa", "townhouse", "condo"],
     required: true,
   },
+
+  // location/address compatibility
   address: {
     city: String,
     district: String,
     ward: String,
     street: String,
   },
-  area: Number,
+  location: {
+    city: String,
+    district: String,
+    ward: String,
+    street: String,
+  },
+
+  // media / images compatibility
   images: [String],
+  media: {
+    images: [{ url: String }],
+    documents: [{ name: String, url: String }],
+  },
+  imageUrl: String,
+
+  // detailed property info used by admin-service
+  details: {
+    area: {
+      value: Number,
+      unit: String,
+    },
+    bedrooms: Number,
+    legalStatus: String,
+    cachedAttributes: [mongoose.Schema.Types.Mixed],
+  },
+
+  // price structure used in queries
+  price: {
+    amount: Number,
+    currency: { type: String, default: "VND" },
+  },
+
   owner: String,
+
   nft: {
+    isMinted: { type: Boolean, default: false },
     tokenId: Number,
     currentOwner: String,
     contractAddress: String,
+    metadataCID: String,
+    mintedAt: Date,
+    mintedBy: String,
+    transactionHash: String,
   },
+
+  // status used by admin flows
+  status: {
+    type: String,
+    enum: ["draft", "minted", "archived", "listed", "unlisted", "sold"],
+    default: "draft",
+  },
+
   marketplaceStatus: {
     type: String,
     enum: ["unlisted", "listed", "sold"],

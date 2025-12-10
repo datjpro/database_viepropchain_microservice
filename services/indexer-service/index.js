@@ -1,10 +1,13 @@
 // Ensure MongoDB collections exist before any operation
 async function ensureCollectionsReady() {
   const collections = await mongoose.connection.db.listCollections().toArray();
-  const names = collections.map(c => c.name);
-  if (!names.includes('nfts')) await mongoose.connection.createCollection('nfts');
-  if (!names.includes('properties')) await mongoose.connection.createCollection('properties');
-  if (!names.includes('transactions')) await mongoose.connection.createCollection('transactions');
+  const names = collections.map((c) => c.name);
+  if (!names.includes("nfts"))
+    await mongoose.connection.createCollection("nfts");
+  if (!names.includes("properties"))
+    await mongoose.connection.createCollection("properties");
+  if (!names.includes("transactions"))
+    await mongoose.connection.createCollection("transactions");
 }
 
 // Wait until MongoDB responds to a ping (writable)
@@ -15,16 +18,74 @@ async function waitForDbWritable(maxRetries = 20, interval = 1000) {
     try {
       // `command({ ping: 1 })` will throw if server not responding
       await db.command({ ping: 1 });
-      // also test a simple write to the server by doing a no-op createIndex with maxTimeMS
-      // This ensures the server accepts write operations
       return;
     } catch (err) {
       retries++;
-      console.log(`⏳ Waiting for MongoDB writable (attempt ${retries}/${maxRetries})...`);
+      console.log(
+        `⏳ Waiting for MongoDB writable (attempt ${retries}/${maxRetries})...`
+      );
       await new Promise((resolve) => setTimeout(resolve, interval));
     }
   }
-  throw new Error('MongoDB did not become writable in time');
+  throw new Error("MongoDB did not become writable in time");
+}
+
+async function dbInsertOne(collName, doc, maxRetries = 3) {
+  const coll = mongoose.connection.db.collection(collName);
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await coll.insertOne(doc);
+    } catch (err) {
+      attempt++;
+      console.log(
+        `   ⚠️ dbInsertOne ${collName} attempt ${attempt}/${maxRetries} failed: ${err.message}`
+      );
+      if (attempt >= maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
+}
+
+async function dbUpdateOne(
+  collName,
+  filter,
+  update,
+  options = {},
+  maxRetries = 3
+) {
+  const coll = mongoose.connection.db.collection(collName);
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await coll.updateOne(filter, update, options);
+    } catch (err) {
+      attempt++;
+      console.log(
+        `   ⚠️ dbUpdateOne ${collName} attempt ${attempt}/${maxRetries} failed: ${err.message}`
+      );
+      if (attempt >= maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
+}
+
+// raw find many with retries
+async function dbFindMany(collName, query, maxRetries = 3, maxTimeMS = 10000) {
+  const coll = mongoose.connection.db.collection(collName);
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await coll.find(query, { maxTimeMS }).toArray();
+    } catch (err) {
+      attempt++;
+      console.log(
+        `   ⚠️ dbFindMany ${collName} attempt ${attempt}/${maxRetries} failed: ${err.message}`
+      );
+      if (attempt >= maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
 }
 /**
  * ========================================================================
@@ -205,22 +266,27 @@ async function initializeLastBlock() {
       // Tạo document mẫu nếu collection rỗng
       const currentBlock = await provider.getBlockNumber();
       try {
-        const coll = mongoose.connection.db.collection('transactions');
+        const coll = mongoose.connection.db.collection("transactions");
         await coll.insertOne({
-          transactionHash: 'init',
-          type: 'mint',
-          from: '0x0',
-          to: '0x0',
+          transactionHash: "init",
+          type: "mint",
+          from: "0x0",
+          to: "0x0",
           tokenId: 0,
           blockNumber: currentBlock,
           gasUsed: 0,
-          status: 'confirmed',
+          status: "confirmed",
           timestamp: new Date(),
         });
         lastProcessedBlock = currentBlock;
-        console.log(`📌 Created sample transaction, starting from current block ${currentBlock}`);
+        console.log(
+          `📌 Created sample transaction, starting from current block ${currentBlock}`
+        );
       } catch (err) {
-        console.error('❌ Failed to create sample transaction via raw insert:', err.message);
+        console.error(
+          "❌ Failed to create sample transaction via raw insert:",
+          err.message
+        );
         // fallback to set lastProcessedBlock to current block
         lastProcessedBlock = currentBlock;
       }
@@ -261,7 +327,11 @@ async function fetchMetadataFromIPFS(tokenURI) {
 // Get property data by tokenId
 async function getPropertyByTokenId(tokenId) {
   try {
-    const property = await Property.findOne({ "nft.tokenId": tokenId });
+    // ensure DB writable/readable
+    await waitForDbWritable(10, 500);
+    const property = await Property.findOne({ "nft.tokenId": tokenId })
+      .maxTimeMS(10000)
+      .exec();
     return property;
   } catch (error) {
     console.error(
@@ -289,13 +359,37 @@ async function getUserByWallet(walletAddress) {
   }
 }
 
+// Normalize owner/address value to lowercase string safely
+function normalizeAddress(value) {
+  if (!value && value !== 0) return "";
+  if (typeof value === "string") return value.toLowerCase();
+  try {
+    return String(value).toLowerCase();
+  } catch (err) {
+    return "";
+  }
+}
+
 // ============================================================================
 // PROCESS ITEMLISTED EVENT
 // ============================================================================
 async function processItemListedEvent(event) {
   try {
     const { listingId, seller, tokenId, price } = event.args;
-    const listingIdNumber = Number(listingId);
+    // Normalize listingId safely. Some events might provide BigNumber-like objects.
+    let listingIdNumber = null;
+    try {
+      if (listingId === null || listingId === undefined) {
+        listingIdNumber = null;
+      } else if (typeof listingId === "object" && listingId.toString) {
+        listingIdNumber = Number(listingId.toString());
+      } else {
+        listingIdNumber = Number(listingId);
+      }
+      if (!Number.isFinite(listingIdNumber)) listingIdNumber = null;
+    } catch (err) {
+      listingIdNumber = null;
+    }
     const tokenIdNumber = Number(tokenId);
     const priceString = price.toString();
 
@@ -326,8 +420,17 @@ async function processItemListedEvent(event) {
       );
     }
 
-    // Create listing in MongoDB
-    const listing = new Listing({
+    // Prepare listing document
+    // If listingId is missing/invalid, generate a fallback unique id based on block and logIndex
+    if (listingIdNumber === null) {
+      listingIdNumber =
+        Number(event.blockNumber) * 100000 + Number(event.logIndex || 0);
+      console.warn(
+        `   ⚠️  Event missing listingId; using generated fallback id ${listingIdNumber}`
+      );
+    }
+
+    const listingDoc = {
       listingId: listingIdNumber,
       tokenId: tokenIdNumber,
       contractAddress: NFT_CONTRACT_ADDRESS,
@@ -362,10 +465,22 @@ async function processItemListedEvent(event) {
       transactionHash: tx.hash,
       blockNumber: event.blockNumber,
       listedAt: new Date(),
-    });
+    };
 
-    await listing.save();
-    console.log(`   ✅ Listing created in MongoDB: ID ${listingIdNumber}`);
+    // Upsert by listingId to avoid duplicate key errors and to be idempotent
+    try {
+      await Listing.findOneAndUpdate(
+        { listingId: listingIdNumber },
+        { $set: listingDoc },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ).exec();
+      console.log(`   ✅ Listing upserted in MongoDB: ID ${listingIdNumber}`);
+    } catch (err) {
+      console.error(
+        `   ❌ Failed to upsert Listing ${listingIdNumber}:`,
+        err.message
+      );
+    }
 
     // Update property status if exists
     if (property) {
@@ -396,7 +511,17 @@ async function processItemSoldEvent(event) {
     const tx = await event.getTransaction();
 
     // Update listing status
-    const listing = await Listing.findOne({ listingId: listingIdNumber });
+    let listing = null;
+    try {
+      listing = await Listing.findOne({ listingId: listingIdNumber })
+        .maxTimeMS(10000)
+        .exec();
+    } catch (err) {
+      console.error(
+        `   ⚠️  DB query timeout finding Listing ${listingIdNumber}:`,
+        err.message
+      );
+    }
     if (listing) {
       listing.status = "sold";
       listing.soldAt = new Date();
@@ -414,11 +539,49 @@ async function processItemSoldEvent(event) {
       property.owner = buyer.toLowerCase();
       property.currentListingId = null;
       await property.save();
+      // Also ensure property.nft data is set if property exists
+      try {
+        const prop = await dbFindOne(
+          "properties",
+          { "nft.tokenId": tokenId },
+          1,
+          5000
+        );
+        if (prop) {
+          await dbUpdateOne(
+            "properties",
+            { _id: prop._id },
+            {
+              $set: {
+                owner: owner.toLowerCase(),
+                "nft.isMinted": true,
+                "nft.tokenId": tokenId,
+                "nft.contractAddress": NFT_CONTRACT_ADDRESS,
+                "nft.metadataUri": tokenURI || prop.nft?.metadataUri || "",
+                "nft.mintedAt": new Date(),
+              },
+            }
+          );
+          console.log(`   ✅ Ensured Property NFT data for token ${tokenId}`);
+        }
+      } catch (err) {
+        console.error(`   ⚠️ Failed to update property NFT data:`, err.message);
+      }
       console.log(`   ✅ Property ownership transferred`);
     }
 
     // Update NFT owner
-    const nft = await NFT.findOne({ tokenId: tokenIdNumber });
+    let nft = null;
+    try {
+      nft = await NFT.findOne({ tokenId: tokenIdNumber })
+        .maxTimeMS(10000)
+        .exec();
+    } catch (err) {
+      console.error(
+        `   ⚠️  DB query timeout finding NFT #${tokenIdNumber}:`,
+        err.message
+      );
+    }
     if (nft) {
       nft.owner = buyer.toLowerCase();
       await nft.save();
@@ -442,7 +605,17 @@ async function processListingCancelledEvent(event) {
     );
 
     // Update listing status
-    const listing = await Listing.findOne({ listingId: listingIdNumber });
+    let listing = null;
+    try {
+      listing = await Listing.findOne({ listingId: listingIdNumber })
+        .maxTimeMS(10000)
+        .exec();
+    } catch (err) {
+      console.error(
+        `   ⚠️  DB query timeout finding Listing ${listingIdNumber}:`,
+        err.message
+      );
+    }
     if (listing) {
       listing.status = "cancelled";
       await listing.save();
@@ -468,6 +641,13 @@ async function processListingCancelledEvent(event) {
 async function syncNFTsFromBlockchain() {
   console.log("\n🔄 Starting NFT sync from blockchain...");
 
+  // Ensure DB writable before performing read/write operations
+  try {
+    await waitForDbWritable(10, 1000);
+  } catch (err) {
+    console.error("❌ DB not writable, aborting NFT sync:", err.message);
+    return;
+  }
   try {
     // Get total supply from contract
     const totalSupply = await nftContract.totalSupply();
@@ -494,20 +674,38 @@ async function syncNFTsFromBlockchain() {
           console.log(`   ⚠️  Could not fetch metadata for token ${tokenId}`);
         }
 
-        // Find or create NFT in database
-        let nft = await NFT.findOne({ tokenId });
+        // Find or create NFT in database using raw collection ops
+        let nft = null;
+        try {
+          nft = await dbFindOne("nfts", { tokenId }, 3, 10000);
+        } catch (err) {
+          console.error(
+            `   ⚠️  DB query error finding NFT #${tokenId}:`,
+            err.message
+          );
+        }
 
         if (nft) {
           // Update existing NFT
-          if (nft.owner.toLowerCase() !== owner.toLowerCase()) {
-            nft.owner = owner.toLowerCase();
-            await nft.save();
-            updated++;
-            console.log(`   ✅ Updated NFT #${tokenId} owner: ${owner}`);
+          if ((nft.owner || "").toLowerCase() !== owner.toLowerCase()) {
+            try {
+              await dbUpdateOne(
+                "nfts",
+                { tokenId },
+                { $set: { owner: owner.toLowerCase() } }
+              );
+              updated++;
+              console.log(`   ✅ Updated NFT #${tokenId} owner: ${owner}`);
+            } catch (err) {
+              console.error(
+                `   ❌ Failed updating NFT #${tokenId}:`,
+                err.message
+              );
+            }
           }
         } else {
-          // Create new NFT
-          nft = new NFT({
+          // Create new NFT via raw insert
+          const nftDoc = {
             tokenId,
             contractAddress: NFT_CONTRACT_ADDRESS,
             owner: owner.toLowerCase(),
@@ -516,20 +714,81 @@ async function syncNFTsFromBlockchain() {
             name: metadata?.name || `ViePropChain NFT #${tokenId}`,
             description: metadata?.description || "",
             image: metadata?.image || "",
-          });
-          await nft.save();
-          created++;
-          console.log(`   ✅ Created NFT #${tokenId} owner: ${owner}`);
+            createdAt: new Date(),
+          };
+          try {
+            await dbInsertOne("nfts", nftDoc, 3);
+            created++;
+            console.log(`   ✅ Created NFT #${tokenId} owner: ${owner}`);
+          } catch (err) {
+            console.error(
+              `   ❌ Error inserting NFT #${tokenId}:`,
+              err.message
+            );
+          }
         }
 
         synced++;
 
-        // Update associated property if exists
-        const property = await Property.findOne({ "nft.tokenId": tokenId });
-        if (property && property.owner.toLowerCase() !== owner.toLowerCase()) {
-          property.owner = owner.toLowerCase();
-          await property.save();
-          console.log(`   ✅ Updated Property ownership for NFT #${tokenId}`);
+        // Update associated property if exists (raw ops)
+        let property = null;
+        try {
+          property = await dbFindOne(
+            "properties",
+            { "nft.tokenId": tokenId },
+            3,
+            10000
+          );
+        } catch (err) {
+          console.error(
+            `   ⚠️  DB query error finding Property for NFT #${tokenId}:`,
+            err.message
+          );
+        }
+        if (
+          property &&
+          (property.owner || "").toLowerCase() !== owner.toLowerCase()
+        ) {
+          try {
+            await dbUpdateOne(
+              "properties",
+              { _id: property._id },
+              { $set: { owner: owner.toLowerCase() } }
+            );
+            console.log(`   ✅ Updated Property ownership for NFT #${tokenId}`);
+          } catch (err) {
+            console.error(
+              `   ❌ Failed updating property for NFT #${tokenId}:`,
+              err.message
+            );
+          }
+        }
+        // Ensure property has nft metadata set when NFT exists
+        try {
+          if (property) {
+            await dbUpdateOne(
+              "properties",
+              { _id: property._id },
+              {
+                $set: {
+                  "nft.isMinted": true,
+                  "nft.tokenId": tokenId,
+                  "nft.contractAddress": NFT_CONTRACT_ADDRESS,
+                  "nft.metadataUri":
+                    tokenURI || property.nft?.metadataUri || "",
+                  "nft.mintedAt": property.nft?.mintedAt || new Date(),
+                },
+              }
+            );
+            console.log(
+              `   ✅ Ensured Property.nft fields for property ${property._id}`
+            );
+          }
+        } catch (err) {
+          console.error(
+            `   ⚠️ Failed ensuring Property.nft fields:`,
+            err.message
+          );
         }
       } catch (error) {
         console.error(`   ❌ Error syncing NFT #${tokenId}:`, error.message);
@@ -552,11 +811,34 @@ async function syncPropertiesWithBlockchain() {
   console.log("\n🔄 Starting Properties sync with blockchain...");
 
   try {
-    // Get all properties that have NFTs
-    const properties = await Property.find({
-      "nft.tokenId": { $exists: true },
-    });
+    await waitForDbWritable(10, 1000);
 
+    // Try raw collection first to avoid mongoose buffering/timeouts
+    let properties = [];
+    try {
+      properties = await dbFindMany(
+        "properties",
+        { "nft.tokenId": { $exists: true } },
+        3,
+        10000
+      );
+    } catch (err) {
+      console.warn(
+        "   ⚠️ dbFindMany failed, falling back to Mongoose Property.find():",
+        err.message
+      );
+      try {
+        properties = await Property.find({ "nft.tokenId": { $exists: true } })
+          .maxTimeMS(10000)
+          .exec();
+      } catch (err2) {
+        console.error(
+          "   ❌ Both raw and Mongoose property queries failed:",
+          err2.message
+        );
+        return; // abort properties sync
+      }
+    }
     console.log(`📊 Total Properties with NFTs: ${properties.length}`);
 
     let synced = 0;
@@ -567,22 +849,41 @@ async function syncPropertiesWithBlockchain() {
         const tokenId = property.nft.tokenId;
 
         // Get owner from blockchain
-        const blockchainOwner = await nftContract.ownerOf(tokenId);
+        const blockchainOwner = normalizeAddress(
+          await nftContract.ownerOf(tokenId)
+        );
 
-        // Compare with database
-        if (property.owner.toLowerCase() !== blockchainOwner.toLowerCase()) {
-          property.owner = blockchainOwner.toLowerCase();
-          await property.save();
-          updated++;
-          console.log(
-            `   ✅ Updated Property "${property.title}" (NFT #${tokenId}) owner: ${blockchainOwner}`
-          );
+        // Current owner from DB (handle both raw doc and mongoose doc)
+        const dbOwner = normalizeAddress(property.owner);
+
+        if (dbOwner !== blockchainOwner) {
+          // Update via raw collection to avoid mongoose buffering issues
+          try {
+            await dbUpdateOne(
+              "properties",
+              { _id: property._id },
+              { $set: { owner: blockchainOwner } }
+            );
+            updated++;
+            console.log(
+              `   ✅ Updated Property "${
+                property.title || property._id
+              }" (NFT #${tokenId}) owner: ${blockchainOwner}`
+            );
+          } catch (err) {
+            console.error(
+              `   ❌ Failed to update property ${property._id} via raw update:`,
+              err.message
+            );
+          }
         }
 
         synced++;
       } catch (error) {
         console.error(
-          `   ❌ Error syncing property ${property._id}:`,
+          `   ❌ Error syncing property ${
+            property._id || property._id.toString()
+          }:`,
           error.message
         );
       }
@@ -615,7 +916,17 @@ async function processTransferEvent(event) {
     }
 
     // Update NFT owner in database
-    let nft = await NFT.findOne({ tokenId: tokenIdNumber });
+    let nft = null;
+    try {
+      nft = await NFT.findOne({ tokenId: tokenIdNumber })
+        .maxTimeMS(10000)
+        .exec();
+    } catch (err) {
+      console.error(
+        `   ⚠️  DB query timeout finding NFT #${tokenIdNumber}:`,
+        err.message
+      );
+    }
     if (nft) {
       nft.owner = to.toLowerCase();
       await nft.save();

@@ -130,19 +130,55 @@ app.get("/my-properties", async (req, res) => {
         prop.images && prop.images.length > 0
           ? prop.images
           : ["/placeholder-property.jpg"],
-      nftData: prop.nft?.isMinted
-        ? {
-            tokenId: prop.nft.tokenId,
-            contractAddress: prop.nft.contractAddress,
-          }
-        : null,
-      currentListing: null, // We'll add marketplace integration later
+      // Consider NFT present if either `isMinted` is true OR a tokenId exists
+      nftData:
+        prop.nft && (prop.nft.isMinted || prop.nft.tokenId !== undefined)
+          ? {
+              tokenId: prop.nft.tokenId,
+              contractAddress: prop.nft.contractAddress,
+            }
+          : null,
+      currentListing: null, // will populate from marketplace listings below
       createdAt: prop.createdAt,
       propertyType: prop.propertyType,
       price: prop.price,
       currency: prop.currency,
       owner: prop.owner,
     }));
+
+    // Attach current listing information from marketplace `listings` collection
+    try {
+      const db = require("mongoose").connection.db;
+      const propertyIds = properties.map((p) => p._id);
+      if (propertyIds.length > 0) {
+        const listings = await db
+          .collection("listings")
+          .find({ propertyId: { $in: propertyIds }, status: "active" })
+          .toArray();
+
+        const listingMap = {};
+        for (const l of listings) {
+          const key = l.propertyId ? String(l.propertyId) : null;
+          if (key) listingMap[key] = l;
+        }
+
+        for (const tp of transformedProperties) {
+          const key = String(tp.id);
+          const l = listingMap[key];
+          if (l) {
+            tp.currentListing = {
+              listingId: l._id,
+              blockchainListingId: l.blockchainListingId || null,
+              price: l.price?.amount || null,
+              type: l.listingType || null,
+              status: l.status || null,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not attach marketplace listings:", err.message);
+    }
 
     res.json({
       success: true,
