@@ -5,6 +5,42 @@
     "description": "🇻🇳 **HỆ THỐNG QUẢN LÝ BẤT ĐỘNG SẢN TRÊN BLOCKCHAIN**\n\n**📖 Hướng dẫn:**\n1. Đăng nhập Gmail → Lấy JWT token\n2. Upload ảnh nhà (công khai - IPFS)\n3. Upload giấy tờ (riêng tư - chỉ Admin xem)\n4. Tạo BĐS → Admin duyệt → Mint NFT\n5. Đăng bán/cho thuê trên Marketplace\n\n**🔐 Bảo mật:**\n- Ảnh nhà: Public (ai cũng xem được)\n- Sổ đỏ/CCCD: Private (chỉ Admin)\n- Blockchain: NFT chứa metadata public\n\n**⚙️ Cài đặt:**\n- Chạy: `node run.js` để khởi động services\n- Base URL: `http://localhost:4000` (API Gateway)\n- Token: Lưu vào biến môi trường sau khi login",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Collection-level pre-request: choose an auth token and ensure Authorization header is set",
+          "// Priority: jwt_token > admin_token > landlord_token > renter_token",
+          "(function(){",
+          "  var jwt = pm.environment.get('jwt_token');",
+          "  var admin = pm.environment.get('admin_token');",
+          "  var landlord = pm.environment.get('landlord_token');",
+          "  var renter = pm.environment.get('renter_token');",
+          "  // copy jwt to role tokens for backwards compatibility",
+          "  if (jwt && jwt.length>0) {",
+          "    pm.environment.set('landlord_token', jwt);",
+          "    pm.environment.set('admin_token', jwt);",
+          "    pm.environment.set('renter_token', jwt);",
+          "  }",
+          "  var token = jwt || admin || landlord || renter || '';",
+          "  if (token && token.length>0) {",
+          "    pm.environment.set('auth_token', token);",
+          "    // Upsert Authorization header for the current request",
+          "    try {",
+          "      pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + token });",
+          "    } catch (e) {",
+          "      // older Postman versions: also set as environment variable so requests using {{auth_token}} work",
+          "      pm.environment.set('auth_token', token);",
+          "    }",
+          "    console.log('🔐 Authorization header set from collection pre-request');",
+          "  }",
+          "})();"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
   "item": [
     {
       "name": "🔐 1. Đăng nhập",
@@ -121,7 +157,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{landlord_token}}",
+                "value": "Bearer {{auth_token}}",
                 "type": "text"
               }
             ],
@@ -163,7 +199,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{landlord_token}}",
+                "value": "Bearer {{auth_token}}",
                 "type": "text"
               }
             ],
@@ -210,7 +246,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{landlord_token}}",
+                "value": "Bearer {{auth_token}}",
                 "type": "text"
               }
             ],
@@ -267,7 +303,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{landlord_token}}",
+                "value": "Bearer {{auth_token}}",
                 "type": "text"
               }
             ],

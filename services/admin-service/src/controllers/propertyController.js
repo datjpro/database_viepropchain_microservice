@@ -468,9 +468,33 @@ class PropertyController {
     try {
       const property = await propertyService.getPropertyById(req.params.id);
 
+      // Sanitize sensitive fields for unauthenticated users
+      // If requester is not admin and not the owner, hide legalDocuments and legalDocumentId
+      let result = property;
+      try {
+        result = property.toObject
+          ? property.toObject()
+          : JSON.parse(JSON.stringify(property));
+      } catch (e) {
+        // fallback: keep as-is
+        result = property;
+      }
+
+      const isAdmin = req.user && req.user.role === "admin";
+      const isOwner =
+        req.user &&
+        (req.user.email === (result.owner || "") ||
+          req.user.walletAddress === (result.ownerWallet || ""));
+
+      if (!isAdmin && !isOwner) {
+        delete result.legalDocuments;
+        delete result.legalDocumentId;
+        delete result.ownerWallet; // hide owner wallet for privacy
+      }
+
       res.json({
         success: true,
-        data: property,
+        data: result,
       });
     } catch (error) {
       console.error("❌ Get property error:", error.message);

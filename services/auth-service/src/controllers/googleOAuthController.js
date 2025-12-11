@@ -85,33 +85,47 @@ class GoogleOAuthController {
   async getCurrentUser(req, res) {
     try {
       // req.user contains decoded JWT token (userId, email, etc.)
-      const User = require("../models/User");
+      const decoded = req.user || {};
 
-      // Fetch full user from database
-      const user = await User.findById(req.user.userId);
-
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: "User not found",
-        });
+      // Try to fetch full user from DB for extra fields, but do NOT fail if DB lookup fails.
+      let userFromDb = null;
+      try {
+        const User = require("../models/User");
+        userFromDb = await User.findById(decoded.userId);
+      } catch (e) {
+        // silently ignore DB errors
+        userFromDb = null;
       }
+
+      // Build response data: prefer DB values when available, otherwise use decoded token
+      const responseData = {
+        id: decoded.userId || decoded.id || null,
+        userId: decoded.userId || decoded.id || null,
+        email: decoded.email || (userFromDb && userFromDb.email) || null,
+        emailVerified:
+          typeof decoded.emailVerified !== "undefined" &&
+          decoded.emailVerified !== null
+            ? decoded.emailVerified
+            : !!(userFromDb && userFromDb.emailVerified),
+        walletAddress:
+          decoded.walletAddress ||
+          (userFromDb && userFromDb.walletAddress) ||
+          null,
+        walletLinked: !!(
+          decoded.walletAddress ||
+          (userFromDb && userFromDb.walletAddress)
+        ),
+        role: decoded.role || (userFromDb && userFromDb.role) || "user",
+        profile: (userFromDb && userFromDb.profile) || decoded.profile || null,
+        authMethods:
+          decoded.authMethods || (userFromDb && userFromDb.authMethods) || [],
+        createdAt: (userFromDb && userFromDb.createdAt) || null,
+        lastLoginAt: (userFromDb && userFromDb.lastLoginAt) || null,
+      };
 
       res.json({
         success: true,
-        data: {
-          id: user._id.toString(),
-          userId: user._id.toString(), // Add userId for compatibility
-          email: user.email,
-          emailVerified: user.emailVerified,
-          walletAddress: user.walletAddress || null,
-          walletLinked: !!user.walletAddress,
-          role: user.role,
-          profile: user.profile,
-          authMethods: user.authMethods,
-          createdAt: user.createdAt,
-          lastLoginAt: user.lastLoginAt,
-        },
+        data: responseData,
       });
     } catch (error) {
       console.error("❌ Get current user error:", error);
