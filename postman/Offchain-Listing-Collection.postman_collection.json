@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Offchain Listing Collection",
+    "_postman_id": "offchain-listing-collection",
+    "description": "Collection to test off-chain listing flow: seller signs message (gen-signature.js), POST listing to marketplace-service, then buyer buys on-chain (via frontend/Metamask).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "marketplace_base_url",
+      "value": "http://localhost:4009",
+      "type": "string"
+    },
+    {
+      "key": "indexer_base_url",
+      "value": "http://localhost:4005",
+      "type": "string"
+    },
+    {
+      "key": "marketplace_contract_address",
+      "value": "0x67bC8255530323abd8ae3f4215Dd531ba6425ee3",
+      "type": "string"
+    },
+    { "key": "auth_token", "value": "<YOUR_JWT_TOKEN>", "type": "string" },
+    { "key": "tokenId", "value": "1", "type": "string" },
+    {
+      "key": "walletAddress",
+      "value": "0xC6890b26A32d9d92aefbc8635C4588247529CdfE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Off-chain Listing",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tokenId\": {{tokenId}},\n  \"contractAddress\": \"{{marketplace_contract_address}}\",\n  \"propertyId\": \"<PUT_PROPERTY_ID_HERE>\",\n  \"price\": \"<PRICE_IN_WEI>\",\n  \"description\": \"Test off-chain listing\",\n  \"signature\": \"<SIGNATURE_FROM_GEN_SCRIPT>\",\n  \"isOffchain\": true\n}"
+        },
+        "url": {
+          "raw": "{{marketplace_base_url}}/api/listings",
+          "host": ["{{marketplace_base_url}}"],
+          "path": ["api", "listings"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Listing By TokenId",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+        ],
+        "url": {
+          "raw": "{{marketplace_base_url}}/api/listings/{{tokenId}}",
+          "host": ["{{marketplace_base_url}}"],
+          "path": ["api", "listings", "{{tokenId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Notes: On-chain Buy Step",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "https://example.org/notes", "host": ["example.org"] }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// NOTE: This request is a placeholder that documents the on-chain step.",
+              "// To perform the buy step you must use the frontend/Metamask or a dev-only server endpoint that sends a signed transaction calling:",
+              "// marketplaceContract.buyItemDirect(tokenId, priceWei, seller, signature, { value: priceWei })"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get My NFTs",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "x-wallet-address", "value": "{{walletAddress}}" },
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+        ],
+        "url": {
+          "raw": "{{indexer_base_url}}/api/v1/indexer/my-nfts/{{walletAddress}}?includeInactive=true&limit=10&page=1",
+          "host": ["{{indexer_base_url}}"],
+          "path": ["api", "v1", "indexer", "my-nfts", "{{walletAddress}}"],
+          "query": [
+            { "key": "includeInactive", "value": "true" },
+            { "key": "limit", "value": "10" },
+            { "key": "page", "value": "1" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

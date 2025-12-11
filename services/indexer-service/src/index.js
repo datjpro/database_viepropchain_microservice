@@ -71,6 +71,24 @@ const startIndexer = async () => {
     // 4. Start comprehensive ownership sync service (cảnh sát dữ liệu nâng cao)
     comprehensiveOwnershipSyncService.start();
 
+    // 5. Start a minimal HTTP server to serve indexer viewer APIs
+    const express = require("express");
+    const marketplaceRoutes = require("./routes/marketplaceRoutes");
+
+    const app = express();
+    app.use(express.json());
+
+    app.use("/api/v1/indexer", marketplaceRoutes);
+
+    // Support both INDEXER_PORT and legacy/compose variable INDEXER_SERVICE_PORT
+    const INDEXER_PORT =
+      process.env.INDEXER_PORT || process.env.INDEXER_SERVICE_PORT || 4012;
+    app.listen(Number(INDEXER_PORT), () => {
+      console.log(
+        `✅ Indexer API listening on http://localhost:${INDEXER_PORT}`
+      );
+    });
+
     console.log("✅ Marketplace Indexer started successfully");
   } catch (err) {
     console.error("❌ Startup Error:", err.message);

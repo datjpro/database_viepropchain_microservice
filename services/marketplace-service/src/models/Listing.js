@@ -144,6 +144,10 @@ const listingSchema = new mongoose.Schema(
       name: String,
     },
     transactionHash: String,
+    // Off-chain listing support
+    isOffchain: { type: Boolean, default: false, index: true },
+    sellerSignature: { type: String, default: null },
+    signedPrice: { type: String, default: null },
 
     // Analytics
     views: {

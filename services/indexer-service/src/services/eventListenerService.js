@@ -4,7 +4,13 @@
  * ========================================================================
  */
 
-const { provider, contract, POLL_INTERVAL } = require("../config/blockchain");
+const {
+  provider,
+  contract,
+  POLL_INTERVAL,
+  marketplaceContract,
+  nftContract,
+} = require("../config/blockchain");
 const eventProcessorService = require("./eventProcessorService");
 
 class EventListenerService {
@@ -79,6 +85,103 @@ class EventListenerService {
         for (const event of events) {
           await eventProcessorService.processTransferEvent(event, contract);
         }
+      }
+
+      // Query Marketplace events (ItemListed, ItemSold, ItemRented, ListingCancelled)
+      try {
+        const listedFilter = marketplaceContract.filters.ItemListed();
+        const soldFilter = marketplaceContract.filters.ItemSold();
+        const rentedFilter = marketplaceContract.filters.ItemRented();
+        const cancelledFilter = marketplaceContract.filters.ListingCancelled();
+
+        const listedEvents = await marketplaceContract.queryFilter(
+          listedFilter,
+          this.lastProcessedBlock + 1,
+          currentBlock
+        );
+
+        if (listedEvents.length > 0) {
+          console.log(`📦 Found ${listedEvents.length} ItemListed event(s)`);
+          for (const ev of listedEvents) {
+            await eventProcessorService.processItemListed(
+              ev,
+              marketplaceContract
+            );
+          }
+        }
+
+        const soldEvents = await marketplaceContract.queryFilter(
+          soldFilter,
+          this.lastProcessedBlock + 1,
+          currentBlock
+        );
+        if (soldEvents.length > 0) {
+          console.log(`📦 Found ${soldEvents.length} ItemSold event(s)`);
+          for (const ev of soldEvents) {
+            await eventProcessorService.processItemSold(
+              ev,
+              marketplaceContract
+            );
+          }
+        }
+
+        const rentedEvents = await marketplaceContract.queryFilter(
+          rentedFilter,
+          this.lastProcessedBlock + 1,
+          currentBlock
+        );
+        if (rentedEvents.length > 0) {
+          console.log(`📦 Found ${rentedEvents.length} ItemRented event(s)`);
+          for (const ev of rentedEvents) {
+            await eventProcessorService.processItemRented(
+              ev,
+              marketplaceContract
+            );
+          }
+        }
+
+        const cancelledEvents = await marketplaceContract.queryFilter(
+          cancelledFilter,
+          this.lastProcessedBlock + 1,
+          currentBlock
+        );
+        if (cancelledEvents.length > 0) {
+          console.log(
+            `📦 Found ${cancelledEvents.length} ListingCancelled event(s)`
+          );
+          for (const ev of cancelledEvents) {
+            await eventProcessorService.processListingCancelled(
+              ev,
+              marketplaceContract
+            );
+          }
+        }
+      } catch (err) {
+        console.error(
+          "❌ Error querying marketplace events:",
+          err.message || err
+        );
+      }
+
+      // Query ERC-4907 UpdateUser events from NFT contract
+      try {
+        const updateUserFilter = nftContract.filters.UpdateUser();
+        const updateEvents = await nftContract.queryFilter(
+          updateUserFilter,
+          this.lastProcessedBlock + 1,
+          currentBlock
+        );
+        if (updateEvents.length > 0) {
+          console.log(`📦 Found ${updateEvents.length} UpdateUser event(s)`);
+          for (const ev of updateEvents) {
+            await eventProcessorService.processUpdateUserEvent(ev, nftContract);
+          }
+        }
+      } catch (err) {
+        console.error(
+          "❌ Error querying UpdateUser events:",
+          err.message || err
+        );
       }
 
       // Update last processed block

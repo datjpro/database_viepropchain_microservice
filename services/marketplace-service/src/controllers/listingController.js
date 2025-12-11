@@ -59,6 +59,7 @@ exports.createListing = async (req, res) => {
       listingType = "sale", // "sale" or "rent"
       pricePerDay, // for rental
       maxDurationDays, // for rental
+      signature, // optional off-chain seller signature
     } = req.body;
     const userId = req.user.userId;
     const walletAddress = req.user.walletAddress;
@@ -196,6 +197,12 @@ exports.createListing = async (req, res) => {
           amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
+        // If provided, store off-chain signature info when updating
+        if (signature) {
+          existingListing.isOffchain = true;
+          existingListing.sellerSignature = signature;
+          existingListing.signedPrice = price;
+        }
         // Clear rental info if switching from rent to sale
         existingListing.rental = undefined;
       } else if (listingType === "rent") {
@@ -210,6 +217,7 @@ exports.createListing = async (req, res) => {
             amount: price, // Use price directly, already in wei
             currency: "ETH",
           };
+          if (signature) existingListing.signedPrice = price;
         }
       }
 
@@ -249,6 +257,8 @@ exports.createListing = async (req, res) => {
           email: req.user.email,
           name: req.user.name || req.user.fullName,
         },
+        isOffchain: !!signature,
+        sellerSignature: signature || null,
         listingType,
         description,
         expiresAt: expiresAt || undefined,
@@ -261,6 +271,7 @@ exports.createListing = async (req, res) => {
           amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
+        if (signature) listingData.signedPrice = price;
       } else if (listingType === "rent") {
         listingData.rental = {
           pricePerDay: pricePerDay || price, // Use pricePerDay if provided, fallback to price
