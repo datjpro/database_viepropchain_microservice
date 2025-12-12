@@ -14,6 +14,11 @@ const listingSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Local listing identifier (used for off-chain listings)
+    listingId: {
+      type: Number,
+      index: true,
+    },
     contractAddress: {
       type: String,
       required: true,

@@ -13,7 +13,7 @@
     },
     {
       "key": "indexer_base_url",
-      "value": "http://localhost:4000/api/query",
+      "value": "http://localhost:4000/api/query/api/v1/indexer",
       "type": "string"
     },
     {
@@ -96,9 +96,9 @@
           { "key": "Authorization", "value": "Bearer {{auth_token}}" }
         ],
         "url": {
-          "raw": "{{indexer_base_url}}/api/v1/indexer/my-nfts/{{walletAddress}}?includeInactive=true&limit=10&page=1",
+          "raw": "{{indexer_base_url}}/my-nfts/{{walletAddress}}?includeInactive=true&limit=10&page=1",
           "host": ["{{indexer_base_url}}"],
-          "path": ["api", "v1", "indexer", "my-nfts", "{{walletAddress}}"],
+          "path": ["my-nfts", "{{walletAddress}}"],
           "query": [
             { "key": "includeInactive", "value": "true" },
             { "key": "limit", "value": "10" },

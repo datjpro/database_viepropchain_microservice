@@ -264,6 +264,11 @@ exports.createListing = async (req, res) => {
         expiresAt: expiresAt || undefined,
       };
 
+      // Ensure a local `listingId` exists for off-chain listings to avoid
+      // duplicate-null unique index issues in MongoDB. Use a timestamp-based
+      // id which is sufficiently unique for dev/test purposes.
+      listingData.listingId = Date.now();
+
       // Set pricing based on listing type
       if (listingType === "sale") {
         // Price already in wei from frontend
