@@ -73,6 +73,25 @@ Invoke-RestMethod http://localhost:4006/health  # User
 Invoke-RestMethod http://localhost:4007/health  # KYC
 ```
 
+### Base URLs & Postman (Khuyến nghị)
+
+- Dùng **API Gateway** làm điểm vào duy nhất cho frontend và Postman: `http://localhost:4000`.
+- Các dịch vụ nội bộ sẽ được gateway định tuyến theo tiền tố URL:
+
+  - `/api/marketplace` → Marketplace Service
+  - `/api/query` → Query / Indexer APIs
+  - `/api/admin` → Admin Service
+  - `/api/ipfs` → IPFS Service
+  - `/api/auth` → Auth Service
+
+- Trong Postman, khuyến nghị tạo Environment với các biến:
+
+  - `base_url = http://localhost:4000`
+  - `marketplace_base_url = {{base_url}}/api/marketplace`
+  - `indexer_base_url = {{base_url}}/api/query`
+
+- Lưu ý: tránh gọi service trực tiếp qua cổng (ví dụ `http://localhost:4008`) khi frontend/multi-service flow phụ thuộc vào gateway (cơ chế CORS, proxy và rewrite path). Sử dụng gateway để đảm bảo các rewrite path hoạt động và dễ cấu hình môi trường.
+
 ---
 
 ## 🏗️ Kiến Trúc

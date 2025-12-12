@@ -47,7 +47,12 @@ exports.getMyNFTs = async (req, res) => {
       };
       matchFilter =
         includeInactive !== "true"
-          ? { $and: [ownerOrCurrent, { isActive: true }] }
+          ? {
+              $and: [
+                ownerOrCurrent,
+                { $or: [{ isActive: true }, { isActive: { $exists: false } }] },
+              ],
+            }
           : ownerOrCurrent;
     } else {
       const fld =
@@ -60,7 +65,10 @@ exports.getMyNFTs = async (req, res) => {
           : "currentOwner";
       matchFilter =
         includeInactive !== "true"
-          ? { [fld]: walletRegex, isActive: true }
+          ? {
+              [fld]: walletRegex,
+              $or: [{ isActive: true }, { isActive: { $exists: false } }],
+            }
           : { [fld]: walletRegex };
     }
 
@@ -140,7 +148,12 @@ exports.getMyNFTs = async (req, res) => {
     };
     const countQuery =
       includeInactive !== "true"
-        ? { $and: [ownerCountQuery, { isActive: true }] }
+        ? {
+            $and: [
+              ownerCountQuery,
+              { $or: [{ isActive: true }, { isActive: { $exists: false } }] },
+            ],
+          }
         : ownerCountQuery;
     const total = await NFT.countDocuments(countQuery);
 

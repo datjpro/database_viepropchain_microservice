@@ -8,12 +8,12 @@
   "variable": [
     {
       "key": "marketplace_base_url",
-      "value": "http://localhost:4009",
+      "value": "http://localhost:4000/api/marketplace",
       "type": "string"
     },
     {
       "key": "indexer_base_url",
-      "value": "http://localhost:4005",
+      "value": "http://localhost:4000/api/query",
       "type": "string"
     },
     {
@@ -43,9 +43,9 @@
           "raw": "{\n  \"tokenId\": {{tokenId}},\n  \"contractAddress\": \"{{marketplace_contract_address}}\",\n  \"propertyId\": \"<PUT_PROPERTY_ID_HERE>\",\n  \"price\": \"<PRICE_IN_WEI>\",\n  \"description\": \"Test off-chain listing\",\n  \"signature\": \"<SIGNATURE_FROM_GEN_SCRIPT>\",\n  \"isOffchain\": true\n}"
         },
         "url": {
-          "raw": "{{marketplace_base_url}}/api/listings",
+          "raw": "{{marketplace_base_url}}/listings",
           "host": ["{{marketplace_base_url}}"],
-          "path": ["api", "listings"]
+          "path": ["listings"]
         }
       },
       "response": []
@@ -58,9 +58,9 @@
           { "key": "Authorization", "value": "Bearer {{auth_token}}" }
         ],
         "url": {
-          "raw": "{{marketplace_base_url}}/api/listings/{{tokenId}}",
+          "raw": "{{marketplace_base_url}}/listings/{{tokenId}}",
           "host": ["{{marketplace_base_url}}"],
-          "path": ["api", "listings", "{{tokenId}}"]
+          "path": ["listings", "{{tokenId}}"]
         }
       },
       "response": []

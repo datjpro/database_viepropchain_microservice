@@ -36,17 +36,23 @@ async function main() {
   // Require model after connection (some setups expect mongoose instance)
   const NFT = require(path.resolve(__dirname, "..", "src", "models", "NFT"));
 
-  const orQuery = {
-    $or: [
-      { owner: walletRegex },
-      { currentOwner: walletRegex },
-      { mintedBy: walletRegex },
-      { originalOwner: walletRegex },
-    ],
-  };
+  // Default: only search NFTs owned by the wallet (owner/currentOwner).
+  // Pass `--include-minted` or set env `INCLUDE_MINTED=true` to include mintedBy/originalOwner.
+  const includeMinted =
+    process.argv.includes("--include-minted") ||
+    process.env.INCLUDE_MINTED === "true";
+
+  const orClauses = [{ owner: walletRegex }, { currentOwner: walletRegex }];
+  if (includeMinted) {
+    orClauses.push({ mintedBy: walletRegex }, { originalOwner: walletRegex });
+  }
+
+  const orQuery = { $or: orClauses };
 
   const total = await NFT.countDocuments(orQuery);
-  console.log(`Found ${total} matching NFT(s) for wallet ${walletArg}`);
+  console.log(
+    `Found ${total} matching NFT(s) for wallet ${walletArg} (includeMinted=${includeMinted})`
+  );
 
   if (total > 0) {
     const docs = await NFT.find(orQuery).limit(50).lean();
@@ -56,6 +62,8 @@ async function main() {
       console.log(
         `owner: ${d.owner}  currentOwner: ${d.currentOwner}  mintedBy: ${d.mintedBy}`
       );
+      if (includeMinted)
+        console.log("(included by minted/original owner search)");
       console.log(`propertyId: ${d.propertyId}  status: ${d.status}`);
       if (d.metadataUri) console.log(`metadataUri: ${d.metadataUri}`);
     }
