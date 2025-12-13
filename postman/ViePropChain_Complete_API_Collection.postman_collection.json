@@ -6,6 +6,21 @@
   },
   "item": [
     {
+      "name": "⚠️ Gateway Note",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["health"]
+        },
+        "description": "Use API Gateway as the single entry point for Postman tests.\nSet environment vars: base_url=http://localhost:4000, marketplace_base_url={{base_url}}/api/marketplace, indexer_base_url={{base_url}}/api/query."
+      }
+    },
+    {
       "name": "📖 0. Hướng Dẫn Sử Dụng",
       "item": [
         {

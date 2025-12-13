@@ -10,11 +10,16 @@ const {
   getProvider,
   NFT_CONTRACT_ADDRESS,
 } = require("../config/blockchain");
-const { CONTRACT_ABI } = require("../config/contract");
+const {
+  CONTRACT_ABI,
+  MARKETPLACE_ABI,
+  MARKETPLACE_CONTRACT_ADDRESS,
+} = require("../config/contract");
 
 class ContractService {
   constructor() {
     this.contract = null;
+    this.marketplaceContract = null;
   }
 
   /**
@@ -42,7 +47,17 @@ class ContractService {
         signer
       );
 
-      console.log(`✅ Contract initialized at ${NFT_CONTRACT_ADDRESS}`);
+      // Initialize marketplace contract
+      this.marketplaceContract = new ethers.Contract(
+        MARKETPLACE_CONTRACT_ADDRESS,
+        MARKETPLACE_ABI,
+        signer
+      );
+
+      console.log(`✅ NFT Contract initialized at ${NFT_CONTRACT_ADDRESS}`);
+      console.log(
+        `✅ Marketplace Contract initialized at ${MARKETPLACE_CONTRACT_ADDRESS}`
+      );
       return this.contract;
     } catch (error) {
       console.error("❌ Contract init error:", error.message);
@@ -52,8 +67,11 @@ class ContractService {
 
   /**
    * Mint NFT
+   * @param {string} recipient - Wallet address to receive NFT
+   * @param {string} tokenURI - Metadata URI (ipfs://...)
+   * @param {boolean} isCustodial - True nếu mint vào ví Admin (khóa ngay), false nếu mint vào ví user
    */
-  async mintNFT(recipient, tokenURI) {
+  async mintNFT(recipient, tokenURI, isCustodial = false) {
     try {
       // Đảm bảo contract được khởi tạo
       if (!this.contract) {
@@ -67,6 +85,11 @@ class ContractService {
       console.log(`🔄 Checking for duplicate NFT...`);
       console.log(`   Recipient: ${recipient}`);
       console.log(`   TokenURI: ${tokenURI}`);
+      console.log(
+        `   Custodial Mode: ${
+          isCustodial ? "🏦 YES (Will lock NFT)" : "❌ NO (Normal mint)"
+        }`
+      );
 
       // Check if tokenURI already exists
       const tokenURIExists = await this.contract.tokenURIExists(tokenURI);
@@ -90,7 +113,17 @@ class ContractService {
       console.log(`🔄 Minting new NFT...`);
 
       // Call smart contract mint function
-      const tx = await this.contract.mint(recipient, tokenURI);
+      let tx;
+      if (isCustodial) {
+        // Gọi mintCustodial (mint + lock)
+        console.log(`   🏦 Calling mintCustodial() - NFT will be LOCKED`);
+        tx = await this.contract.mintCustodial(recipient, tokenURI);
+      } else {
+        // Gọi mint thường (không lock)
+        console.log(`   ✅ Calling mint() - NFT will be FREE to transfer`);
+        tx = await this.contract.mint(recipient, tokenURI);
+      }
+
       console.log(`   Transaction sent: ${tx.hash}`);
 
       // Wait for confirmation
@@ -246,7 +279,7 @@ class ContractService {
   }
 
   /**
-   * Transfer NFT
+   * Transfer NFT - Tự động phát hiện NFT bị khóa và dùng claimNFT
    */
   async transferNFT(from, to, tokenId) {
     try {
@@ -256,11 +289,46 @@ class ContractService {
 
       console.log(`🔄 Transferring NFT #${tokenId} from ${from} to ${to}`);
 
-      const tx = await this.contract.transferFrom(from, to, tokenId);
+      // Kiểm tra xem NFT có bị khóa không
+      const isLocked = await this.contract.isLocked(tokenId);
+      console.log(`   NFT locked status: ${isLocked}`);
+
+      // Get the current owner to verify
+      const currentOwner = await this.contract.ownerOf(tokenId);
+      console.log(`   Current owner: ${currentOwner}`);
+      console.log(`   Signer address: ${this.contract.runner.address}`);
+
+      // Verify the signer is the owner
+      if (
+        currentOwner.toLowerCase() !==
+        this.contract.runner.address.toLowerCase()
+      ) {
+        throw new Error(
+          `Signer ${this.contract.runner.address} is not the owner of token ${tokenId}. Owner is ${currentOwner}`
+        );
+      }
+
+      let tx;
+      if (isLocked) {
+        // NFT bị khóa - dùng claimNFT để mở khóa và chuyển trong 1 lần
+        console.log(
+          `   🔓 NFT is locked - using claimNFT() to unlock and transfer`
+        );
+        tx = await this.contract.claimNFT(from, to, tokenId);
+      } else {
+        // NFT không bị khóa - dùng safeTransferFrom bình thường
+        console.log(`   ✅ NFT is unlocked - using safeTransferFrom()`);
+        tx = await this.contract["safeTransferFrom(address,address,uint256)"](
+          from,
+          to,
+          tokenId
+        );
+      }
+
       console.log(`   Transaction sent: ${tx.hash}`);
 
       const receipt = await tx.wait();
-      console.log(`   ✅ Transfer confirmed`);
+      console.log(`   ✅ Transfer confirmed in block ${receipt.blockNumber}`);
 
       return {
         tokenId: Number(tokenId),
@@ -268,8 +336,10 @@ class ContractService {
         to,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
+        wasLocked: isLocked,
       };
     } catch (error) {
+      console.error(`❌ Transfer error details:`, error);
       throw new Error(`Transfer failed: ${error.message}`);
     }
   }
@@ -553,6 +623,173 @@ class ContractService {
       };
     } catch (error) {
       throw new Error(`Failed to check rental status: ${error.message}`);
+    }
+  }
+
+  /**
+   * ========================================================================
+   * MARKETPLACE FUNCTIONS
+   * ========================================================================
+   */
+
+  /**
+   * List NFT for sale on marketplace
+   * @param {number} tokenId - NFT token ID
+   * @param {string} priceInWei - Price in wei (string to handle large numbers)
+   * @param {string} sellerWallet - Seller wallet address
+   * @returns {Object} Transaction receipt
+   */
+  async listItem(tokenId, priceInWei, sellerWallet) {
+    try {
+      console.log(`📋 Listing NFT #${tokenId} for sale...`);
+      console.log(`   Price: ${priceInWei} wei`);
+      console.log(`   Seller: ${sellerWallet}`);
+
+      if (!this.marketplaceContract) {
+        throw new Error("Marketplace contract not initialized");
+      }
+
+      // Step 1: Approve Marketplace to transfer NFT
+      console.log(`🔓 Approving Marketplace to transfer NFT #${tokenId}...`);
+      const approveTx = await this.contract.approve(
+        MARKETPLACE_CONTRACT_ADDRESS,
+        tokenId
+      );
+      await approveTx.wait();
+      console.log(`✅ NFT #${tokenId} approved for Marketplace`);
+
+      // Step 2: Call listItem on marketplace contract
+      const tx = await this.marketplaceContract.listItem(tokenId, priceInWei);
+      console.log(`   Transaction sent: ${tx.hash}`);
+
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      console.log(
+        `✅ NFT #${tokenId} listed successfully in block ${receipt.blockNumber}`
+      );
+
+      // Step 3: Get listingId from event
+      const listingId =
+        receipt.logs.length > 0 ? receipt.logs[0].topics[1] : null;
+      const listingIdDecimal = listingId ? parseInt(listingId, 16) : null;
+
+      return {
+        success: true,
+        transactionHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        listingId: listingIdDecimal,
+      };
+    } catch (error) {
+      console.error(`❌ Failed to list NFT #${tokenId}:`, error.message);
+      throw new Error(`Failed to list NFT: ${error.message}`);
+    }
+  }
+
+  /**
+   * List NFT for rent on marketplace
+   * @param {number} tokenId - NFT token ID
+   * @param {string} pricePerDayInWei - Price per day in wei
+   * @param {number} maxDurationDays - Maximum rental duration in days
+   * @param {string} sellerWallet - Seller wallet address
+   * @returns {Object} Transaction receipt
+   */
+  async listForRent(tokenId, pricePerDayInWei, maxDurationDays, sellerWallet) {
+    try {
+      console.log(`🏠 Listing NFT #${tokenId} for rent...`);
+      console.log(`   Price per day: ${pricePerDayInWei} wei`);
+      console.log(`   Max duration: ${maxDurationDays} days`);
+      console.log(`   Seller: ${sellerWallet}`);
+
+      if (!this.marketplaceContract) {
+        throw new Error("Marketplace contract not initialized");
+      }
+
+      // Step 1: Approve Marketplace to manage NFT (for setUser)
+      console.log(`🔓 Approving Marketplace for NFT #${tokenId}...`);
+      const approveTx = await this.contract.approve(
+        MARKETPLACE_CONTRACT_ADDRESS,
+        tokenId
+      );
+      await approveTx.wait();
+      console.log(`✅ NFT #${tokenId} approved for Marketplace`);
+
+      // Step 2: Call listForRent on marketplace contract
+      const tx = await this.marketplaceContract.listForRent(
+        tokenId,
+        pricePerDayInWei,
+        maxDurationDays
+      );
+      console.log(`   Transaction sent: ${tx.hash}`);
+
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      console.log(
+        `✅ NFT #${tokenId} listed for rent successfully in block ${receipt.blockNumber}`
+      );
+
+      // Step 3: Get listingId from event
+      const listingId =
+        receipt.logs.length > 0 ? receipt.logs[0].topics[1] : null;
+      const listingIdDecimal = listingId ? parseInt(listingId, 16) : null;
+
+      return {
+        success: true,
+        transactionHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString(),
+        listingId: listingIdDecimal,
+      };
+    } catch (error) {
+      console.error(
+        `❌ Failed to list NFT #${tokenId} for rent:`,
+        error.message
+      );
+      throw new Error(`Failed to list NFT for rent: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get listing count from marketplace
+   * @returns {number} Total number of listings
+   */
+  async getListingCount() {
+    try {
+      if (!this.marketplaceContract) {
+        throw new Error("Marketplace contract not initialized");
+      }
+
+      const count = await this.marketplaceContract.getListingCount();
+      return Number(count);
+    } catch (error) {
+      throw new Error(`Failed to get listing count: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get listing details by listing ID
+   * @param {number} listingId - Listing ID
+   * @returns {Object} Listing details
+   */
+  async getListing(listingId) {
+    try {
+      if (!this.marketplaceContract) {
+        throw new Error("Marketplace contract not initialized");
+      }
+
+      const listing = await this.marketplaceContract.getListing(listingId);
+
+      return {
+        listingId: Number(listing.listingId),
+        seller: listing.seller,
+        tokenId: Number(listing.tokenId),
+        price: listing.price.toString(),
+        status: Number(listing.status), // 0=Active, 1=Sold, 2=Cancelled
+        listingType: Number(listing.listingType), // 0=Sale, 1=Rental
+        rentalDuration: listing.rentalDuration.toString(),
+      };
+    } catch (error) {
+      throw new Error(`Failed to get listing ${listingId}: ${error.message}`);
     }
   }
 }

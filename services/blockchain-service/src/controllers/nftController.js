@@ -12,7 +12,7 @@ class NFTController {
    */
   async mint(req, res) {
     try {
-      const { recipient, tokenURI } = req.body;
+      const { recipient, tokenURI, isCustodial } = req.body;
 
       if (!recipient || !tokenURI) {
         return res.status(400).json({
@@ -21,7 +21,11 @@ class NFTController {
         });
       }
 
-      const result = await contractService.mintNFT(recipient, tokenURI);
+      const result = await contractService.mintNFT(
+        recipient,
+        tokenURI,
+        isCustodial || false
+      );
 
       // Check if it's a duplicate
       if (result.isDuplicate) {

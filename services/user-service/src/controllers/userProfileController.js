@@ -426,6 +426,99 @@ class UserProfileController {
       });
     }
   }
+
+  /**
+   * Get user's properties - all lifecycle stages
+   */
+  async getMyProperties(req, res) {
+    try {
+      const userId = req.user?.id || req.user?.userId;
+      const walletAddress = req.user?.walletAddress;
+
+      if (!userId && !walletAddress) {
+        return res.status(401).json({
+          success: false,
+          error: "User not authenticated",
+        });
+      }
+
+      console.log("🔍 Fetching properties for user:", {
+        userId,
+        walletAddress,
+      });
+
+      // Mock data for now - in real implementation, fetch from multiple sources
+      const mockProperties = [
+        {
+          id: "prop1",
+          name: "Villa Quận 7",
+          address: "123 Nguyễn Văn Linh, Quận 7, TP.HCM",
+          area: 200,
+          status: "active",
+          images: ["/api/placeholder/300/200"],
+          nftData: {
+            tokenId: 12,
+            contractAddress: "0x123...",
+          },
+          currentListing: null,
+          createdAt: new Date(),
+        },
+        {
+          id: "prop2",
+          name: "Chung cư Vinhomes",
+          address: "456 Võ Văn Kiệt, Quận 1, TP.HCM",
+          area: 80,
+          status: "active",
+          images: ["/api/placeholder/300/200"],
+          nftData: {
+            tokenId: 15,
+            contractAddress: "0x123...",
+          },
+          currentListing: {
+            type: "sale",
+            price: "5.5",
+            createdAt: new Date(),
+          },
+          createdAt: new Date(),
+        },
+        {
+          id: "prop3",
+          name: "Nhà phố Gò Vấp",
+          address: "789 Quang Trung, Gò Vấp, TP.HCM",
+          area: 120,
+          status: "pending",
+          images: ["/api/placeholder/300/200"],
+          nftData: null,
+          currentListing: null,
+          createdAt: new Date(),
+        },
+        {
+          id: "prop4",
+          name: "Căn hộ dịch vụ",
+          address: "321 Lê Lai, Quận 1, TP.HCM",
+          area: 45,
+          status: "draft",
+          images: ["/api/placeholder/300/200"],
+          nftData: null,
+          currentListing: null,
+          createdAt: new Date(),
+        },
+      ];
+
+      res.json({
+        success: true,
+        data: mockProperties,
+        message: "Properties retrieved successfully",
+      });
+    } catch (error) {
+      console.error("❌ Get my properties error:", error.message);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get properties",
+        message: error.message,
+      });
+    }
+  }
 }
 
 module.exports = new UserProfileController();

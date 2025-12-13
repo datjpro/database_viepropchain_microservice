@@ -49,4 +49,11 @@ router.post("/users/:userId/reactivate", adminController.reactivateUser);
  */
 router.get("/statistics", adminController.getStatistics);
 
+/**
+ * POST /api/admin/fix-nft-ownership
+ * Manually sync NFT ownership from blockchain to database (Admin only)
+ * Body: { tokenId, newOwner }
+ */
+router.post("/fix-nft-ownership", adminController.fixNftOwnership);
+
 module.exports = router;

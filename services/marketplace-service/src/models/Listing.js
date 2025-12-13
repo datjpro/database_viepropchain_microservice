@@ -14,9 +14,20 @@ const listingSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Local listing identifier (used for off-chain listings)
+    listingId: {
+      type: Number,
+      index: true,
+    },
     contractAddress: {
       type: String,
       required: true,
+    },
+
+    // Blockchain Listing ID (from smart contract)
+    blockchainListingId: {
+      type: Number,
+      index: true,
     },
 
     // Property Information (from property service)
@@ -138,6 +149,10 @@ const listingSchema = new mongoose.Schema(
       name: String,
     },
     transactionHash: String,
+    // Off-chain listing support
+    isOffchain: { type: Boolean, default: false, index: true },
+    sellerSignature: { type: String, default: null },
+    signedPrice: { type: String, default: null },
 
     // Analytics
     views: {

@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 const offerSchema = new mongoose.Schema(
   {
     // Listing Information
-    listingId: {
+    listingRef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Listing",
       required: true,

@@ -29,6 +29,7 @@ router.post("/:id/view", listingController.trackView);
 router.post("/", verifyToken, listingController.createListing);
 router.post("/rental", verifyToken, listingController.createRentalListing);
 router.post("/:id/rent", verifyToken, listingController.rentNFT);
+router.post("/:id/buy", verifyToken, listingController.buyListing);
 router.put("/:id", verifyToken, listingController.updateListing);
 router.delete("/:id", verifyToken, listingController.cancelListing);
 router.get("/my/listings", verifyToken, listingController.getMyListings);

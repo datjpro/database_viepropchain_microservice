@@ -6,6 +6,7 @@
 
 const express = require("express");
 const userProfileController = require("../controllers/userProfileController");
+const { authenticate } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -48,6 +49,9 @@ router.put(
   "/profiles/user/:userId/kyc-status",
   userProfileController.updateKYCStatusByUserId
 );
+
+// Get user's properties (all lifecycle stages) - Temporarily without auth for testing
+router.get("/my-properties", userProfileController.getMyProperties);
 
 // Update wallet address when user links wallet (internal - called by Auth Service)
 router.put(
@@ -92,5 +96,8 @@ router.get(
 
 // Get user's complete dashboard data
 router.get("/users/:userId/dashboard", userProfileController.getUserDashboard);
+
+// Get user's properties (all lifecycle stages) - TEMPORARILY NO AUTH
+router.get("/my-properties", userProfileController.getMyProperties);
 
 module.exports = router;

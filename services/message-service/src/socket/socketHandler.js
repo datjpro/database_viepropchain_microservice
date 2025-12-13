@@ -1,5 +1,6 @@
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
+const setupLiveChatHandlers = require("./liveChatHandlers");
 
 class SocketHandler {
   constructor(io) {
@@ -24,7 +25,12 @@ class SocketHandler {
     // Send online status to user's contacts
     this.broadcastOnlineStatus(userId, true);
 
-    // Handle send message
+    // ============================================================
+    // SETUP LIVE CHAT HANDLERS (Hỗ trợ trực tuyến)
+    // ============================================================
+    setupLiveChatHandlers(this.io, socket);
+
+    // Handle send message (E2EE Chat)
     socket.on("send_message", async (data) => {
       await this.handleSendMessage(socket, data);
     });

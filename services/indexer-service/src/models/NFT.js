@@ -54,6 +54,20 @@ const nftSchema = new mongoose.Schema(
       attributes: [{ trait_type: String, value: mongoose.Schema.Types.Mixed }],
     },
 
+    // Marketplace / Indexer fields
+    isListed: { type: Boolean, default: false, index: true },
+    listingType: { type: String, enum: ["sale", "rental"], default: null },
+    currentPrice: { type: String, default: null }, // store as string (wei)
+    activeListingId: { type: Number, default: 0, index: true },
+
+    // Rental fields (ERC-4907)
+    renter: { type: String, lowercase: true, default: null, index: true },
+    rentExpiresAt: { type: Date, default: null, index: true },
+
+    // Sales history summary
+    lastSalePrice: { type: String, default: null },
+    totalSales: { type: Number, default: 0 },
+
     isActive: { type: Boolean, default: true, index: true },
     lastSyncedAt: { type: Date, default: Date.now },
   },

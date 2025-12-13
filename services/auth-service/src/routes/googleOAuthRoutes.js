@@ -9,6 +9,7 @@ const router = express.Router();
 const passport = require("../config/passport");
 const googleOAuthController = require("../controllers/googleOAuthController");
 const verifyToken = require("../middleware/verifyToken");
+const verifyTokenOptional = require("../middleware/verifyTokenOptional");
 
 // ============================================================================
 // GOOGLE OAUTH LOGIN
@@ -45,7 +46,7 @@ router.get(
  * @desc    Get current user info
  * @access  Private (requires JWT token)
  */
-router.get("/me", verifyToken, googleOAuthController.getCurrentUser);
+router.get("/me", verifyTokenOptional, googleOAuthController.getCurrentUser);
 
 /**
  * @route   POST /auth/logout

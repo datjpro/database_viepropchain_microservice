@@ -80,6 +80,25 @@ app.use(
   })
 );
 
+// Upload Service (IPFS 4002) - /api/upload/* (Public file uploads)
+app.use(
+  "/api/upload",
+  createProxyMiddleware({
+    target: "http://localhost:4002",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/upload": "/upload", // Rewrite to /upload on IPFS service
+    },
+    onError: (err, req, res) => {
+      console.error("❌ Upload Service Error:", err.message);
+      res.status(503).json({
+        success: false,
+        error: "Upload Service unavailable",
+      });
+    },
+  })
+);
+
 // Admin Service (4003) - /api/admin/*
 app.use(
   "/api/admin",

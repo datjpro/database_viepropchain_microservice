@@ -18,6 +18,7 @@ const {
 } = require("./config/blockchain");
 const contractService = require("./services/contractService");
 const nftRoutes = require("./routes/nftRoutes");
+const marketplaceRoutes = require("./routes/marketplaceRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 4004;
@@ -59,6 +60,7 @@ app.get("/health", async (req, res) => {
 // ROUTES
 // ============================================================================
 app.use("/", nftRoutes);
+app.use("/", marketplaceRoutes);
 
 // ============================================================================
 // START SERVER
@@ -79,7 +81,11 @@ app.listen(PORT, () => {
 ║  ├─ GET  /nft/:tokenId        - Get NFT info                 ║
 ║  ├─ GET  /nfts/:owner         - Get NFTs by owner            ║
 ║  ├─ POST /transfer            - Transfer NFT                 ║
-║  └─ GET  /token-counter       - Get total minted             ║
+║  ├─ GET  /token-counter       - Get total minted             ║
+║  ├─ POST /marketplace/list    - List NFT for sale            ║
+║  ├─ POST /marketplace/list-rent - List NFT for rent          ║
+║  ├─ GET  /marketplace/listing-count - Get listing count      ║
+║  └─ GET  /marketplace/listing/:id - Get listing details      ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
 });
