@@ -1,0 +1,784 @@
+{
+  "info": {
+    "name": "💬 Message Service - E2EE & Server-Side Chat",
+    "description": "🔐 **DUAL ENCRYPTION ARCHITECTURE**\n\n**✅ FEATURES:**\n- 🔒 **E2EE Private Chats** (Admin cannot read - RSA-2048 + AES-256)\n- 💬 **Server-Side Chats** (Admin can read - Marketplace/Support/Dispute)\n- 🔑 **Key Management** (Public key registration & retrieval)\n- 👮 **Admin Tools** (Monitor server-side chats, flag, search)\n- ⚡ **Real-time** WebSocket + REST API\n- 📱 **Multi-device** sync & offline messages\n\n**📊 CHAT TYPES:**\n- `private`: E2EE encrypted, zero-knowledge, admin blocked\n- `marketplace`: Server-side, admin readable, dispute resolution\n- `support`: Server-side, customer service, ticket assignment\n- `dispute`: Server-side, evidence preservation, priority handling\n\n**🔧 ARCHITECTURE:**\n```\nE2EE Flow:\n1. Client generates RSA keypair\n2. Upload public key to server\n3. Retrieve recipient's public key\n4. Encrypt message with AES-256\n5. Encrypt AES key with recipient's RSA public key\n6. Server stores encrypted data (cannot decrypt)\n\nServer-Side Flow:\n1. Client sends plaintext message\n2. Server stores plaintext\n3. Admin can view/search/flag for moderation\n```\n\n**🎯 SERVICE INFO:**\n- Port: 4008 (HTTP + WebSocket)\n- WebSocket: ws://localhost:4008 (Socket.IO)\n- Auth: JWT Bearer token\n- Database: MongoDB (viepropchain)\n\n**📖 DOCUMENTATION:**\nSee E2EE_ARCHITECTURE.md for complete implementation guide\n\n**🚀 QUICK TEST:**\n1. Login & get JWT token\n2. Register E2EE keys (Key Management)\n3. Send E2EE private message\n4. Send server-side marketplace message\n5. Admin view server-side (blocks E2EE)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "⚠️ Gateway Note",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["health"]
+        },
+        "description": "Use API Gateway as the single entry point for Postman tests. Set env: base_url=http://localhost:4000, marketplace_base_url={{base_url}}/api/marketplace, indexer_base_url={{base_url}}/api/query."
+      }
+    },
+    {
+      "name": "🔑 Key Management (E2EE)",
+      "item": [
+        {
+          "name": "Register Public Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"✅ Public key registered\");",
+                  "    console.log(\"🔑 Fingerprint: \" + jsonData.data.key_fingerprint);",
+                  "    console.log(\"📱 Device: \" + jsonData.data.device_name);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_key\": \"-----BEGIN PUBLIC KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1234...\\n-----END PUBLIC KEY-----\",\n  \"device_name\": \"Chrome on Windows\",\n  \"platform\": \"web\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/keys/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "keys", "register"]
+            },
+            "description": "🔑 **Register User's Public Key for E2EE**\n\n**Purpose:** Store user's RSA public key for E2EE encryption\n\n**Client-side Key Generation (Web Crypto API):**\n```javascript\nconst keyPair = await window.crypto.subtle.generateKey(\n  { name: \"RSA-OAEP\", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: \"SHA-256\" },\n  true,\n  [\"encrypt\", \"decrypt\"]\n);\n\nconst publicKey = await window.crypto.subtle.exportKey(\"spki\", keyPair.publicKey);\nconst publicKeyPem = arrayBufferToBase64(publicKey);\n// Store privateKey in IndexedDB securely\n```\n\n**Body:**\n- `public_key`: PEM-formatted RSA public key (2048-bit)\n- `device_name`: Human-readable device identifier\n- `platform`: \"web\", \"ios\", \"android\"\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Public key registered successfully\",\n  \"data\": {\n    \"user_id\": \"user123\",\n    \"key_fingerprint\": \"abc123...\",\n    \"device_name\": \"Chrome on Windows\",\n    \"active\": true\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get My Public Key",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/keys/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "keys", "me"]
+            },
+            "description": "Get current user's active public key"
+          }
+        },
+        {
+          "name": "Get User's Public Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"recipient_public_key\", jsonData.data.public_key);",
+                  "    console.log(\"✅ Recipient public key retrieved\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/keys/{{recipient_user_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "keys", "{{recipient_user_id}}"]
+            },
+            "description": "🔍 **Get Recipient's Public Key**\n\n**Purpose:** Retrieve another user's public key to encrypt messages for them\n\n**Use Case:**\n1. Before sending E2EE message\n2. Get recipient's public key\n3. Encrypt AES key with this RSA public key\n4. Send encrypted message\n\n**Auto-set:** {{recipient_public_key}}"
+          }
+        },
+        {
+          "name": "Get Batch Public Keys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_ids\": [\"user1_id\", \"user2_id\", \"user3_id\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/keys/batch",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "keys", "batch"]
+            },
+            "description": "Get multiple users' public keys at once (for group chats)"
+          }
+        },
+        {
+          "name": "Revoke Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Device lost or compromised\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/keys/revoke",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "keys", "revoke"]
+            },
+            "description": "Revoke current public key (e.g., lost device, security breach)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Messaging (E2EE & Server-Side)",
+      "item": [
+        {
+          "name": "Send E2EE Message (Private)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"message_id\", jsonData.data._id);",
+                  "    console.log(\"🔒 E2EE message sent (admin cannot read)\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_id\": \"{{recipient_user_id}}\",\n  \"content\": \"<base64_encrypted_content>\",\n  \"chat_type\": \"private\",\n  \"encryption\": {\n    \"type\": \"e2ee\",\n    \"encrypted_keys\": {\n      \"sender_user_id\": \"<encrypted_aes_key_for_sender>\",\n      \"recipient_user_id\": \"<encrypted_aes_key_for_recipient>\"\n    },\n    \"iv\": \"<base64_iv>\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/send",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "send"]
+            },
+            "description": "🔒 **Send End-to-End Encrypted Message**\n\n**Encryption Process (Client-side):**\n```javascript\n// 1. Generate AES-256 key\nconst aesKey = await crypto.subtle.generateKey(\n  { name: \"AES-CBC\", length: 256 },\n  true,\n  [\"encrypt\", \"decrypt\"]\n);\n\n// 2. Generate random IV\nconst iv = crypto.getRandomValues(new Uint8Array(16));\n\n// 3. Encrypt message with AES\nconst encrypted = await crypto.subtle.encrypt(\n  { name: \"AES-CBC\", iv },\n  aesKey,\n  new TextEncoder().encode(plaintext)\n);\n\n// 4. Encrypt AES key with recipient's RSA public key\nconst encryptedKey = await crypto.subtle.encrypt(\n  { name: \"RSA-OAEP\" },\n  recipientPublicKey,\n  await crypto.subtle.exportKey(\"raw\", aesKey)\n);\n\n// 5. Send to server\nfetch('/api/messages/send', {\n  method: 'POST',\n  body: JSON.stringify({\n    recipient_id: recipientId,\n    content: arrayBufferToBase64(encrypted),\n    chat_type: 'private',\n    encryption: {\n      type: 'e2ee',\n      encrypted_keys: {\n        [senderId]: encryptedKeyForSender,\n        [recipientId]: arrayBufferToBase64(encryptedKey)\n      },\n      iv: arrayBufferToBase64(iv)\n    }\n  })\n});\n```\n\n**Result:** Message stored encrypted, admin CANNOT decrypt"
+          }
+        },
+        {
+          "name": "Send Server-Side Message (Marketplace)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    console.log(\"💬 Server-side message sent (admin can read)\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_id\": \"{{recipient_user_id}}\",\n  \"content\": \"I'm interested in buying your property listed for 50 ETH\",\n  \"chat_type\": \"marketplace\",\n  \"metadata\": {\n    \"listing_id\": \"{{listing_id}}\",\n    \"property_id\": \"{{property_id}}\",\n    \"offer_amount\": \"45000000000000000000\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/send",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "send"]
+            },
+            "description": "💬 **Send Marketplace Message (Server-Side)**\n\n**Purpose:** Communicate about property listings, admin can view for dispute resolution\n\n**Body:**\n- `content`: Plain text message\n- `chat_type`: \"marketplace\" (or \"support\", \"dispute\")\n- `metadata`: Context info (listing_id, property_id, etc.)\n\n**Difference from E2EE:**\n- ❌ No encryption object\n- ✅ Admin can read content\n- ✅ Searchable by admin\n- ✅ Can be flagged for review\n\n**Use Cases:**\n- Marketplace negotiations\n- Customer support tickets\n- Dispute resolution\n- Evidence preservation"
+          }
+        },
+        {
+          "name": "Get Chat Messages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log(\"📬 Messages retrieved: \" + jsonData.data.messages.length);",
+                  "    console.log(\"🔒 Chat type: \" + jsonData.data.chat.chat_type);",
+                  "    console.log(\"🔐 E2EE enabled: \" + jsonData.data.chat.encryption_enabled);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/chat/{{recipient_user_id}}?page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "chat", "{{recipient_user_id}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "📬 **Get Conversation Messages**\n\n**Returns:**\n- All messages in conversation\n- Chat metadata (type, encryption status)\n- Pagination support\n\n**Client must decrypt E2EE messages:**\n```javascript\nfor (const msg of messages) {\n  if (msg.encryption && msg.encryption.type === 'e2ee') {\n    // 1. Decrypt AES key with private key\n    const aesKey = await decryptAESKey(msg.encryption.encrypted_keys[myUserId]);\n    \n    // 2. Decrypt message content\n    const plaintext = await decryptMessage(msg.content, aesKey, msg.encryption.iv);\n    \n    msg.decryptedContent = plaintext;\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get My Chats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/chats?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "chats"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get list of all user's conversations"
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/{{message_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "{{message_id}}"]
+            },
+            "description": "Soft delete message (only for sender)"
+          }
+        },
+        {
+          "name": "Mark Messages as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/read/{{recipient_user_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "read", "{{recipient_user_id}}"]
+            },
+            "description": "Mark all messages in conversation as read"
+          }
+        },
+        {
+          "name": "Search Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/search?query=property&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "property"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "🔍 **Search Messages**\n\n**Note:** Only searches NON-E2EE messages (server-side chat types)\n\n**E2EE messages cannot be searched** because content is encrypted"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👮 Admin Tools (Server-Side Only)",
+      "item": [
+        {
+          "name": "Get All Server-Side Chats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/chats?chat_type=marketplace&status=active&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "admin", "chats"],
+              "query": [
+                {
+                  "key": "chat_type",
+                  "value": "marketplace",
+                  "description": "marketplace, support, dispute"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active, resolved, closed, escalated"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "👮 **Admin: View Server-Side Chats**\n\n**Purpose:** Monitor marketplace/support/dispute conversations\n\n**Filters:**\n- `chat_type`: marketplace, support, dispute\n- `status`: active, resolved, closed, escalated\n- `priority`: low, medium, high, urgent\n\n**⚠️ BLOCKS E2EE:** Cannot view private chats\n\n**TODO:** Add `verifyAdmin` middleware"
+          }
+        },
+        {
+          "name": "Get Chat Messages (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/chats/{{chat_id}}/messages?page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": [
+                "api",
+                "messages",
+                "admin",
+                "chats",
+                "{{chat_id}}",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "👮 **Admin: Read Chat Messages**\n\n**Returns:** Plain text messages if server-side chat\n\n**⚠️ E2EE PROTECTION:**\nIf chat is E2EE:\n```json\n{\n  \"success\": false,\n  \"message\": \"Access denied. This is an E2EE chat. Admin cannot access encrypted messages.\"\n}\n```\n\nHTTP 403 Forbidden"
+          }
+        },
+        {
+          "name": "Assign Chat to Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_id\": \"{{user_id}}\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/chats/{{chat_id}}/assign",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": [
+                "api",
+                "messages",
+                "admin",
+                "chats",
+                "{{chat_id}}",
+                "assign"
+              ]
+            },
+            "description": "Assign support/dispute chat to specific admin"
+          }
+        },
+        {
+          "name": "Update Chat Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolution_note\": \"Issue resolved, buyer and seller reached agreement\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/chats/{{chat_id}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": [
+                "api",
+                "messages",
+                "admin",
+                "chats",
+                "{{chat_id}}",
+                "status"
+              ]
+            },
+            "description": "Update chat status (active → resolved → closed)"
+          }
+        },
+        {
+          "name": "Flag Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Inappropriate content or potential scam\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/messages/{{message_id}}/flag",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": [
+                "api",
+                "messages",
+                "admin",
+                "messages",
+                "{{message_id}}",
+                "flag"
+              ]
+            },
+            "description": "👮 **Flag Message for Review**\n\n**Purpose:** Mark suspicious messages\n\n**⚠️ Cannot flag E2EE messages** (403 error)"
+          }
+        },
+        {
+          "name": "Get Flagged Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/flagged?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "admin", "flagged"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all flagged messages for review"
+          }
+        },
+        {
+          "name": "Search Server-Side Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/search?query=scam&chat_type=marketplace&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "admin", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "scam"
+                },
+                {
+                  "key": "chat_type",
+                  "value": "marketplace",
+                  "description": "Filter by chat type"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "🔍 **Admin: Full-Text Search**\n\n**Only searches server-side chats** (marketplace/support/dispute)\n\n**E2EE messages excluded** (cannot search encrypted content)"
+          }
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4008/api/messages/admin/stats",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["api", "messages", "admin", "stats"]
+            },
+            "description": "📊 **Admin Dashboard Statistics**\n\n**Returns:**\n```json\n{\n  \"totalServerSideChats\": 150,\n  \"byType\": {\n    \"marketplace\": 80,\n    \"support\": 50,\n    \"dispute\": 20\n  },\n  \"byStatus\": {\n    \"active\": 60,\n    \"resolved\": 70,\n    \"closed\": 15,\n    \"escalated\": 5\n  },\n  \"flaggedMessages\": 12,\n  \"unresolvedDisputes\": 8,\n  \"averageResolutionTime\": 3600000\n}\n```"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚡ WebSocket Events",
+      "item": [
+        {
+          "name": "WebSocket Connection Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4008/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4008",
+              "path": ["health"]
+            },
+            "description": "📡 **WebSocket Connection Guide**\n\n**Connect to WebSocket:**\n```javascript\nimport io from 'socket.io-client';\n\nconst socket = io('http://localhost:4008', {\n  auth: {\n    token: 'your_jwt_token_here'\n  }\n});\n\nsocket.on('connect', () => {\n  console.log('✅ Connected to message service');\n});\n\nsocket.on('new_message', (data) => {\n  console.log('📬 New message:', data);\n  // Decrypt if E2EE\n  if (data.encryption && data.encryption.type === 'e2ee') {\n    decryptMessage(data);\n  }\n});\n\nsocket.on('typing', (data) => {\n  console.log('⌨️ User typing:', data.userId);\n});\n\nsocket.on('message_deleted', (data) => {\n  console.log('🗑️ Message deleted:', data.messageId);\n});\n\nsocket.on('seen', (data) => {\n  console.log('👁️ Message seen:', data);\n});\n```\n\n**Emit Events:**\n```javascript\n// Typing indicator\nsocket.emit('typing', { chatId: 'chat123' });\n\n// Mark as seen\nsocket.emit('seen', { messageIds: ['msg1', 'msg2'] });\n```\n\n**Server Events:**\n- `new_message`: Real-time message delivery\n- `typing`: User typing indicator\n- `message_deleted`: Message soft delete\n- `seen`: Message read status\n- `offline_messages`: Delivered when user reconnects"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "🔐 JWT token from Auth Service"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "👤 Current user ID"
+    },
+    {
+      "key": "recipient_user_id",
+      "value": "",
+      "type": "string",
+      "description": "👤 Recipient user ID"
+    },
+    {
+      "key": "recipient_public_key",
+      "value": "",
+      "type": "string",
+      "description": "🔑 Recipient's RSA public key (auto-set)"
+    },
+    {
+      "key": "message_id",
+      "value": "",
+      "type": "string",
+      "description": "💬 Message ID (auto-set)"
+    },
+    {
+      "key": "chat_id",
+      "value": "",
+      "type": "string",
+      "description": "💬 Chat ID (auto-set)"
+    },
+    {
+      "key": "listing_id",
+      "value": "",
+      "type": "string",
+      "description": "🏠 Property listing ID (for marketplace messages)"
+    },
+    {
+      "key": "property_id",
+      "value": "",
+      "type": "string",
+      "description": "🏠 Property ID (for marketplace messages)"
+    }
+  ]
+}

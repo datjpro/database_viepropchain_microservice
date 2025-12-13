@@ -1,0 +1,22 @@
+{
+  "name": "indexer-service",
+  "version": "1.0.0",
+  "description": "Background service for indexing blockchain events",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:api": "node src/index.js",
+    "start:worker": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "mongoose": "^8.8.4",
+    "axios": "^1.5.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
