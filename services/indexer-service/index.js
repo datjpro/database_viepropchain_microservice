@@ -121,19 +121,14 @@ const { NFT, Property, Transaction } = require("../../shared/models");
 // CONFIGURATION
 // ============================================================================
 const GANACHE_URL = process.env.GANACHE_URL || "http://127.0.0.1:8545";
-const NFT_CONTRACT_ADDRESS = "0xEA4F5F49F396B13CA447FaA792A8702054019Cc8";
-const MARKETPLACE_CONTRACT_ADDRESS =
-  "0x75573f6E6C40780FDf378bA29FcBb8c25c611E24";
+const contractData = require("./contracts.json");
+const NFT_CONTRACT_ADDRESS = contractData.contracts.ViePropChainNFT.address;
+const MARKETPLACE_CONTRACT_ADDRESS = contractData.contracts.Marketplace.address;
 const POLL_INTERVAL = Number(process.env.POLL_INTERVAL) || 5000; // 5 seconds
 
 // Contract ABIs
-const NFT_ABI = require("./contract-abi.json");
-const MARKETPLACE_ABI = [
-  "event ItemListed(uint256 indexed listingId, address indexed seller, uint256 indexed tokenId, uint256 price)",
-  "event ItemSold(uint256 indexed listingId, address indexed buyer, uint256 tokenId)",
-  "event ListingCancelled(uint256 indexed listingId)",
-  "function getListing(uint256 _listingId) external view returns (tuple(uint256 listingId, address seller, uint256 tokenId, uint256 price, uint8 status))",
-];
+const NFT_ABI = contractData.contracts.ViePropChainNFT.abi;
+const MARKETPLACE_ABI = contractData.contracts.Marketplace.abi;
 
 // Listing Model (tạm thời inline, sau này sẽ move vào shared/models)
 const ListingSchema = new mongoose.Schema(

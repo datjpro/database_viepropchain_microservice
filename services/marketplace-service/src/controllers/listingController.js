@@ -1049,16 +1049,20 @@ exports.markAsRented = async (req, res) => {
 };
 
 /**
- * Buy NFT - Mark listing as sold
+ * Buy NFT - Handle both on-chain and off-chain purchases
  */
 exports.buyListing = async (req, res) => {
   try {
     const { id } = req.params;
     const { buyerAddress, transactionHash } = req.body;
+    const userId = req.user.userId;
+    const userWallet = req.user.walletAddress;
 
     console.log(`🛒 Processing buy request for listing ${id}:`, {
       buyerAddress,
       transactionHash,
+      userId,
+      userWallet,
     });
 
     // Validate required fields
@@ -1066,6 +1070,15 @@ exports.buyListing = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "Buyer address is required",
+      });
+    }
+
+    // Ensure buyer address matches authenticated user
+    if (buyerAddress.toLowerCase() !== userWallet.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: "Address mismatch",
+        message: "Buyer address must match your linked wallet",
       });
     }
 
@@ -1094,29 +1107,131 @@ exports.buyListing = async (req, res) => {
       });
     }
 
-    // Update listing status to sold
+    // Prevent self-purchase
+    if (
+      listing.seller.walletAddress.toLowerCase() === buyerAddress.toLowerCase()
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot buy your own NFT",
+        message: "You cannot purchase your own NFT listing",
+      });
+    }
+
+    let purchaseType = "on-chain";
+    let verifiedTransactionHash = transactionHash;
+
+    // ========================================================================
+    // OFF-CHAIN PURCHASE FLOW (with signature verification)
+    // ========================================================================
+    if (listing.isOffchain && listing.sellerSignature) {
+      console.log(
+        "🔐 Processing OFF-CHAIN purchase with signature verification"
+      );
+
+      purchaseType = "off-chain";
+
+      // Verify signature matches the signed price
+      if (listing.signedPrice !== listing.price.amount) {
+        return res.status(400).json({
+          success: false,
+          error: "Price mismatch",
+          message: "Listing price has changed since signature was created",
+        });
+      }
+
+      // Call Blockchain Service to verify signature and execute transfer
+      try {
+        console.log(
+          "🔗 Calling Blockchain Service for signature verification and transfer"
+        );
+
+        const blockchainResponse = await axios.post(
+          `${BLOCKCHAIN_SERVICE_URL}/marketplace/buy-with-signature`,
+          {
+            tokenId: listing.tokenId,
+            contractAddress: listing.contractAddress,
+            sellerAddress: listing.seller.walletAddress,
+            buyerAddress: buyerAddress,
+            price: listing.price.amount,
+            signature: listing.sellerSignature,
+          }
+        );
+
+        if (!blockchainResponse.data.success) {
+          return res.status(400).json({
+            success: false,
+            error: "Signature verification failed",
+            message:
+              blockchainResponse.data.message || "Invalid seller signature",
+          });
+        }
+
+        verifiedTransactionHash = blockchainResponse.data.data.transactionHash;
+        console.log(
+          "✅ Signature verified and NFT transferred via transaction:",
+          verifiedTransactionHash
+        );
+      } catch (blockchainError) {
+        console.error(
+          "❌ Blockchain service error:",
+          blockchainError.response?.data || blockchainError.message
+        );
+        return res.status(500).json({
+          success: false,
+          error: "Blockchain verification failed",
+          message: "Could not verify seller signature or execute transfer",
+        });
+      }
+    } else {
+      // ========================================================================
+      // ON-CHAIN PURCHASE FLOW (traditional MetaMask flow)
+      // ========================================================================
+      console.log("🔗 Processing ON-CHAIN purchase (traditional flow)");
+
+      if (!transactionHash) {
+        return res.status(400).json({
+          success: false,
+          error: "Transaction hash required",
+          message: "Transaction hash is required for on-chain purchases",
+        });
+      }
+
+      // TODO: Optionally verify transaction hash with blockchain service
+      // For now, we trust the frontend provided hash
+
+      purchaseType = "on-chain";
+    }
+
+    // ========================================================================
+    // UPDATE DATABASE - Mark as sold
+    // ========================================================================
     const updatedListing = await Listing.findByIdAndUpdate(
       id,
       {
         status: "sold",
         buyer: buyerAddress,
         soldAt: new Date(),
-        transactionHash: transactionHash || null,
+        transactionHash: verifiedTransactionHash || transactionHash,
+        purchaseType: purchaseType,
         updatedAt: new Date(),
       },
       { new: true }
     );
 
-    console.log(`✅ Listing ${id} marked as sold to ${buyerAddress}`);
+    console.log(
+      `✅ Listing ${id} marked as sold to ${buyerAddress} (${purchaseType})`
+    );
 
     res.json({
       success: true,
-      message: "NFT purchased successfully",
+      message: `NFT purchased successfully (${purchaseType})`,
       data: {
         listing: updatedListing,
-        transactionHash: transactionHash || null,
+        transactionHash: verifiedTransactionHash || transactionHash,
         buyer: buyerAddress,
         soldAt: updatedListing.soldAt,
+        purchaseType: purchaseType,
       },
     });
   } catch (error) {
