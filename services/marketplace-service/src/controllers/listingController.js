@@ -59,7 +59,7 @@ exports.createListing = async (req, res) => {
       listingType = "sale", // "sale" or "rent"
       pricePerDay, // for rental
       maxDurationDays, // for rental
-      signature, // optional off-chain seller signature
+      // signature removed - not needed for new contract
     } = req.body;
     const userId = req.user.userId;
     const walletAddress = req.user.walletAddress;
@@ -197,12 +197,7 @@ exports.createListing = async (req, res) => {
           amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
-        // If provided, store off-chain signature info when updating
-        if (signature) {
-          existingListing.isOffchain = true;
-          existingListing.sellerSignature = signature;
-          existingListing.signedPrice = price;
-        }
+        // Signature removed for new contract
         // Clear rental info if switching from rent to sale
         existingListing.rental = undefined;
       } else if (listingType === "rent") {
@@ -217,7 +212,7 @@ exports.createListing = async (req, res) => {
             amount: price, // Use price directly, already in wei
             currency: "ETH",
           };
-          if (signature) existingListing.signedPrice = price;
+          // signedPrice removed
         }
       }
 
@@ -257,8 +252,7 @@ exports.createListing = async (req, res) => {
           email: req.user.email,
           name: req.user.name || req.user.fullName,
         },
-        isOffchain: !!signature,
-        sellerSignature: signature || null,
+        // isOffchain and sellerSignature removed
         listingType,
         description,
         expiresAt: expiresAt || undefined,
@@ -276,7 +270,7 @@ exports.createListing = async (req, res) => {
           amount: price, // Use price directly, already in wei
           currency: "ETH",
         };
-        if (signature) listingData.signedPrice = price;
+        // signedPrice removed
       } else if (listingType === "rent") {
         listingData.rental = {
           pricePerDay: pricePerDay || price, // Use pricePerDay if provided, fallback to price
