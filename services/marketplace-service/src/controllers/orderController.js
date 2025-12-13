@@ -566,7 +566,7 @@ class OrderController {
 
       // 🔥 CRITICAL: Update NFT ownership in Property database
       // Database must reflect blockchain state to show correct owner on frontend
-      const Property = require("../../user-service/src/models/Property");
+      const { Property } = require("../../shared/models");
       const property = await Property.findOne({ "nft.tokenId": tokenId });
 
       if (property) {
